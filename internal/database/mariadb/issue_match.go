@@ -294,8 +294,8 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 	ord := NewOrder(order, entity.Order{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc})
 	columns := s.getIssueMatchColumns(ord.Sequence())
 	joins := issueMatchObject.GetJoins(filter, ord)
-	whereClause := issueMatchObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := issueMatchObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := issueMatchObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueMatchObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

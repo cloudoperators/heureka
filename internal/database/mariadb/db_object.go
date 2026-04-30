@@ -165,29 +165,30 @@ func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 	return NewJoinResolver(do.JoinDefs).Build(filter, order)
 }
 
-func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) string {
+func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) (string, bool) {
 	filterStr := do.GetFilterQuery(filter)
-	if filterStr != "" || withCursor {
-		return fmt.Sprintf("WHERE %s", filterStr)
+	hasFilter := filterStr != ""
+	if hasFilter || withCursor {
+		return fmt.Sprintf("WHERE %s", filterStr), hasFilter
 	}
 
-	return ""
+	return "", false
 }
 
-func (do *DbObject[ET]) GetCursorQuery(filter any, cursorFields []Field, withCursor *bool, aggregated bool) string {
+func (do *DbObject[ET]) GetCursorQuery(hasFilter *bool, cursorFields []Field, withCursor *bool, aggregated bool) string {
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	if aggregated {
-		if (withCursor == nil || *withCursor) && (filter == nil || do.GetFilterQuery(filter) != "") && cursorQuery != "" {
+		if (withCursor == nil || *withCursor) && (hasFilter == nil || *hasFilter) && cursorQuery != "" {
 			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 		}
 	} else {
-		if filter != nil {
-			if do.GetFilterQuery(filter) != "" && *withCursor && cursorQuery != "" {
+		if hasFilter != nil {
+			if *hasFilter && *withCursor && cursorQuery != "" {
 				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 			}
 		} else {
-			panic("filter for not aggregated query has to be passed (has to be not nil).")
+			panic("hasFilter for not aggregated query has to be passed (has to be not nil).")
 		}
 	}
 

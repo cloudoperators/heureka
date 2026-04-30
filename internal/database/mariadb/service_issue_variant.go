@@ -60,8 +60,8 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	}
 
 	ord := NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc})
-	whereClause := serviceIssueVariantObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := serviceIssueVariantObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := serviceIssueVariantObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := serviceIssueVariantObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

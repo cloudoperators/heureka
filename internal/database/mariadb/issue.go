@@ -348,8 +348,8 @@ func getIssueQueryWithCursor(
 	issueColumns := getIssueColumns(order)
 	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 	joins := issueObject.GetJoins(filter, ord)
-	whereClause := issueObject.GetFilterWhereClause(filter, false)
-	issueCursor := issueObject.GetCursorQuery(filter, cursorFields, nil, true)
+	whereClause, hasFilter := issueObject.GetFilterWhereClause(filter, false)
+	issueCursor := issueObject.GetCursorQuery(&hasFilter, cursorFields, nil, true)
 
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, issueCursor, ord)
 }
@@ -358,7 +358,7 @@ func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueF
 	issueColumns := getIssueColumns(order)
 	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 	joins := issueObject.GetJoins(filter, ord)
-	whereClause := issueObject.GetFilterWhereClause(filter, false)
+	whereClause, _ := issueObject.GetFilterWhereClause(filter, false)
 
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, ord)
 }
@@ -501,7 +501,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	columns := getIssueColumns(order)
 	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 
-	whereClause := issueObject.GetFilterWhereClause(filter, false)
+	whereClause, _ := issueObject.GetFilterWhereClause(filter, false)
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 

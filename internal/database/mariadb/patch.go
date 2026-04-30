@@ -71,8 +71,8 @@ func (s *SqlDatabase) buildPatchStatement(
 	}
 
 	ord := NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc})
-	whereClause := patchObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := patchObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := patchObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := patchObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

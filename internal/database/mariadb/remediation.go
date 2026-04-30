@@ -206,8 +206,8 @@ func (s *SqlDatabase) buildRemediationStatement(
 	}
 
 	ord := NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc})
-	whereClause := remediationObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := remediationObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := remediationObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := remediationObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

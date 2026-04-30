@@ -293,8 +293,8 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 
 	ord := NewOrder(order, entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc})
 	joins := componentInstanceObject.GetJoins(filter, ord)
-	whereClause := componentInstanceObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := componentInstanceObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := componentInstanceObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := componentInstanceObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

@@ -120,8 +120,8 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 
 	ord := NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc})
 	joins := issueRepositoryObject.GetJoins(filter, ord)
-	whereClause := issueRepositoryObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := issueRepositoryObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := issueRepositoryObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueRepositoryObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

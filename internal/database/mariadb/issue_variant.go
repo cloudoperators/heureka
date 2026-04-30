@@ -177,8 +177,8 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 
 	ord := NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc})
 	joins := issueVariantObject.GetJoins(filter, ord)
-	whereClause := issueVariantObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := issueVariantObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := issueVariantObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueVariantObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

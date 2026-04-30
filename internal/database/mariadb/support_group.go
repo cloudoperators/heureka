@@ -136,8 +136,8 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 
 	ord := NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc})
 	joins := supportGroupObject.GetJoins(filter, ord)
-	whereClause := supportGroupObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := supportGroupObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := supportGroupObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := supportGroupObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)

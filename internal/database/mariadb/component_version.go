@@ -257,7 +257,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 
 	ord := NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc})
 	joins := componentVersionObject.GetJoins(filter, ord)
-	whereClause := componentVersionObject.GetFilterWhereClause(filter, false)
+	whereClause, _ := componentVersionObject.GetFilterWhereClause(filter, false)
 	cursorQuery := componentVersionObject.GetCursorQuery(nil, cursorFields, &withCursor, true)
 
 	var query string

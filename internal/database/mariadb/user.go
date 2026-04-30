@@ -123,8 +123,8 @@ func (s *SqlDatabase) buildUserStatement(
 
 	ord := NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc})
 	joins := userObject.GetJoins(filter, ord)
-	whereClause := userObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := userObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
+	whereClause, hasFilter := userObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := userObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

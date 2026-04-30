@@ -237,8 +237,8 @@ func (s *SqlDatabase) buildServiceStatement(
 
 	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
 	joins := serviceObject.GetJoins(filter, ord)
-	whereClause := serviceObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := serviceObject.GetCursorQuery(filter, cursorFields, &withCursor, true)
+	whereClause, hasFilter := serviceObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := serviceObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, true)
 
 	// construct final query
 	if withCursor {
