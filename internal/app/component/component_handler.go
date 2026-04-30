@@ -116,7 +116,7 @@ func (cs *componentHandler) ListComponents(
 				cs.cache,
 				CacheTtlGetAllComponentCursors,
 				"GetAllComponentCursors",
-				cs.database.GetAllComponentCursors,
+				cache.WrapContext2(ctx, cs.database.GetAllComponentCursors),
 				filter,
 				options.Order,
 			)

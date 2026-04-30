@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
@@ -37,6 +38,10 @@ func (qdb *QuietDb) Preparex(query string) (Stmt, error) {
 	return qdb.db.Preparex(query)
 }
 
+func (qdb *QuietDb) PreparexContext(ctx context.Context, query string) (Stmt, error) {
+	return qdb.db.PreparexContext(ctx, query)
+}
+
 func (qdb *QuietDb) Select(dest any, query string, args ...any) error {
 	return qdb.db.Select(dest, query, args...)
 }
@@ -47,4 +52,8 @@ func (qdb *QuietDb) Query(query string, args ...any) (SqlRows, error) {
 
 func (qdb *QuietDb) QueryRow(query string, args ...any) *sql.Row {
 	return qdb.db.QueryRow(query, args...)
+}
+
+func (qdb *QuietDb) QueryContext(ctx context.Context, query string, args ...any) (SqlRows, error) {
+	return qdb.db.QueryContext(ctx, query, args...)
 }
