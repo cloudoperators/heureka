@@ -75,7 +75,7 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 			Type:  InnerJoin,
 			Table: "SupportGroupService SGS",
 			On:    "SG.supportgroup_id = SGS.supportgroupservice_support_group_id",
-			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ *Order) bool {
 				return len(f.ServiceId) > 0
 			}),
 		},
@@ -93,7 +93,7 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 			Table:     "IssueMatch IM",
 			On:        "CI.componentinstance_id = IM.issuematch_component_instance_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ *Order) bool {
 				return len(f.IssueId) > 0
 			}),
 		},
@@ -102,7 +102,7 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 			Type:  InnerJoin,
 			Table: "SupportGroupUser SGU",
 			On:    "SG.supportgroup_id = SGU.supportgroupuser_support_group_id",
-			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ *Order) bool {
 				return len(f.UserId) > 0
 			}),
 		},
@@ -134,26 +134,15 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-	order = GetDefaultOrder(order, entity.SupportGroupId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := supportGroupObject.GetJoins(filter, order)
-	filterStr := supportGroupObject.GetFilterQuery(filter)
+	ord := NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc})
+	joins := supportGroupObject.GetJoins(filter, ord)
+	whereClause, hasFilter := supportGroupObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := supportGroupObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
-
-	// construct final query
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters

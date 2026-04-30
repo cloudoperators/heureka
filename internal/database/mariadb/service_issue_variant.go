@@ -59,27 +59,15 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 		return nil, nil, fmt.Errorf("failed to decode ServiceIssueVariant cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	order = GetDefaultOrder(order, entity.ServiceIssueVariantID, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-
-	filterStr := serviceIssueVariantObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	ord := NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc})
+	whereClause, hasFilter := serviceIssueVariantObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := serviceIssueVariantObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters

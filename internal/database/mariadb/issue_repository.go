@@ -76,7 +76,7 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 			Type:  LeftJoin,
 			Table: "IssueRepositoryService IRS",
 			On:    "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ *Order) bool {
 				return len(f.ServiceId) > 0
 			}),
 		},
@@ -86,7 +86,7 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 			Table:     "Service S",
 			On:        "IRS.issuerepositoryservice_service_id = S.service_id",
 			DependsOn: []string{"IRS"},
-			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ *Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
@@ -118,27 +118,16 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 		return nil, nil, fmt.Errorf("failed to decode IssueRepository cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	order = GetDefaultOrder(order, entity.IssueRepositoryID, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := issueRepositoryObject.GetJoins(filter, order)
-	filterStr := issueRepositoryObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	ord := NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc})
+	joins := issueRepositoryObject.GetJoins(filter, ord)
+	whereClause, hasFilter := issueRepositoryObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueRepositoryObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	stmt, err := s.db.Preparex(query)

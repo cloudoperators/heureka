@@ -140,14 +140,14 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Type:      mariadb.LeftJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.A) > 0 }),
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.A) > 0 }),
 					},
 					{
 						Name:      "Y",
 						Type:      mariadb.RightJoin,
 						Table:     "Yabc Y",
 						On:        "DT.dummytable_id = Y.yabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
 					},
 				},
 			}
@@ -192,7 +192,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Table:     "Yabc Y",
 						On:        "X.xabc_yabc_id = Y.yabc_id",
 						DependsOn: []string{"X"},
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
 					},
 				},
 			}
@@ -222,7 +222,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Table:     "Yabc Y",
 						On:        "X.xabc_yabc_id = Y.yabc_id",
 						DependsOn: []string{"X"},
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
 					},
 					{
 						Name:      "Z",
@@ -230,7 +230,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Table:     "Zabc Z",
 						On:        "X.xabc_zabc_id = Z.zabc_id",
 						DependsOn: []string{"X"},
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.A) > 0 }),
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.A) > 0 }),
 					},
 				},
 			}
@@ -253,14 +253,14 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Type:      mariadb.LeftJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
 					},
 					{
 						Name:      "X_right",
 						Type:      mariadb.RightJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
 					},
 				},
 			}
