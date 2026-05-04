@@ -4,6 +4,7 @@
 package issue_repository_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -74,14 +75,14 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssueRepositories", filter, mock.Anything).
+			db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).
 				Return([]entity.IssueRepositoryResult{}, nil)
-			db.On("CountIssueRepositories", filter).Return(int64(1337), nil)
+			db.On("CountIssueRepositories", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
 			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
-			res, err := issueRepositoryHandler.ListIssueRepositories(filter, options)
+			res, err := issueRepositoryHandler.ListIssueRepositories(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -124,10 +125,10 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 					cursors = append(cursors, c)
 				}
 
-				db.On("GetIssueRepositories", filter, mock.Anything).Return(irResults, nil)
-				db.On("GetAllIssueRepositoryCursors", filter, mock.Anything).Return(cursors, nil)
+				db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).Return(irResults, nil)
+				db.On("GetAllIssueRepositoryCursors", mock.Anything, filter, mock.Anything).Return(cursors, nil)
 				issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
-				res, err := issueRepositoryHandler.ListIssueRepositories(filter, options)
+				res, err := issueRepositoryHandler.ListIssueRepositories(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(
 					*res.PageInfo.HasNextPage,
@@ -184,9 +185,9 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 
 	It("creates issueRepository", func() {
 		filter.Name = []*string{&issueRepository.Name}
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
-		db.On("GetIssueRepositories", filter, mock.Anything).
+		db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).
 			Return([]entity.IssueRepositoryResult{}, nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(
@@ -210,7 +211,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 			issueRepository.Id = int64(1)
 
 			services := []entity.ServiceResult{service1, service2}
-			db.On("GetServices", &entity.ServiceFilter{}, []entity.Order{}).Return(services, nil)
+			db.On("GetServices", mock.Anything, &entity.ServiceFilter{}, []entity.Order{}).Return(services, nil)
 			db.On("AddIssueRepositoryToService", int64(1), int64(1), int64(100)).Return(nil)
 			db.On("AddIssueRepositoryToService", int64(2), int64(1), int64(100)).Return(nil)
 			db.On("GetDefaultIssuePriority").Return(int64(100))
@@ -265,12 +266,12 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 	})
 
 	It("updates issueRepository", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueRepository", &issueRepository).Return(nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		issueRepository.Name = "SecretRepository"
 		filter.Id = []*int64{&issueRepository.Id}
-		db.On("GetIssueRepositories", filter, mock.Anything).Return([]entity.IssueRepositoryResult{{
+		db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything, mock.Anything).Return([]entity.IssueRepositoryResult{{
 			IssueRepository: &issueRepository,
 		}}, nil)
 		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(
@@ -312,16 +313,17 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 	})
 
 	It("deletes issueRepository", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
-		db.On("GetIssueRepositories", filter, mock.Anything).
+		db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).
 			Return([]entity.IssueRepositoryResult{}, nil)
 		err := issueRepositoryHandler.DeleteIssueRepository(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
 		issueRepositories, err := issueRepositoryHandler.ListIssueRepositories(
+			context.Background(),
 			filter,
 			&entity.ListOptions{},
 		)

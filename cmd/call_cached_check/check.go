@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 // This is a helper command intended for use within Heureka.
@@ -27,6 +27,27 @@ import (
 type result struct {
 	pos       token.Position
 	want, got string
+}
+
+// extractFuncName unwraps expressions like wrappers and returns the underlying function name.
+func extractFuncName(expr ast.Expr) (string, bool) {
+	switch fn := expr.(type) {
+	case *ast.Ident:
+		return fn.Name, true
+
+	case *ast.SelectorExpr:
+		return fn.Sel.Name, true
+
+	case *ast.CallExpr:
+		// Assume the actual function is the last argument
+		if len(fn.Args) == 0 {
+			return "", false
+		}
+
+		return extractFuncName(fn.Args[len(fn.Args)-1])
+	}
+
+	return "", false
 }
 
 func main() {
@@ -79,7 +100,7 @@ func main() {
 
 			if len(call.Args) < 4 {
 				mismatches = append(mismatches, result{
-					pos:  fset.Position(call.Lparen), // position of '(' for the call
+					pos:  fset.Position(call.Lparen),
 					want: "at least 4 arguments",
 					got:  fmt.Sprintf("%d arguments", len(call.Args)),
 				})
@@ -87,6 +108,7 @@ func main() {
 				return true
 			}
 
+			// 3rd argument: function name string
 			cacheFuncNameArg := call.Args[2]
 
 			strLit, ok := cacheFuncNameArg.(*ast.BasicLit)
@@ -104,18 +126,12 @@ func main() {
 
 			cacheFunc := call.Args[3]
 
-			var funcName string
-
-			switch fn := cacheFunc.(type) {
-			case *ast.Ident:
-				funcName = fn.Name
-			case *ast.SelectorExpr:
-				funcName = fn.Sel.Name
-			default:
+			funcName, ok := extractFuncName(cacheFunc)
+			if !ok {
 				mismatches = append(mismatches, result{
 					pos:  fset.Position(cacheFunc.Pos()),
-					want: "unknown type",
-					got:  fmt.Sprintf("%T", fn),
+					want: "callable function",
+					got:  fmt.Sprintf("%T", cacheFunc),
 				})
 
 				return true
@@ -140,7 +156,7 @@ func main() {
 	}
 
 	for _, m := range mismatches {
-		fmt.Fprintf(os.Stderr, "%s: mismatch – want %q, got %q\n",
+		fmt.Fprintf(os.Stderr, "%s: mismatch - want %q, got %q\n",
 			m.pos, m.want, m.got)
 	}
 

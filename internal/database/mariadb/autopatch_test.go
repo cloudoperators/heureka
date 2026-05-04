@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -484,7 +485,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 					apt.Run(
 						tag,
 						t,
-						func(db *mariadb.SqlDatabase) (bool, error) { return db.Autopatch() },
+						func(db *mariadb.SqlDatabase) (bool, error) { return db.Autopatch(context.Background()) },
 					)
 				}
 			})

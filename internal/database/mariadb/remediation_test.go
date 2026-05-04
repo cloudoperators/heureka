@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -32,7 +33,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 	When("Getting Remediations", Label("GetRemediations"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetRemediations(nil, nil)
+				res, err := db.GetRemediations(context.Background(), nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -49,7 +50,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetRemediations(nil, nil)
+					res, err := db.GetRemediations(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -123,7 +124,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Id: []*int64{&row.Id.Int64}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -139,7 +140,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					severity := gofakeit.RandomString(entity.AllSeverityValuesString)
 					filter := &entity.RemediationFilter{Severity: []*string{&severity}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -155,7 +156,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Service: []*string{&row.Service.String}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -173,7 +174,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{ServiceId: []*int64{&row.ServiceId.Int64}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -191,7 +192,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Component: []*string{&row.Component.String}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -211,7 +212,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						ComponentId: []*int64{&row.ComponentId.Int64},
 					}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -229,7 +230,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Issue: []*string{&row.Issue.String}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -247,7 +248,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{IssueId: []*int64{&row.IssueId.Int64}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -265,7 +266,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Type: []*string{&row.Type.String}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -283,7 +284,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					remediationType := entity.RemediationTypeFalsePositive.String()
 					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -305,7 +306,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					remediationType := entity.RemediationTypeRiskAccepted.String()
 					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -327,7 +328,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					remediationType := entity.RemediationTypeMitigation.String()
 					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -349,7 +350,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					remediationType := entity.RemediationTypeRescore.String()
 					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -373,7 +374,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					searchStr := test.CutString(row.Issue.String, 2, 2, 5)
 					filter := &entity.RemediationFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetRemediations(filter, nil)
+					entries, err := db.GetRemediations(context.Background(), filter, nil)
 
 					ids := []int64{}
 					for _, entry := range entries {
@@ -440,7 +441,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			order := []entity.Order{
 				{By: entity.RemediationIssue, Direction: entity.OrderDirectionAsc},
 			}
-			entries, err := db.GetRemediations(nil, order)
+			entries, err := db.GetRemediations(context.Background(), nil, order)
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
@@ -456,7 +457,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			order := []entity.Order{
 				{By: entity.RemediationSeverity, Direction: entity.OrderDirectionDesc},
 			}
-			entries, err := db.GetRemediations(nil, order)
+			entries, err := db.GetRemediations(context.Background(), nil, order)
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
@@ -472,7 +473,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			order := []entity.Order{
 				{By: entity.RemediationExpirationDate, Direction: entity.OrderDirectionAsc},
 			}
-			entries, err := db.GetRemediations(nil, order)
+			entries, err := db.GetRemediations(context.Background(), nil, order)
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
@@ -490,7 +491,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 	When("Counting Remediations", Label("CountRemediations"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
-				c, err := db.CountRemediations(nil)
+				c, err := db.CountRemediations(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -511,7 +512,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountRemediations(nil)
+					c, err := db.CountRemediations(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -531,7 +532,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 							After: &after,
 						},
 					}
-					c, err := db.CountRemediations(filter)
+					c, err := db.CountRemediations(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -585,7 +586,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					Id: []*int64{&remediation.Id},
 				}
 
-				r, err := db.GetRemediations(remediationFilter, nil)
+				r, err := db.GetRemediations(context.Background(), remediationFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -615,7 +616,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					Id: []*int64{&remediation.Id},
 				}
 
-				r, err := db.GetRemediations(remediationFilter, nil)
+				r, err := db.GetRemediations(context.Background(), remediationFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -647,7 +648,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					Id: []*int64{&remediation.Id},
 				}
 
-				r, err := db.GetRemediations(remediationFilter, nil)
+				r, err := db.GetRemediations(context.Background(), remediationFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})

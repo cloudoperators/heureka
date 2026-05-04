@@ -18,6 +18,6 @@ type ComponentHandler interface {
 	CreateComponent(context.Context, *entity.Component) (*entity.Component, error)
 	UpdateComponent(context.Context, *entity.Component) (*entity.Component, error)
 	DeleteComponent(context.Context, int64) error
-	ListComponentCcrns(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)
-	GetComponentVulnerabilityCounts(*entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
+	ListComponentCcrns(context.Context, *entity.ComponentFilter, *entity.ListOptions) ([]string, error)
+	GetComponentVulnerabilityCounts(context.Context, *entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
 }

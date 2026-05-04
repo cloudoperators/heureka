@@ -25,9 +25,9 @@ func GetCurrentUserId(ctx context.Context, db database.Database) (int64, error) 
 			return 0, fmt.Errorf("could not get user name from context: %w", err)
 		}
 
-		return getUserIdFromDb(db, uniqueUserId)
+		return getUserIdFromDb(ctx, db, uniqueUserId)
 	} else {
-		return getUserIdFromDb(db, systemUserUniqueUserId)
+		return getUserIdFromDb(ctx, db, systemUserUniqueUserId)
 	}
 }
 
@@ -49,13 +49,13 @@ func GetUserIdByUniqueId(
 	db database.Database,
 	uniqueUserId string,
 ) (int64, error) {
-	return getUserIdFromDb(db, uniqueUserId)
+	return getUserIdFromDb(ctx, db, uniqueUserId)
 }
 
-func getUserIdFromDb(db database.Database, uniqueUserId string) (int64, error) {
+func getUserIdFromDb(ctx context.Context, db database.Database, uniqueUserId string) (int64, error) {
 	filter := &entity.UserFilter{UniqueUserID: []*string{&uniqueUserId}}
 
-	ids, err := db.GetAllUserIds(filter)
+	ids, err := db.GetAllUserIds(ctx, filter)
 	if err != nil {
 		return unknownUser, fmt.Errorf("unable to get user ids %w", err)
 	} else if len(ids) < 1 {

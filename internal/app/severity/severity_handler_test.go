@@ -6,6 +6,7 @@
 package severity_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -110,8 +111,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				})
 			}
 
-			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
-			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
+			db.On("GetIssueVariants", mock.Anything, ivFilter, mock.Anything).Return(ivResults, nil)
+			db.On("GetIssueRepositories", mock.Anything, irFilter, mock.Anything).Return(irResults, nil)
 		})
 		When("higher priority issue variant has highest severity score", func() {
 			BeforeEach(func() {
@@ -120,7 +121,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 			})
 			It("returns severity value", func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
-				severity, err := severityHandler.GetSeverity(sFilter)
+				severity, err := severityHandler.GetSeverity(context.Background(), sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
 				Expect(
@@ -136,7 +137,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 			})
 			It("returns severity value", func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
-				severity, err := severityHandler.GetSeverity(sFilter)
+				severity, err := severityHandler.GetSeverity(context.Background(), sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
 				Expect(
@@ -174,8 +175,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				})
 			}
 
-			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
-			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
+			db.On("GetIssueVariants", mock.Anything, ivFilter, mock.Anything).Return(ivResults, nil)
+			db.On("GetIssueRepositories", mock.Anything, irFilter, mock.Anything).Return(irResults, nil)
 		})
 		When("issueVariants have different severity score", func() {
 			BeforeEach(func() {
@@ -185,7 +186,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 			})
 			It("return severity value", func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
-				severity, err := severityHandler.GetSeverity(sFilter)
+				severity, err := severityHandler.GetSeverity(context.Background(), sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
 				Expect(

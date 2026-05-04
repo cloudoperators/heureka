@@ -89,7 +89,7 @@ func NewHeurekaApp(
 	remediationHandler := remediation.NewRemediationHandler(common.HandlerContext{
 		DB:       db,
 		EventReg: er,
-		Cache:    nil,
+		Cache:    cache,
 		Authz:    authz,
 	})
 
@@ -163,7 +163,10 @@ func (h *HeurekaApp) SubscribeHandlers() {
 			component_instance.CreateComponentInstanceEventName,
 			event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
 		},
-		{service.CreateServiceEventName, event.EventHandlerFunc(service.OnServiceCreate)},
+		{
+			service.CreateServiceEventName,
+			event.EventHandlerFunc(service.OnServiceCreate),
+		},
 		{
 			issue_repository.CreateIssueRepositoryEventName,
 			event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
@@ -208,8 +211,14 @@ func (h *HeurekaApp) SubscribeAuthzHandlers() {
 			event.EventHandlerFunc(issue_match.OnIssueMatchCreateAuthz),
 		},
 		// Delete events
-		{user.DeleteUserEventName, event.EventHandlerFunc(user.OnUserDeleteAuthz)},
-		{service.DeleteServiceEventName, event.EventHandlerFunc(service.OnServiceDeleteAuthz)},
+		{
+			user.DeleteUserEventName,
+			event.EventHandlerFunc(user.OnUserDeleteAuthz),
+		},
+		{
+			service.DeleteServiceEventName,
+			event.EventHandlerFunc(service.OnServiceDeleteAuthz),
+		},
 		{
 			component_instance.DeleteComponentInstanceEventName,
 			event.EventHandlerFunc(component_instance.OnComponentInstanceDeleteAuthz),

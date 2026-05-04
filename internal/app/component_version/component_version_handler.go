@@ -105,7 +105,7 @@ func (cv *componentVersionHandler) ListComponentVersions(
 		cv.cache,
 		CacheTtlGetComponentVersions,
 		"GetComponentVersions",
-		cv.database.GetComponentVersions,
+		cache.WrapContext2(ctx, cv.database.GetComponentVersions),
 		filter,
 		options.Order,
 	)
@@ -124,7 +124,7 @@ func (cv *componentVersionHandler) ListComponentVersions(
 				cv.cache,
 				CacheTtlGetAllComponentVersionCursors,
 				"GetAllComponentVersionCursors",
-				cv.database.GetAllComponentVersionCursors,
+				cache.WrapContext2(ctx, cv.database.GetAllComponentVersionCursors),
 				filter,
 				options.Order,
 			)
@@ -145,7 +145,7 @@ func (cv *componentVersionHandler) ListComponentVersions(
 			cv.cache,
 			CacheTtlCountComponentVersions,
 			"CountComponentVersions",
-			cv.database.CountComponentVersions,
+			cache.WrapContext1(ctx, cv.database.CountComponentVersions),
 			filter,
 		)
 		if err != nil {

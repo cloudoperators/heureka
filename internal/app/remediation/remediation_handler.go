@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -43,6 +44,7 @@ func NewRemediationHandler(handlerContext common.HandlerContext) RemediationHand
 }
 
 func (rh *remediationHandler) ListRemediations(
+	ctx context.Context,
 	filter *entity.RemediationFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.RemediationResult], error) {
@@ -59,7 +61,7 @@ func (rh *remediationHandler) ListRemediations(
 		rh.cache,
 		CacheTtlGetRemediations,
 		"GetRemediations",
-		rh.database.GetRemediations,
+		cache.WrapContext2(ctx, rh.database.GetRemediations),
 		filter,
 		options.Order,
 	)
@@ -78,7 +80,7 @@ func (rh *remediationHandler) ListRemediations(
 				rh.cache,
 				CacheTtlGetAllRemediationCursors,
 				"GetAllRemediationCursors",
-				rh.database.GetAllRemediationCursors,
+				cache.WrapContext2(ctx, rh.database.GetAllRemediationCursors),
 				filter,
 				options.Order,
 			)
@@ -99,7 +101,7 @@ func (rh *remediationHandler) ListRemediations(
 			rh.cache,
 			CacheTtlCountRemediations,
 			"CountRemediations",
-			rh.database.CountRemediations,
+			cache.WrapContext1(ctx, rh.database.CountRemediations),
 			filter,
 		)
 		if err != nil {
@@ -223,7 +225,7 @@ func (rh *remediationHandler) CreateRemediation(
 		State:     []entity.StateFilterType{entity.Active},
 	}
 
-	existingRemediations, err := rh.database.GetRemediations(filter, nil)
+	existingRemediations, err := rh.database.GetRemediations(ctx, filter, nil)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
@@ -264,6 +266,21 @@ func (rh *remediationHandler) CreateRemediation(
 		})
 
 		return nil, wrappedErr
+	}
+
+	if rh.cache != nil {
+		if err := rh.cache.InvalidateByMatch(func(decodedKey string) bool {
+			return (strings.Contains(decodedKey, fmt.Sprintf("\"issue_id\":[%d]", newRemediation.IssueId)) ||
+				strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]", newRemediation.IssueId))) &&
+				(strings.Contains(decodedKey, "GetIssuesWithAggregations") || strings.Contains(decodedKey, "GetIssues") ||
+					strings.Contains(decodedKey, "GetAllIssueCursors") || strings.Contains(decodedKey, "GetIssueVariants") ||
+					strings.Contains(decodedKey, "GetIssueMatches"))
+		}); err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
+			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+				"remediation": remediation,
+			})
+		}
 	}
 
 	rh.eventRegistry.PushEvent(&CreateRemediationEvent{
@@ -325,6 +342,7 @@ func (rh *remediationHandler) UpdateRemediation(
 	lo := entity.NewListOptions()
 
 	existingRemediations, err := rh.ListRemediations(
+		ctx,
 		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},
 		lo,
 	)
@@ -414,6 +432,7 @@ func (rh *remediationHandler) UpdateRemediation(
 	}
 
 	remediationResult, err := rh.ListRemediations(
+		ctx,
 		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},
 		lo,
 	)

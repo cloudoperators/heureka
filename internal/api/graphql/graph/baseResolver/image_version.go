@@ -134,7 +134,7 @@ func ImageVersionBaseResolver(
 			ComponentVersionId: cvIds,
 		}
 
-		counts, err := app.GetIssueSeverityCounts(icFilter)
+		counts, err := app.GetIssueSeverityCounts(ctx, icFilter)
 		if err != nil {
 			return nil, NewResolverError("ImageVersionBaseResolver", err.Error())
 		}

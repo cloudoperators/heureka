@@ -84,7 +84,7 @@ func RemediationBaseResolver(
 		)
 	}
 
-	remediations, err := app.ListRemediations(f, opt)
+	remediations, err := app.ListRemediations(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}

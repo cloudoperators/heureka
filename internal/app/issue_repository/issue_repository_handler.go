@@ -48,6 +48,7 @@ func (e *IssueRepositoryHandlerError) Error() string {
 }
 
 func (ir *issueRepositoryHandler) getIssueRepositoryResults(
+	ctx context.Context,
 	filter *entity.IssueRepositoryFilter,
 ) ([]entity.IssueRepositoryResult, error) {
 	var irResults []entity.IssueRepositoryResult
@@ -56,7 +57,7 @@ func (ir *issueRepositoryHandler) getIssueRepositoryResults(
 		ir.cache,
 		CacheTtlGetIssueRepository,
 		"GetIssueRepositories",
-		ir.database.GetIssueRepositories,
+		cache.WrapContext2(ctx, ir.database.GetIssueRepositories),
 		filter,
 		[]entity.Order{},
 	)
@@ -68,6 +69,7 @@ func (ir *issueRepositoryHandler) getIssueRepositoryResults(
 }
 
 func (ir *issueRepositoryHandler) ListIssueRepositories(
+	ctx context.Context,
 	filter *entity.IssueRepositoryFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.IssueRepositoryResult], error) {
@@ -83,7 +85,7 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(
 		"filter": filter,
 	})
 
-	res, err := ir.getIssueRepositoryResults(filter)
+	res, err := ir.getIssueRepositoryResults(ctx, filter)
 	if err != nil {
 		return nil, NewIssueRepositoryHandlerError("Error while filtering for IssueRepositories")
 	}
@@ -94,7 +96,7 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(
 				ir.cache,
 				CacheTtlGetAllIssueRepositoryCursors,
 				"GetAllIssueRepositoryCursors",
-				ir.database.GetAllIssueRepositoryCursors,
+				cache.WrapContext2(ctx, ir.database.GetAllIssueRepositoryCursors),
 				filter,
 				options.Order,
 			)
@@ -110,7 +112,7 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
-		count, err = ir.database.CountIssueRepositories(filter)
+		count, err = ir.database.CountIssueRepositories(ctx, filter)
 		if err != nil {
 			l.Error(err)
 
@@ -160,7 +162,7 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(
 
 	issueRepository.BaseIssueRepository.UpdatedBy = issueRepository.BaseIssueRepository.CreatedBy
 
-	issueRepositories, err := ir.ListIssueRepositories(f, &entity.ListOptions{})
+	issueRepositories, err := ir.ListIssueRepositories(ctx, f, &entity.ListOptions{})
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository.")
@@ -212,6 +214,7 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(
 	}
 
 	issueRepositoryResult, err := ir.ListIssueRepositories(
+		ctx,
 		&entity.IssueRepositoryFilter{Id: []*int64{&issueRepository.Id}},
 		&entity.ListOptions{},
 	)

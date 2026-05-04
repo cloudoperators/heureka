@@ -92,9 +92,9 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetUsers", filter).Return([]entity.UserResult{}, nil)
-			db.On("CountUsers", filter).Return(int64(1337), nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
+			db.On("CountUsers", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
@@ -140,9 +140,9 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 					cursors = append(cursors, c)
 				}
 
-				db.On("GetUsers", filter).Return(users, nil)
-				db.On("GetAllUserCursors", filter, []entity.Order{}).Return(cursors, nil)
-				db.On("GetAllUserIds", authFilter).Return([]int64{}, nil)
+				db.On("GetUsers", mock.Anything, filter).Return(users, nil)
+				db.On("GetAllUserCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
+				db.On("GetAllUserIds", mock.Anything, authFilter).Return([]int64{}, nil)
 				// db.On("GetAllUserIds", filter).Return(lo.Map(users, func(m entity.UserResult, _
 				// int) int64 { return m.User.Id }), nil)
 
@@ -194,8 +194,8 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			BeforeEach(func() {
 				sgIds := int64(-1)
 				filter.SupportGroupId = []*int64{&sgIds}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetUsers", filter).Return([]entity.UserResult{}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
 			})
 
 			It("should return no users", func() {
@@ -214,8 +214,8 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 				systemUserId := int64(1)
 				filter.SupportGroupId = []*int64{&sgId}
 				user = test.NewFakeUserEntity()
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetUsers", filter).Return([]entity.UserResult{{User: &user}}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{{User: &user}}, nil)
 
 				relations := []openfga.RelationInput{
 					{ // create support group
@@ -281,9 +281,9 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 
 	It("creates user", func() {
 		filter.UniqueUserID = []*string{&user.UniqueUserID}
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateUser", &user).Return(&user, nil)
-		db.On("GetUsers", filter).Return([]entity.UserResult{}, nil)
+		db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
 		userHandler = u.NewUserHandler(handlerContext)
 		newUser, err := userHandler.CreateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -323,12 +323,12 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 	})
 
 	It("updates user", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateUser", &user).Return(nil)
 		userHandler = u.NewUserHandler(handlerContext)
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
-		db.On("GetUsers", filter).Return([]entity.UserResult{
+		db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{
 			{
 				User: &user,
 			},
@@ -373,10 +373,10 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 	})
 
 	It("deletes user", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteUser", id, mock.Anything).Return(nil)
 		userHandler = u.NewUserHandler(handlerContext)
-		db.On("GetUsers", filter).Return([]entity.UserResult{}, nil)
+		db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
 		err := userHandler.DeleteUser(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -539,12 +539,12 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 
 	When("no filters are used", func() {
 		BeforeEach(func() {
-			db.On("GetUserNames", filter).Return([]string{}, nil)
+			db.On("GetUserNames", mock.Anything, filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			userHandler = u.NewUserHandler(handlerContext)
-			res, err := userHandler.ListUserNames(filter, options)
+			res, err := userHandler.ListUserNames(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -555,11 +555,11 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 				Name: []*string{&name},
 			}
 
-			db.On("GetUserNames", filter).Return([]string{name}, nil)
+			db.On("GetUserNames", mock.Anything, filter).Return([]string{name}, nil)
 		})
 		It("returns filtered users according to the service type", func() {
 			userHandler = u.NewUserHandler(handlerContext)
-			res, err := userHandler.ListUserNames(filter, options)
+			res, err := userHandler.ListUserNames(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of name")
 		})
@@ -590,12 +590,12 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 
 	When("no filters are used", func() {
 		BeforeEach(func() {
-			db.On("GetUniqueUserIDs", filter).Return([]string{}, nil)
+			db.On("GetUniqueUserIDs", mock.Anything, filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			userHandler = u.NewUserHandler(handlerContext)
-			res, err := userHandler.ListUniqueUserIDs(filter, options)
+			res, err := userHandler.ListUniqueUserIDs(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -606,11 +606,11 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 				UniqueUserID: []*string{&uuid},
 			}
 
-			db.On("GetUniqueUserIDs", filter).Return([]string{uuid}, nil)
+			db.On("GetUniqueUserIDs", mock.Anything, filter).Return([]string{uuid}, nil)
 		})
 		It("returns filtered users according to the service type", func() {
 			userHandler = u.NewUserHandler(handlerContext)
-			res, err := userHandler.ListUniqueUserIDs(filter, options)
+			res, err := userHandler.ListUniqueUserIDs(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(uuid), "should only consist of UniqueUserID")
 		})

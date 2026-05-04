@@ -37,7 +37,7 @@ func SingleIssueRepositoryBaseResolver(
 
 	opt := &entity.ListOptions{}
 
-	issueRepositories, err := app.ListIssueRepositories(f, opt)
+	issueRepositories, err := app.ListIssueRepositories(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueRepositoryBaseResolver", err.Error())
@@ -113,7 +113,7 @@ func IssueRepositoryBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	issueRepositories, err := app.ListIssueRepositories(f, opt)
+	issueRepositories, err := app.ListIssueRepositories(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("IssueRepositoryBaseResolver", err.Error())
 	}

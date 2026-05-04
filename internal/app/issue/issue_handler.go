@@ -56,7 +56,7 @@ func ensureIssueListOptions(options *entity.IssueListOptions) *entity.IssueListO
 	return options
 }
 
-func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
+func (is *issueHandler) GetIssue(ctx context.Context, id int64) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.GetIssue")
 
 	// Input validation
@@ -77,7 +77,7 @@ func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 		ListOptions: *entity.NewListOptions(),
 	}
 
-	issues, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &lo)
+	issues, err := is.ListIssues(ctx, &entity.IssueFilter{Id: []*int64{&id}}, &lo)
 	if err != nil {
 		// Wrap the error from ListIssues with operation context
 		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.Internal, err)
@@ -115,6 +115,7 @@ func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 }
 
 func (is *issueHandler) ListIssues(
+	ctx context.Context,
 	filter *entity.IssueFilter,
 	options *entity.IssueListOptions,
 ) (*entity.IssueList, error) {
@@ -139,7 +140,7 @@ func (is *issueHandler) ListIssues(
 			is.cache,
 			CacheTtlGetIssuesWithAggregations,
 			"GetIssuesWithAggregations",
-			is.database.GetIssuesWithAggregations,
+			cache.WrapContext2(ctx, is.database.GetIssuesWithAggregations),
 			filter,
 			options.Order,
 		)
@@ -157,7 +158,7 @@ func (is *issueHandler) ListIssues(
 			is.cache,
 			CacheTtlGetIssues,
 			"GetIssues",
-			is.database.GetIssues,
+			cache.WrapContext2(ctx, is.database.GetIssues),
 			filter,
 			options.Order,
 		)
@@ -180,7 +181,7 @@ func (is *issueHandler) ListIssues(
 				is.cache,
 				CacheTtlGetAllIssueCursors,
 				"GetAllIssueCursors",
-				is.database.GetAllIssueCursors,
+				cache.WrapContext2(ctx, is.database.GetAllIssueCursors),
 				filter,
 				options.Order,
 			)
@@ -203,7 +204,7 @@ func (is *issueHandler) ListIssues(
 			is.cache,
 			CacheTtlCountIssueTypes,
 			"CountIssueTypes",
-			is.database.CountIssueTypes,
+			cache.WrapContext1(ctx, is.database.CountIssueTypes),
 			filter,
 		)
 		if err != nil {
@@ -260,7 +261,7 @@ func (is *issueHandler) CreateIssue(
 		ListOptions: *entity.NewListOptions(),
 	}
 
-	issues, err := is.ListIssues(f, &lo)
+	issues, err := is.ListIssues(ctx, f, &lo)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -341,7 +342,7 @@ func (is *issueHandler) UpdateIssue(
 		ListOptions: *entity.NewListOptions(),
 	}
 
-	issueResult, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &lo)
+	issueResult, err := is.ListIssues(ctx, &entity.IssueFilter{Id: []*int64{&issue.Id}}, &lo)
 	if err != nil {
 		wrappedErr := appErrors.E(
 			op,
@@ -411,6 +412,7 @@ func (is *issueHandler) DeleteIssue(ctx context.Context, id int64) error {
 }
 
 func (is *issueHandler) AddComponentVersionToIssue(
+	ctx context.Context,
 	issueId, componentVersionId int64,
 ) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.AddComponentVersionToIssue")
@@ -444,7 +446,7 @@ func (is *issueHandler) AddComponentVersionToIssue(
 		ComponentVersionID: componentVersionId,
 	})
 
-	issue, err := is.GetIssue(issueId)
+	issue, err := is.GetIssue(ctx, issueId)
 	if err != nil {
 		wrappedErr := appErrors.E(
 			op,
@@ -465,6 +467,7 @@ func (is *issueHandler) AddComponentVersionToIssue(
 }
 
 func (is *issueHandler) RemoveComponentVersionFromIssue(
+	ctx context.Context,
 	issueId, componentVersionId int64,
 ) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.RemoveComponentVersionFromIssue")
@@ -486,7 +489,7 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(
 		ComponentVersionID: componentVersionId,
 	})
 
-	issue, err := is.GetIssue(issueId)
+	issue, err := is.GetIssue(ctx, issueId)
 	if err != nil {
 		wrappedErr := appErrors.E(
 			op,
@@ -507,6 +510,7 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(
 }
 
 func (is *issueHandler) ListIssueNames(
+	ctx context.Context,
 	filter *entity.IssueFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -516,7 +520,7 @@ func (is *issueHandler) ListIssueNames(
 		is.cache,
 		CacheTtlGetIssueNames,
 		"GetIssueNames",
-		is.database.GetIssueNames,
+		cache.WrapContext1(ctx, is.database.GetIssueNames),
 		filter,
 	)
 	if err != nil {
@@ -538,6 +542,7 @@ func (is *issueHandler) ListIssueNames(
 }
 
 func (is *issueHandler) GetIssueSeverityCounts(
+	ctx context.Context,
 	filter *entity.IssueFilter,
 ) (*entity.IssueSeverityCounts, error) {
 	op := appErrors.Op("issueHandler.GetIssueSeverityCounts")
@@ -546,7 +551,7 @@ func (is *issueHandler) GetIssueSeverityCounts(
 		is.cache,
 		CacheTtlCountIssueRatings,
 		"CountIssueRatings",
-		is.database.CountIssueRatings,
+		cache.WrapContext1(ctx, is.database.CountIssueRatings),
 		filter,
 	)
 	if err != nil {

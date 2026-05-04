@@ -11,6 +11,7 @@ import (
 
 type IssueRepositoryHandler interface {
 	ListIssueRepositories(
+		context.Context,
 		*entity.IssueRepositoryFilter,
 		*entity.ListOptions,
 	) (*entity.List[entity.IssueRepositoryResult], error)

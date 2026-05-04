@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -161,6 +162,7 @@ func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVa
 }
 
 func (s *SqlDatabase) buildIssueVariantStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.IssueVariantFilter,
 	withCursor bool,
@@ -187,7 +189,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -206,6 +208,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 }
 
 func (s *SqlDatabase) GetAllIssueVariantCursors(
+	ctx context.Context,
 	filter *entity.IssueVariantFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -222,7 +225,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 
 	filter = ensureIssueVariantFilter(filter)
 
-	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build IssueVariant cursor query: %w", err)
 	}
@@ -234,6 +237,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 	}()
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -255,6 +259,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 }
 
 func (s *SqlDatabase) GetIssueVariants(
+	ctx context.Context,
 	filter *entity.IssueVariantFilter,
 	order []entity.Order,
 ) ([]entity.IssueVariantResult, error) {
@@ -269,7 +274,7 @@ func (s *SqlDatabase) GetIssueVariants(
 		%s ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -281,6 +286,7 @@ func (s *SqlDatabase) GetIssueVariants(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -300,7 +306,7 @@ func (s *SqlDatabase) GetIssueVariants(
 	)
 }
 
-func (s *SqlDatabase) CountIssueVariants(filter *entity.IssueVariantFilter) (int64, error) {
+func (s *SqlDatabase) CountIssueVariants(ctx context.Context, filter *entity.IssueVariantFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountIssueVariants",
 	})
@@ -313,6 +319,7 @@ func (s *SqlDatabase) CountIssueVariants(filter *entity.IssueVariantFilter) (int
     `
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -330,6 +337,7 @@ func (s *SqlDatabase) CountIssueVariants(filter *entity.IssueVariantFilter) (int
 	}()
 
 	return performCountScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,

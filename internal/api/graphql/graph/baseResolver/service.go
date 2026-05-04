@@ -248,7 +248,7 @@ func ServiceRegionBaseResolver(
 }
 
 func ServiceFilterBaseResolver(
-	appCall func(filter *entity.ServiceFilter, opt *entity.ListOptions) ([]string, error),
+	appCall func(ctx context.Context, filter *entity.ServiceFilter, opt *entity.ListOptions) ([]string, error),
 	ctx context.Context,
 	filter *model.ServiceFilter,
 	filterDisplay *string,
@@ -274,7 +274,7 @@ func ServiceFilterBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := appCall(f, opt)
+	names, err := appCall(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ServiceFilterBaseResolver", err.Error())
 	}

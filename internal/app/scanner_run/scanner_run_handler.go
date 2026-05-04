@@ -4,6 +4,7 @@
 package scanner_run
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -46,7 +47,7 @@ func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {
 	}
 
 	// Trigger autopatch whenever a scanner run has completed successfully
-	if _, err := srh.database.Autopatch(); err != nil {
+	if _, err := srh.database.Autopatch(context.Background()); err != nil {
 		return false, &ScannerRunHandlerError{
 			msg: "Error executing autopatch in CompleteScannerRun",
 		}

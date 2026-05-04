@@ -4,6 +4,7 @@
 package shared
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/database"
@@ -20,6 +21,7 @@ import (
 //
 // Returns a map of issue id to issue variant
 func BuildIssueVariantMap(
+	ctx context.Context,
 	db database.Database,
 	filter *entity.ServiceIssueVariantFilter,
 	componentVersionId int64,
@@ -32,7 +34,7 @@ func BuildIssueVariantMap(
 	})
 
 	// Get Issue Variants based on filter
-	issueVariants, err := db.GetServiceIssueVariants(filter, []entity.Order{})
+	issueVariants, err := db.GetServiceIssueVariants(ctx, filter, []entity.Order{})
 	if err != nil {
 		l.WithField("event-step", "FetchIssueVariants").
 			WithError(err).

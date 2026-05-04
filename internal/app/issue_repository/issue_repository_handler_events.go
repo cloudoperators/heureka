@@ -4,6 +4,8 @@
 package issue_repository
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -72,7 +74,7 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.
 		l.WithField("event-step", "GetIssueRepository").Debug("Fetching Issue Repository by name")
 
 		// Fetch services
-		services, err := db.GetServices(&entity.ServiceFilter{}, []entity.Order{})
+		services, err := db.GetServices(context.Background(), &entity.ServiceFilter{}, []entity.Order{})
 		if err != nil {
 			l.WithField("event-step", "GetServices").
 				WithError(err).

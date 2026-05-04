@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -28,7 +30,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 	When("Getting IssueRepositories", Label("GetIssueRepositories"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetIssueRepositories(nil, nil)
+				res, err := db.GetIssueRepositories(context.Background(), nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -45,7 +47,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetIssueRepositories(nil, nil)
+					res, err := db.GetIssueRepositories(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -94,7 +96,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 					row := test.PickOne(seedCollection.IssueRepositoryRows)
 					filter := &entity.IssueRepositoryFilter{Name: []*string{&row.Name.String}}
 
-					entries, err := db.GetIssueRepositories(filter, nil)
+					entries, err := db.GetIssueRepositories(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -124,7 +126,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 						ServiceCCRN: []*string{&sRow.CCRN.String},
 					}
 
-					entries, err := db.GetIssueRepositories(filter, nil)
+					entries, err := db.GetIssueRepositories(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -150,7 +152,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 
 					filter := &entity.IssueRepositoryFilter{ServiceId: []*int64{&sRow.Id.Int64}}
 
-					entries, err := db.GetIssueRepositories(filter, nil)
+					entries, err := db.GetIssueRepositories(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -198,7 +200,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 	When("Counting IssueRepositories", Label("CountIssueRepositories"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
-				c, err := db.CountIssueRepositories(nil)
+				c, err := db.CountIssueRepositories(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -219,7 +221,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountIssueRepositories(nil)
+					c, err := db.CountIssueRepositories(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -238,7 +240,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 							After: nil,
 						},
 					}
-					c, err := db.CountIssueRepositories(filter)
+					c, err := db.CountIssueRepositories(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -269,7 +271,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 						},
 						ServiceCCRN: []*string{&sRow.CCRN.String},
 					}
-					entries, err := db.CountIssueRepositories(filter)
+					entries, err := db.CountIssueRepositories(context.Background(), filter)
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -309,7 +311,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 					Id: []*int64{&issueRepository.Id},
 				}
 
-				ir, err := db.GetIssueRepositories(issueRepositoryFilter, nil)
+				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -356,7 +358,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 					Id: []*int64{&issueRepository.Id},
 				}
 
-				ir, err := db.GetIssueRepositories(issueRepositoryFilter, nil)
+				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -383,7 +385,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 					Id: []*int64{&issueRepository.Id},
 				}
 
-				ir, err := db.GetIssueRepositories(issueRepositoryFilter, nil)
+				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -417,7 +419,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 					Id: []*int64{&issueRepository.Id},
 				}
 
-				ir, err := db.GetIssueRepositories(issueRepositoryFilter, nil)
+				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})

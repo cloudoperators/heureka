@@ -61,6 +61,16 @@ func (imc *InMemoryCache) Get(key string) (string, bool, error) {
 	return valStr, true, nil
 }
 
+func (imc *InMemoryCache) GetAllKeys() ([]string, error) {
+	keys := make([]string, 0, imc.gc.ItemCount())
+
+	for key := range imc.gc.Items() {
+		keys = append(keys, key)
+	}
+
+	return keys, nil
+}
+
 func (imc *InMemoryCache) Set(key string, value string, ttl time.Duration) error {
 	if ttl <= 0 {
 		ttl = gocache.NoExpiration
@@ -73,5 +83,31 @@ func (imc *InMemoryCache) Set(key string, value string, ttl time.Duration) error
 
 func (imc *InMemoryCache) Invalidate(key string) error {
 	imc.gc.Delete(key)
+	return nil
+}
+
+func (imc *InMemoryCache) GetKeyHashType() KeyHashType {
+	return imc.keyHash
+}
+
+func (imc *InMemoryCache) InvalidateByMatch(keyMatcher func(decodedKey string) bool) error {
+	keys, err := imc.GetAllKeys()
+	if err != nil {
+		return fmt.Errorf("cache: failed to get cache keys: %w", err)
+	}
+
+	for _, key := range keys {
+		decodedKey, err := DecodeKey(key, imc.GetKeyHashType())
+		if err != nil {
+			return fmt.Errorf("cache: failed to decode cached key: %w", err)
+		}
+
+		if keyMatcher(decodedKey) {
+			if err := imc.Invalidate(key); err != nil {
+				return fmt.Errorf("cache: failed to invalidate key: [key: %s, error: %w]", decodedKey, err)
+			}
+		}
+	}
+
 	return nil
 }

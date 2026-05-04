@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -104,6 +105,7 @@ func ensureIssueRepositoryFilter(
 }
 
 func (s *SqlDatabase) buildIssueRepositoryStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.IssueRepositoryFilter,
 	withCursor bool,
@@ -130,7 +132,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -149,6 +151,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 }
 
 func (s *SqlDatabase) GetAllIssueRepositoryCursors(
+	ctx context.Context,
 	filter *entity.IssueRepositoryFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -166,6 +169,7 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(
 	filter = ensureIssueRepositoryFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -183,6 +187,7 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(
 	}()
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -204,6 +209,7 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(
 }
 
 func (s *SqlDatabase) GetIssueRepositories(
+	ctx context.Context,
 	filter *entity.IssueRepositoryFilter,
 	order []entity.Order,
 ) ([]entity.IssueRepositoryResult, error) {
@@ -221,6 +227,7 @@ func (s *SqlDatabase) GetIssueRepositories(
 	filter = ensureIssueRepositoryFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
+		ctx,
 		baseQuery,
 		filter,
 		true,
@@ -238,6 +245,7 @@ func (s *SqlDatabase) GetIssueRepositories(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -257,7 +265,7 @@ func (s *SqlDatabase) GetIssueRepositories(
 	)
 }
 
-func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilter) (int64, error) {
+func (s *SqlDatabase) CountIssueRepositories(ctx context.Context, filter *entity.IssueRepositoryFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountIssueRepositories",
 	})
@@ -270,6 +278,7 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 	`
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -286,7 +295,7 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 		}
 	}()
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CreateIssueRepository(

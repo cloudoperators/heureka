@@ -4,6 +4,7 @@
 package test
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -20,7 +21,7 @@ import (
 
 // Temporary used until order is used in all entities
 func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntity](
-	listFunction func(*F, []entity.Order) ([]E, error),
+	listFunction func(context.Context, *F, []entity.Order) ([]E, error),
 	filterFunction func(*int, *string) *F,
 	order []entity.Order,
 	getAfterFunction func([]E) string,
@@ -36,7 +37,7 @@ func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntit
 
 	var afterS string
 	for i := expectedPages; i > 0; i-- {
-		entries, err := listFunction(filterFunction(&pageSize, &afterS), order)
+		entries, err := listFunction(context.Background(), filterFunction(&pageSize, &afterS), order)
 
 		Expect(err).To(BeNil())
 

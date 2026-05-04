@@ -185,7 +185,7 @@ func (sg *supportGroupHandler) ListSupportGroups(
 	// Update the filter.Id based on accessibleSupportGroupIds
 	filter.Id = common.CombineFilterWithAccessibleIds(filter.Id, accessibleSupportGroupIds)
 
-	res, err := sg.database.GetSupportGroups(filter, options.Order)
+	res, err := sg.database.GetSupportGroups(ctx, filter, options.Order)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
 		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
@@ -197,7 +197,7 @@ func (sg *supportGroupHandler) ListSupportGroups(
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			cursors, err := sg.database.GetAllSupportGroupCursors(filter, options.Order)
+			cursors, err := sg.database.GetAllSupportGroupCursors(ctx, filter, options.Order)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
 				applog.LogError(sg.logger, wrappedErr, logrus.Fields{
@@ -211,7 +211,7 @@ func (sg *supportGroupHandler) ListSupportGroups(
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
-		count, err = sg.database.CountSupportGroups(filter)
+		count, err = sg.database.CountSupportGroups(ctx, filter)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
 			applog.LogError(sg.logger, wrappedErr, logrus.Fields{
@@ -449,6 +449,7 @@ func (sg *supportGroupHandler) RemoveUserFromSupportGroup(ctx context.Context,
 }
 
 func (sg *supportGroupHandler) ListSupportGroupCcrns(
+	ctx context.Context,
 	filter *entity.SupportGroupFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -457,7 +458,7 @@ func (sg *supportGroupHandler) ListSupportGroupCcrns(
 		"filter": filter,
 	})
 
-	supportGroupCcrns, err := sg.database.GetSupportGroupCcrns(filter)
+	supportGroupCcrns, err := sg.database.GetSupportGroupCcrns(ctx, filter)
 	if err != nil {
 		l.Error(err)
 

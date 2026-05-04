@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -27,7 +29,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 	When("Getting Patches", Label("GetPatches"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetPatches(nil, nil)
+				res, err := db.GetPatches(context.Background(), nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -44,7 +46,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetPatches(nil, nil)
+					res, err := db.GetPatches(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -97,7 +99,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{Id: []*int64{&row.Id.Int64}}
 
-					entries, err := db.GetPatches(filter, nil)
+					entries, err := db.GetPatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -113,7 +115,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{ServiceId: []*int64{&row.ServiceId.Int64}}
 
-					entries, err := db.GetPatches(filter, nil)
+					entries, err := db.GetPatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -131,7 +133,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{ServiceName: []*string{&row.ServiceName.String}}
 
-					entries, err := db.GetPatches(filter, nil)
+					entries, err := db.GetPatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -151,7 +153,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 						ComponentVersionId: []*int64{&row.ComponentVersionId.Int64},
 					}
 
-					entries, err := db.GetPatches(filter, nil)
+					entries, err := db.GetPatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -173,7 +175,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 						ComponentVersionName: []*string{&row.ComponentVersionName.String},
 					}
 
-					entries, err := db.GetPatches(filter, nil)
+					entries, err := db.GetPatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -222,7 +224,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 	When("Counting Patches", Label("CountPatches"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
-				c, err := db.CountPatches(nil)
+				c, err := db.CountPatches(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -243,7 +245,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountPatches(nil)
+					c, err := db.CountPatches(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -263,7 +265,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 							After: &after,
 						},
 					}
-					c, err := db.CountPatches(filter)
+					c, err := db.CountPatches(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())

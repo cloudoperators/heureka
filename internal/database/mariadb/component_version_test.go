@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -32,7 +33,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 	When("Getting ComponentVersions", Label("GetComponentVersions"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetComponentVersions(nil, nil)
+				res, err := db.GetComponentVersions(context.Background(), nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -49,7 +50,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetComponentVersions(nil, nil)
+					res, err := db.GetComponentVersions(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -100,7 +101,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Id: []*int64{&cv.Id.Int64},
 					}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -130,7 +131,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					filter := &entity.ComponentVersionFilter{IssueId: []*int64{&issueRow.Id.Int64}}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -158,7 +159,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						ComponentId: []*int64{&componentRow.Id.Int64},
 					}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -175,7 +176,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					filter := &entity.ComponentVersionFilter{Version: []*string{&cv.Version.String}}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -193,7 +194,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					filter := &entity.ComponentVersionFilter{IssueRepositoryId: []*int64{&iv.IssueRepositoryId.Int64}}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -219,7 +220,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						ComponentCCRN: []*string{&componentCCRN},
 					}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -245,7 +246,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					filter := &entity.ComponentVersionFilter{ServiceId: []*int64{&s.Id.Int64}}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -269,7 +270,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					filter := &entity.ComponentVersionFilter{ServiceCCRN: []*string{&s.CCRN.String}}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -293,7 +294,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					filter := &entity.ComponentVersionFilter{Tag: []*string{&tagToFilterBy}}
 
 					// Execute the query
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -326,7 +327,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					filter := &entity.ComponentVersionFilter{
 						Repository: []*string{&cv.Repository.String},
 					}
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -344,7 +345,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					filter := &entity.ComponentVersionFilter{
 						Organization: []*string{&cv.Organization.String},
 					}
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -364,7 +365,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						EndOfLife: []*bool{&endOfLifeAsFalse},
 					}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -384,7 +385,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						EndOfLife: []*bool{&endOfLifeAsTrue},
 					}
 
-					entries, err := db.GetComponentVersions(filter, nil)
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -434,7 +435,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 	When("Counting ComponentVersions", Label("CountComponentVersions"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
-				c, err := db.CountComponentVersions(nil)
+				c, err := db.CountComponentVersions(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -455,7 +456,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountComponentVersions(nil)
+					c, err := db.CountComponentVersions(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -474,7 +475,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 							After: nil,
 						},
 					}
-					c, err := db.CountComponentVersions(filter)
+					c, err := db.CountComponentVersions(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -520,7 +521,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Id: []*int64{&componentVersion.Id},
 					}
 
-					cv, err := db.GetComponentVersions(componentVersionFilter, nil)
+					cv, err := db.GetComponentVersions(context.Background(), componentVersionFilter, nil)
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -555,7 +556,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Id: []*int64{&componentVersion.Id},
 					}
 
-					cv, err := db.GetComponentVersions(componentVersionFilter, nil)
+					cv, err := db.GetComponentVersions(context.Background(), componentVersionFilter, nil)
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -582,7 +583,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Id: []*int64{&componentVersion.Id},
 					}
 
-					cv, err := db.GetComponentVersions(componentVersionFilter, nil)
+					cv, err := db.GetComponentVersions(context.Background(), componentVersionFilter, nil)
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -621,7 +622,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 						// Retrieve all component versions and find our updated one manually
 						// This avoids relying on the filter functionality
-						allVersions, err := db.GetComponentVersions(nil, nil)
+						allVersions, err := db.GetComponentVersions(context.Background(), nil, nil)
 
 						By("throwing no error during retrieval", func() {
 							Expect(err).To(BeNil())
@@ -684,7 +685,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		order []entity.Order,
 		verifyFunc func(res []entity.ComponentVersionResult),
 	) {
-		res, err := db.GetComponentVersions(nil, order)
+		res, err := db.GetComponentVersions(context.Background(), nil, order)
 
 		By("throwing no error", func() {
 			Expect(err).Should(BeNil())
@@ -741,7 +742,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 				{By: entity.LowCount, Direction: entity.OrderDirectionDesc},
 				{By: entity.NoneCount, Direction: entity.OrderDirectionDesc},
 			}
-			cvs, err := db.GetComponentVersions(nil, order)
+			cvs, err := db.GetComponentVersions(context.Background(), nil, order)
 			Expect(err).To(BeNil())
 			Expect(cvs[0].Id).To(BeEquivalentTo(3))
 			Expect(cvs[1].Id).To(BeEquivalentTo(8))
@@ -762,7 +763,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 				{By: entity.LowCount, Direction: entity.OrderDirectionAsc},
 				{By: entity.NoneCount, Direction: entity.OrderDirectionAsc},
 			}
-			cvs, err := db.GetComponentVersions(nil, order)
+			cvs, err := db.GetComponentVersions(context.Background(), nil, order)
 			Expect(err).To(BeNil())
 			Expect(cvs[0].Id).To(BeEquivalentTo(9))
 			Expect(cvs[1].Id).To(BeEquivalentTo(10))

@@ -169,7 +169,7 @@ func UserNameBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListUserNames(f, opt)
+	names, err := app.ListUserNames(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("UserNameBaseResolver", err.Error())
 	}
@@ -211,7 +211,7 @@ func UniqueUserIDBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListUniqueUserIDs(f, opt)
+	names, err := app.ListUniqueUserIDs(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("UniqueUserIDBaseResolver", err.Error())
 	}
@@ -253,7 +253,7 @@ func UserNameWithIdBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, ids, err := app.ListUserNamesAndIds(f, opt)
+	names, ids, err := app.ListUserNamesAndIds(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("UserNameWithIdBaseResolver", err.Error())
 	}

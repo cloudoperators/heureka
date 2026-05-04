@@ -11,6 +11,7 @@ import (
 
 type RemediationHandler interface {
 	ListRemediations(
+		context.Context,
 		*entity.RemediationFilter,
 		*entity.ListOptions,
 	) (*entity.List[entity.RemediationResult], error)

@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -277,6 +278,7 @@ func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 }
 
 func (s *SqlDatabase) buildIssueMatchStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.IssueMatchFilter,
 	withCursor bool,
@@ -305,7 +307,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -323,7 +325,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]int64, error) {
+func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.IssueMatchFilter) ([]int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllIssueMatchIds",
@@ -336,6 +338,7 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -346,10 +349,11 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
 		return nil, err
 	}
 
-	return performIdScan(stmt, filterParameters, l)
+	return performIdScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetAllIssueMatchCursors(
+	ctx context.Context,
 	filter *entity.IssueMatchFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -364,12 +368,13 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(
 	    %s GROUP BY IM.issuematch_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
 	}
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -398,6 +403,7 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(
 }
 
 func (s *SqlDatabase) GetIssueMatches(
+	ctx context.Context,
 	filter *entity.IssueMatchFilter,
 	order []entity.Order,
 ) ([]entity.IssueMatchResult, error) {
@@ -412,7 +418,7 @@ func (s *SqlDatabase) GetIssueMatches(
 	    %s %s GROUP BY IM.issuematch_id ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -424,6 +430,7 @@ func (s *SqlDatabase) GetIssueMatches(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -451,7 +458,7 @@ func (s *SqlDatabase) GetIssueMatches(
 	)
 }
 
-func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64, error) {
+func (s *SqlDatabase) CountIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.CountIssueMatches",
@@ -465,6 +472,7 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -475,7 +483,7 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
 		return -1, err
 	}
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {

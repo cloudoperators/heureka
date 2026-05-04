@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"database/sql"
 	"sort"
 	"time"
@@ -33,7 +34,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 	When("Getting All IssueMatch IDs", Label("GetAllIssueMatchIds"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetAllIssueMatchIds(nil)
+				res, err := db.GetAllIssueMatchIds(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -56,7 +57,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetAllIssueMatchIds(nil)
+					res, err := db.GetAllIssueMatchIds(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -90,7 +91,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						Id: []*int64{&vmId},
 					}
 
-					entries, err := db.GetAllIssueMatchIds(filter)
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -118,7 +119,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					}
 
-					entries, err := db.GetAllIssueMatchIds(filter)
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -147,7 +148,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						ComponentCCRN: []*string{&cRow.CCRN.String},
 					}
 
-					entries, err := db.GetAllIssueMatchIds(filter)
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -176,7 +177,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					}
 
-					entries, err := db.GetAllIssueMatchIds(filter)
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -200,7 +201,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					searchStr := test.CutString(issueRow.PrimaryName.String, 2, 2, 5)
 					filter := &entity.IssueMatchFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetAllIssueMatchIds(filter)
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -221,7 +222,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 	When("Getting IssueMatches", Label("GetIssueMatches"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetIssueMatches(nil, nil)
+				res, err := db.GetIssueMatches(context.Background(), nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -242,7 +243,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetIssueMatches(nil, nil)
+					res, err := db.GetIssueMatches(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -288,7 +289,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						Id: []*int64{&im.Id.Int64},
 					}
 
-					entries, err := db.GetIssueMatches(filter, nil)
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -315,7 +316,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					}
 
-					entries, err := db.GetIssueMatches(filter, nil)
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -344,7 +345,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					}
 
-					entries, err := db.GetIssueMatches(filter, nil)
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -381,7 +382,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					}
 
-					entries, err := db.GetIssueMatches(filter, nil)
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -417,7 +418,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					}
 
-					entries, err := db.GetIssueMatches(filter, nil)
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -466,7 +467,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 
 					// fixture creation does not guarantee that a support group is always present
 					if sgFound {
-						entries, err := db.GetIssueMatches(filter, nil)
+						entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
@@ -501,7 +502,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						ServiceOwnerUsername: []*string{&user.Name.String},
 					}
 
-					entries, err := db.GetIssueMatches(filter, nil)
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -530,7 +531,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						ServiceOwnerUniqueUserId: []*string{&user.UniqueUserID.String},
 					}
 
-					entries, err := db.GetIssueMatches(filter, nil)
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -583,7 +584,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 		Context("and using no filter", func() {
 			DescribeTable("it returns correct count", func(x int) {
 				_ = seeder.SeedDbWithNFakeData(x)
-				res, err := db.CountIssueMatches(nil)
+				res, err := db.CountIssueMatches(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -613,7 +614,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 							After: &after,
 						},
 					}
-					res, err := db.CountIssueMatches(filter)
+					res, err := db.CountIssueMatches(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -636,7 +637,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 							imIds = append(imIds, e.Id.Int64)
 						}
 					}
-					count, err := db.CountIssueMatches(filter)
+					count, err := db.CountIssueMatches(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -683,7 +684,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					Id: []*int64{&issueMatch.Id},
 				}
 
-				im, err := db.GetIssueMatches(issueMatchFilter, nil)
+				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -736,7 +737,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					Id: []*int64{&issueMatch.Id},
 				}
 
-				im, err := db.GetIssueMatches(issueMatchFilter, nil)
+				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -783,7 +784,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					Id: []*int64{&issueMatch.Id},
 				}
 
-				im, err := db.GetIssueMatches(issueMatchFilter, nil)
+				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -814,7 +815,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 		order []entity.Order,
 		verifyFunc func(res []entity.IssueMatchResult),
 	) {
-		res, err := db.GetIssueMatches(nil, order)
+		res, err := db.GetIssueMatches(context.Background(), nil, order)
 
 		By("throwing no error", func() {
 			Expect(err).Should(BeNil())
@@ -1226,7 +1227,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
 				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
 			}
-			im, err := db.GetIssueMatches(&filter, order)
+			im, err := db.GetIssueMatches(context.Background(), &filter, order)
 			Expect(err).To(BeNil())
 			Expect(im).To(HaveLen(1))
 			filterWithCursor := entity.IssueMatchFilter{
@@ -1234,7 +1235,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 					After: im[0].Cursor(),
 				},
 			}
-			res, err := db.GetIssueMatches(&filterWithCursor, order)
+			res, err := db.GetIssueMatches(context.Background(), &filterWithCursor, order)
 			Expect(err).To(BeNil())
 			Expect(res[0].Id).To(BeEquivalentTo(13))
 			Expect(res[1].Id).To(BeEquivalentTo(20))

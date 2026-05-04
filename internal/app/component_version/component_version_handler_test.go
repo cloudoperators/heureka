@@ -79,10 +79,10 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", filter, []entity.Order{}).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.ComponentVersionResult{}, nil)
-			db.On("CountComponentVersions", filter).Return(int64(1337), nil)
+			db.On("CountComponentVersions", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
@@ -146,10 +146,10 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 					)
 					cursors = append(cursors, c)
 				}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponentVersions", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 					Return(componentVersions, nil)
-				db.On("GetAllComponentVersionCursors", filter, []entity.Order{}).
+				db.On("GetAllComponentVersionCursors", mock.Anything, filter, []entity.Order{}).
 					Return(cursors, nil)
 				cvHandler = cv.NewComponentVersionHandler(handlerContext)
 				res, err := cvHandler.ListComponentVersions(ctx, filter, options)
@@ -193,11 +193,11 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			tagFilter.Tag = []*string{&testTag}
 
 			// Mock database calls
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", tagFilter, []entity.Order{}).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetComponentVersions", mock.Anything, tagFilter, []entity.Order{}).
 				Return(componentVersions, nil)
 			if options.ShowTotalCount {
-				db.On("CountComponentVersions", tagFilter).
+				db.On("CountComponentVersions", mock.Anything, tagFilter).
 					Return(int64(len(componentVersions)), nil)
 			}
 
@@ -229,11 +229,11 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			repoFilter.Repository = []*string{&testRepo}
 
 			// Mock database calls
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", repoFilter, []entity.Order{}).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetComponentVersions", mock.Anything, repoFilter, []entity.Order{}).
 				Return(componentVersions, nil)
 			if options.ShowTotalCount {
-				db.On("CountComponentVersions", repoFilter).
+				db.On("CountComponentVersions", mock.Anything, repoFilter).
 					Return(int64(len(componentVersions)), nil)
 			}
 
@@ -265,11 +265,11 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			orgFilter.Organization = []*string{&testOrg}
 
 			// Mock database calls
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", orgFilter, []entity.Order{}).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetComponentVersions", mock.Anything, orgFilter, []entity.Order{}).
 				Return(componentVersions, nil)
 			if options.ShowTotalCount {
-				db.On("CountComponentVersions", orgFilter).
+				db.On("CountComponentVersions", mock.Anything, orgFilter).
 					Return(int64(len(componentVersions)), nil)
 			}
 
@@ -307,8 +307,8 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			BeforeEach(func() {
 				compIds := int64(-1)
 				filter.ComponentId = []*int64{&compIds}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponentVersions", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentVersionResult{}, nil)
 			})
 
@@ -331,8 +331,8 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 					systemUserId := int64(1)
 					filter.ComponentId = []*int64{&compId}
 					componentVersion = test.NewFakeComponentVersionEntity()
-					db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-					db.On("GetComponentVersions", filter, []entity.Order{}).
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+					db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 						Return([]entity.ComponentVersionResult{{ComponentVersion: &componentVersion}}, nil)
 
 					relations := []openfga.RelationInput{
@@ -398,7 +398,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 	})
 
 	It("creates componentVersion", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		newComponentVersion, err := componenVersionService.CreateComponentVersion(
@@ -489,13 +489,13 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 	})
 
 	It("updates componentVersion", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentVersion", componentVersion.ComponentVersion).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		componentVersion.Version = "7.3.3.1"
 		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
-		db.On("GetComponentVersions", filter, []entity.Order{}).
+		db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 			Return([]entity.ComponentVersionResult{componentVersion}, nil)
 		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(
 			common.NewAdminContext(),
@@ -605,10 +605,10 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 	})
 
 	It("deletes componentVersion", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
-		db.On("GetComponentVersions", filter, []entity.Order{}).
+		db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 			Return([]entity.ComponentVersionResult{}, nil)
 		err := componenVersionService.DeleteComponentVersion(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")

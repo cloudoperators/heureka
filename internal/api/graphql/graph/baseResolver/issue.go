@@ -53,7 +53,7 @@ func SingleIssueBaseResolver(
 
 	opt := &entity.IssueListOptions{}
 
-	issues, err := app.ListIssues(f, opt)
+	issues, err := app.ListIssues(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
@@ -175,7 +175,7 @@ func IssueBaseResolver(
 		}
 	}
 
-	issues, err := app.ListIssues(f, opt)
+	issues, err := app.ListIssues(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
@@ -267,7 +267,7 @@ func IssueNameBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListIssueNames(f, opt)
+	names, err := app.ListIssueNames(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
@@ -370,7 +370,7 @@ func IssueCountsBaseResolver(
 		Unique:             unique,
 	}
 
-	counts, err := app.GetIssueSeverityCounts(f)
+	counts, err := app.GetIssueSeverityCounts(ctx, f)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}

@@ -4,6 +4,7 @@
 package issue_variant_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -97,14 +98,14 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssueVariants", filter, mock.Anything).
+			db.On("GetIssueVariants", mock.Anything, filter, mock.Anything).
 				Return([]entity.IssueVariantResult{}, nil)
-			db.On("CountIssueVariants", filter).Return(int64(1337), nil)
+			db.On("CountIssueVariants", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
 			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-			res, err := issueVariantHandler.ListIssueVariants(filter, options)
+			res, err := issueVariantHandler.ListIssueVariants(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -146,10 +147,10 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 					cursors = append(cursors, c)
 				}
 
-				db.On("GetIssueVariants", filter, mock.Anything).Return(ivResults, nil)
-				db.On("GetAllIssueVariantCursors", filter, mock.Anything).Return(cursors, nil)
+				db.On("GetIssueVariants", mock.Anything, filter, mock.Anything).Return(ivResults, nil)
+				db.On("GetAllIssueVariantCursors", mock.Anything, filter, mock.Anything).Return(cursors, nil)
 				issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-				res, err := issueVariantHandler.ListIssueVariants(filter, options)
+				res, err := issueVariantHandler.ListIssueVariants(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(
 					*res.PageInfo.HasNextPage,
@@ -237,12 +238,12 @@ var _ = Describe(
 					})
 				}
 
-				db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
-				db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
+				db.On("GetIssueVariants", mock.Anything, ivFilter, mock.Anything).Return(ivResults, nil)
+				db.On("GetIssueRepositories", mock.Anything, irFilter, mock.Anything).Return(irResults, nil)
 			})
 			It("can list advisories", func() {
 				issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-				res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
+				res, err := issueVariantHandler.ListEffectiveIssueVariants(context.Background(), ivFilter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				for _, item := range res.Elements {
 					Expect(item.IssueRepositoryId).To(BeEquivalentTo(repositories[1].Id))
@@ -278,12 +279,12 @@ var _ = Describe(
 					})
 				}
 
-				db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
-				db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
+				db.On("GetIssueVariants", mock.Anything, ivFilter, mock.Anything).Return(ivResults, nil)
+				db.On("GetIssueRepositories", mock.Anything, irFilter, mock.Anything).Return(irResults, nil)
 			})
 			It("can list issueVariants", func() {
 				issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-				res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
+				res, err := issueVariantHandler.ListEffectiveIssueVariants(context.Background(), ivFilter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				ir_ids := lo.Map(res.Elements, func(item entity.IssueVariantResult, _ int) int64 {
 					return item.IssueRepositoryId
@@ -327,9 +328,9 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 
 	It("creates issueVariant", func() {
 		filter.SecondaryName = []*string{&issueVariant.SecondaryName}
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
-		db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
+		db.On("GetIssueVariants", mock.Anything, filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(
 			common.NewAdminContext(),
@@ -384,12 +385,12 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 	})
 
 	It("updates issueVariant", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueVariant", &issueVariant).Return(nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 		issueVariant.SecondaryName = "SecretAdvisory"
 		filter.Id = []*int64{&issueVariant.Id}
-		db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{
+		db.On("GetIssueVariants", mock.Anything, filter, mock.Anything).Return([]entity.IssueVariantResult{
 			{
 				IssueVariant: &issueVariant,
 			},
@@ -450,15 +451,15 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 	})
 
 	It("deletes issueVariant", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueVariant", id, mock.Anything).Return(nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-		db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
+		db.On("GetIssueVariants", mock.Anything, filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
 		err := issueVariantHandler.DeleteIssueVariant(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueVariants, err := issueVariantHandler.ListIssueVariants(filter, &entity.ListOptions{})
+		issueVariants, err := issueVariantHandler.ListIssueVariants(context.Background(), filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueVariants.Elements).To(BeEmpty(), "no error should be thrown")
 	})

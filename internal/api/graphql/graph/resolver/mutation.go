@@ -809,7 +809,7 @@ func (r *mutationResolver) AddComponentVersionToIssue(ctx context.Context, issue
 		)
 	}
 
-	issue, err := r.App.AddComponentVersionToIssue(*issueIdInt, *componentVersionIdInt)
+	issue, err := r.App.AddComponentVersionToIssue(ctx, *issueIdInt, *componentVersionIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
 			"AddComponentVersionToIssueMutationResolver",
@@ -840,7 +840,7 @@ func (r *mutationResolver) RemoveComponentVersionFromIssue(ctx context.Context, 
 		)
 	}
 
-	issue, err := r.App.RemoveComponentVersionFromIssue(*issueIdInt, *componentVersionIdInt)
+	issue, err := r.App.RemoveComponentVersionFromIssue(ctx, *issueIdInt, *componentVersionIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
 			"RemoveComponentVersionFromIssueMutationResolver",
@@ -1058,6 +1058,7 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 
 	// fetch issue id for given issue name
 	issueResult, err := r.App.ListIssues(
+		ctx,
 		&entity.IssueFilter{PrimaryName: []*string{input.Vulnerability}},
 		nil,
 	)
@@ -1071,7 +1072,7 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 	remediation.IssueId = issueResult.Elements[0].Issue.Id
 
 	if input.RemediatedBy != nil {
-		userUniqueUserIDs, err := r.App.ListUniqueUserIDs(&entity.UserFilter{
+		userUniqueUserIDs, err := r.App.ListUniqueUserIDs(ctx, &entity.UserFilter{
 			UniqueUserID: []*string{input.RemediatedBy},
 		}, nil)
 		if err != nil {
@@ -1162,6 +1163,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 	if input.Vulnerability != nil {
 		// fetch issue id for given issue name
 		issueResult, err := r.App.ListIssues(
+			ctx,
 			&entity.IssueFilter{PrimaryName: []*string{input.Vulnerability}},
 			nil,
 		)

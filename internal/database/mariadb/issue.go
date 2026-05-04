@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -364,6 +365,7 @@ func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueF
 }
 
 func (s *SqlDatabase) buildIssueStatementWithCursor(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.IssueFilter,
 	order []entity.Order,
@@ -380,7 +382,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(
 	query := getIssueQueryWithCursor(baseQuery, order, ifilter, cursorFields)
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -400,6 +402,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(
 }
 
 func (s *SqlDatabase) buildIssueStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.IssueFilter,
 	order []entity.Order,
@@ -416,7 +419,7 @@ func (s *SqlDatabase) buildIssueStatement(
 	query := getIssueQuery(baseQuery, order, ifilter)
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -436,6 +439,7 @@ func (s *SqlDatabase) buildIssueStatement(
 }
 
 func (s *SqlDatabase) GetIssuesWithAggregations(
+	ctx context.Context,
 	filter *entity.IssueFilter,
 	order []entity.Order,
 ) ([]entity.IssueResult, error) {
@@ -514,7 +518,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, ord)
 	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery)
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -541,6 +545,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -571,7 +576,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	)
 }
 
-func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
+func (s *SqlDatabase) CountIssues(ctx context.Context, filter *entity.IssueFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountIssues",
 	})
@@ -583,7 +588,7 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 		ORDER BY %s
 	`
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, []entity.Order{}, l)
 	if err != nil {
 		return -1, err
 	}
@@ -594,10 +599,10 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 		}
 	}()
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.IssueTypeCounts, error) {
+func (s *SqlDatabase) CountIssueTypes(ctx context.Context, filter *entity.IssueFilter) (*entity.IssueTypeCounts, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountIssueTypes",
 	})
@@ -609,7 +614,7 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 		GROUP BY I.issue_type ORDER BY %s
 	`
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, []entity.Order{}, l)
 	if err != nil {
 		return nil, err
 	}
@@ -621,6 +626,7 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 	}()
 
 	counts, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -649,6 +655,7 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 }
 
 func (s *SqlDatabase) GetAllIssueCursors(
+	ctx context.Context,
 	filter *entity.IssueFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -663,7 +670,7 @@ func (s *SqlDatabase) GetAllIssueCursors(
 	    %s GROUP BY I.issue_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, order, l)
+	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -675,6 +682,7 @@ func (s *SqlDatabase) GetAllIssueCursors(
 	}()
 
 	rows, err := performListScan(
+		context.Background(),
 		stmt,
 		filterParameters,
 		l,
@@ -701,6 +709,7 @@ func (s *SqlDatabase) GetAllIssueCursors(
 }
 
 func (s *SqlDatabase) GetIssues(
+	ctx context.Context,
 	filter *entity.IssueFilter,
 	order []entity.Order,
 ) ([]entity.IssueResult, error) {
@@ -717,7 +726,7 @@ func (s *SqlDatabase) GetIssues(
 
 	filter = ensureIssueFilter(filter)
 
-	stmt, filterParameters, err := s.buildIssueStatementWithCursor(baseQuery, filter, order, l)
+	stmt, filterParameters, err := s.buildIssueStatementWithCursor(ctx, baseQuery, filter, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -729,6 +738,7 @@ func (s *SqlDatabase) GetIssues(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -852,7 +862,7 @@ func (s *SqlDatabase) RemoveAllIssuesFromComponentVersion(componentVersionId int
 	return err
 }
 
-func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error) {
+func (s *SqlDatabase) GetIssueNames(ctx context.Context, filter *entity.IssueFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssueNames",
@@ -873,7 +883,7 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 	filter = ensureIssueFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, order, l)
+	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, order, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
@@ -886,7 +896,7 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 	}()
 
 	// Execute the query
-	rows, err := stmt.Queryx(filterParameters...)
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		l.Error("Error executing query: ", err)
 		return nil, err

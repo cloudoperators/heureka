@@ -11,10 +11,12 @@ import (
 
 type IssueVariantHandler interface {
 	ListIssueVariants(
+		context.Context,
 		*entity.IssueVariantFilter,
 		*entity.ListOptions,
 	) (*entity.List[entity.IssueVariantResult], error)
 	ListEffectiveIssueVariants(
+		context.Context,
 		*entity.IssueVariantFilter,
 		*entity.ListOptions,
 	) (*entity.List[entity.IssueVariantResult], error)

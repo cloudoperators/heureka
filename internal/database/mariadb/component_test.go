@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -36,7 +37,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		// This is tricky because expectedComponents is not check against content, just length, so it should be expectedComponentsLen insted of expectedComponents
 		// TODO: decide to use Len or at least check ids of expected components
 		testGetComponents := func(filter *entity.ComponentFilter, order []entity.Order, expectedComponents []mariadb.ComponentRow, check func(entries []entity.ComponentResult)) {
-			res, err := db.GetComponents(filter, order)
+			res, err := db.GetComponents(context.Background(), filter, order)
 			Expect(err).To(BeNil(), "GetComponents should not error")
 			Expect(
 				len(res),
@@ -283,7 +284,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 	})
 	When("Counting Components", Label("CountComponents"), func() {
 		testCountComponents := func(filter *entity.ComponentFilter, expectedCount int) {
-			c, err := db.CountComponents(filter)
+			c, err := db.CountComponents(context.Background(), filter)
 			Expect(err).To(BeNil(), "CountComponents should not error")
 			Expect(
 				c,
@@ -373,7 +374,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						Id: []*int64{&component.Id},
 					}
 
-					c, err := db.GetComponents(componentFilter, []entity.Order{})
+					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -423,7 +424,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						Id: []*int64{&component.Id},
 					}
 
-					c, err := db.GetComponents(componentFilter, []entity.Order{})
+					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -453,7 +454,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						Id: []*int64{&component.Id},
 					}
 
-					c, err := db.GetComponents(componentFilter, []entity.Order{})
+					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -490,7 +491,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						Id: []*int64{&component.Id},
 					}
 
-					c, err := db.GetComponents(componentFilter, []entity.Order{})
+					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -525,7 +526,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 		order []entity.Order,
 		verifyFunc func(res []entity.ComponentResult),
 	) {
-		res, err := db.GetComponents(nil, order)
+		res, err := db.GetComponents(context.Background(), nil, order)
 
 		By("throwing no error", func() {
 			Expect(err).Should(BeNil())
@@ -625,7 +626,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 				{By: entity.LowCount, Direction: entity.OrderDirectionDesc},
 				{By: entity.NoneCount, Direction: entity.OrderDirectionDesc},
 			}
-			components, err := db.GetComponents(componentFilter, order)
+			components, err := db.GetComponents(context.Background(), componentFilter, order)
 			Expect(err).To(BeNil())
 			Expect(components[0].Id).To(BeEquivalentTo(1))
 			Expect(components[1].Id).To(BeEquivalentTo(2))
@@ -641,7 +642,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 				{By: entity.LowCount, Direction: entity.OrderDirectionAsc},
 				{By: entity.NoneCount, Direction: entity.OrderDirectionAsc},
 			}
-			components, err := db.GetComponents(componentFilter, order)
+			components, err := db.GetComponents(context.Background(), componentFilter, order)
 			Expect(err).To(BeNil())
 			Expect(components[0].Id).To(BeEquivalentTo(5))
 			Expect(components[1].Id).To(BeEquivalentTo(4))

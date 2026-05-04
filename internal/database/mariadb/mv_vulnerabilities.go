@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -40,6 +41,7 @@ func getCountTable(filter *entity.IssueFilter) string {
 }
 
 func (s *SqlDatabase) CountIssueRatings(
+	ctx context.Context,
 	filter *entity.IssueFilter,
 ) (*entity.IssueSeverityCounts, error) {
 	l := logrus.WithFields(logrus.Fields{
@@ -93,7 +95,7 @@ func (s *SqlDatabase) CountIssueRatings(
 		query = fmt.Sprintf("%s WHERE %s", query, filterStr)
 	}
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -113,6 +115,7 @@ func (s *SqlDatabase) CountIssueRatings(
 	}()
 
 	counts, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,

@@ -100,7 +100,7 @@ func (cs *componentHandler) ListComponents(
 	// Update the filter.Id based on accessibleComponentIds
 	filter.Id = common.CombineFilterWithAccessibleIds(filter.Id, accessibleComponentIds)
 
-	res, err := cs.database.GetComponents(filter, options.Order)
+	res, err := cs.database.GetComponents(ctx, filter, options.Order)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
 		applog.LogError(cs.logger, wrappedErr, logrus.Fields{
@@ -116,7 +116,7 @@ func (cs *componentHandler) ListComponents(
 				cs.cache,
 				CacheTtlGetAllComponentCursors,
 				"GetAllComponentCursors",
-				cs.database.GetAllComponentCursors,
+				cache.WrapContext2(ctx, cs.database.GetAllComponentCursors),
 				filter,
 				options.Order,
 			)
@@ -137,7 +137,7 @@ func (cs *componentHandler) ListComponents(
 			cs.cache,
 			CacheTtlCountComponents,
 			"CountComponents",
-			cs.database.CountComponents,
+			cache.WrapContext1(ctx, cs.database.CountComponents),
 			filter,
 		)
 		if err != nil {
@@ -281,6 +281,7 @@ func (cs *componentHandler) DeleteComponent(ctx context.Context, id int64) error
 }
 
 func (cs *componentHandler) ListComponentCcrns(
+	ctx context.Context,
 	filter *entity.ComponentFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -293,7 +294,7 @@ func (cs *componentHandler) ListComponentCcrns(
 		cs.cache,
 		CacheTtlGetComponentCcrns,
 		"GetComponentCcrns",
-		cs.database.GetComponentCcrns,
+		cache.WrapContext1(ctx, cs.database.GetComponentCcrns),
 		filter,
 	)
 	if err != nil {
@@ -309,6 +310,7 @@ func (cs *componentHandler) ListComponentCcrns(
 }
 
 func (cs *componentHandler) GetComponentVulnerabilityCounts(
+	ctx context.Context,
 	filter *entity.ComponentFilter,
 ) ([]entity.IssueSeverityCounts, error) {
 	l := logrus.WithFields(logrus.Fields{
@@ -316,7 +318,7 @@ func (cs *componentHandler) GetComponentVulnerabilityCounts(
 		"filter": filter,
 	})
 
-	counts, err := cs.database.CountComponentVulnerabilities(filter)
+	counts, err := cs.database.CountComponentVulnerabilities(ctx, filter)
 	if err != nil {
 		l.Error(err)
 

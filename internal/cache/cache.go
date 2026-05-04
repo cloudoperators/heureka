@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cache
@@ -16,14 +16,17 @@ import (
 type Cache interface {
 	CacheKey(fnname string, fn any, args ...any) (string, error)
 	Get(key string) (string, bool, error)
+	GetAllKeys() ([]string, error)
 	Set(key string, value string, ttl time.Duration) error
 	Invalidate(key string) error
+	InvalidateByMatch(keyMatcher func(decodedKey string) bool) error
 	IncHit()
 	IncMiss()
 	IncShared()
 	GetStat() Stat
 	LaunchRefresh(fn func())
 	GetSingleflightWrapper() SingleflightWrapper
+	GetKeyHashType() KeyHashType
 }
 
 type SingleflightWrapper interface {

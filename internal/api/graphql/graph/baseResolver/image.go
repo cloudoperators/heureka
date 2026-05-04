@@ -84,7 +84,7 @@ func ImageBaseResolver(
 			Repository:  filter.Repository,
 		}
 
-		counts, err := app.GetComponentVulnerabilityCounts(icFilter)
+		counts, err := app.GetComponentVulnerabilityCounts(ctx, icFilter)
 		if err != nil {
 			return nil, NewResolverError("ImageBaseResolver", err.Error())
 		}

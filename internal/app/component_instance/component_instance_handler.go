@@ -103,7 +103,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 		ci.cache,
 		CacheTtlGetComponentInstances,
 		"GetComponentInstances",
-		ci.database.GetComponentInstances,
+		cache.WrapContext2(ctx, ci.database.GetComponentInstances),
 		filter,
 		options.Order,
 	)
@@ -122,7 +122,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 				ci.cache,
 				CacheTtlGetAllComponentInstanceCursors,
 				"GetAllComponentInstanceCursors",
-				ci.database.GetAllComponentInstanceCursors,
+				cache.WrapContext2(ctx, ci.database.GetAllComponentInstanceCursors),
 				filter,
 				options.Order,
 			)
@@ -148,7 +148,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 			ci.cache,
 			CacheTtlCountComponentInstances,
 			"CountComponentInstances",
-			ci.database.CountComponentInstances,
+			cache.WrapContext1(ctx, ci.database.CountComponentInstances),
 			filter,
 		)
 		if err != nil {
@@ -551,12 +551,13 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(ctx context.Context,
 }
 
 func (ci *componentInstanceHandler) ListRegions(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListRegions")
 
-	regions, err := ci.database.GetRegion(filter)
+	regions, err := ci.database.GetRegion(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceRegions", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -575,12 +576,13 @@ func (ci *componentInstanceHandler) ListRegions(
 }
 
 func (ci *componentInstanceHandler) ListCcrns(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListCcrns")
 
-	ccrns, err := ci.database.GetCcrn(filter)
+	ccrns, err := ci.database.GetCcrn(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCcrns", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -599,12 +601,13 @@ func (ci *componentInstanceHandler) ListCcrns(
 }
 
 func (ci *componentInstanceHandler) ListClusters(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListClusters")
 
-	clusters, err := ci.database.GetCluster(filter)
+	clusters, err := ci.database.GetCluster(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceClusters", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -623,12 +626,13 @@ func (ci *componentInstanceHandler) ListClusters(
 }
 
 func (ci *componentInstanceHandler) ListNamespaces(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListNamespaces")
 
-	namespaces, err := ci.database.GetNamespace(filter)
+	namespaces, err := ci.database.GetNamespace(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceNamespaces", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -647,12 +651,13 @@ func (ci *componentInstanceHandler) ListNamespaces(
 }
 
 func (ci *componentInstanceHandler) ListDomains(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListDomains")
 
-	domains, err := ci.database.GetDomain(filter)
+	domains, err := ci.database.GetDomain(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceDomains", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -671,12 +676,13 @@ func (ci *componentInstanceHandler) ListDomains(
 }
 
 func (ci *componentInstanceHandler) ListProjects(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListProjects")
 
-	projects, err := ci.database.GetProject(filter)
+	projects, err := ci.database.GetProject(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceProjects", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -695,12 +701,13 @@ func (ci *componentInstanceHandler) ListProjects(
 }
 
 func (ci *componentInstanceHandler) ListPods(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListPods")
 
-	pods, err := ci.database.GetPod(filter)
+	pods, err := ci.database.GetPod(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstancePods", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -719,12 +726,13 @@ func (ci *componentInstanceHandler) ListPods(
 }
 
 func (ci *componentInstanceHandler) ListContainers(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListContainers")
 
-	containers, err := ci.database.GetContainer(filter)
+	containers, err := ci.database.GetContainer(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceContainers", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -743,12 +751,13 @@ func (ci *componentInstanceHandler) ListContainers(
 }
 
 func (ci *componentInstanceHandler) ListTypes(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListTypes")
 
-	types, err := ci.database.GetType(filter)
+	types, err := ci.database.GetType(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceTypes", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -767,12 +776,13 @@ func (ci *componentInstanceHandler) ListTypes(
 }
 
 func (ci *componentInstanceHandler) ListParents(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListParents")
 
-	parents, err := ci.database.GetComponentInstanceParent(filter)
+	parents, err := ci.database.GetComponentInstanceParent(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceParents", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -791,12 +801,13 @@ func (ci *componentInstanceHandler) ListParents(
 }
 
 func (ci *componentInstanceHandler) ListContexts(
+	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListContexts")
 
-	contexts, err := ci.database.GetContext(filter)
+	contexts, err := ci.database.GetContext(ctx, filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceContexts", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{

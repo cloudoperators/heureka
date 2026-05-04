@@ -56,6 +56,7 @@ func (e *IssueVariantHandlerError) Error() string {
 }
 
 func (iv *issueVariantHandler) getIssueVariantResults(
+	ctx context.Context,
 	filter *entity.IssueVariantFilter,
 ) ([]entity.IssueVariantResult, error) {
 	var ivResults []entity.IssueVariantResult
@@ -64,7 +65,7 @@ func (iv *issueVariantHandler) getIssueVariantResults(
 		iv.cache,
 		CacheTtlGetIssueVariants,
 		"GetIssueVariants",
-		iv.database.GetIssueVariants,
+		cache.WrapContext2(ctx, iv.database.GetIssueVariants),
 		filter,
 		[]entity.Order{},
 	)
@@ -76,6 +77,7 @@ func (iv *issueVariantHandler) getIssueVariantResults(
 }
 
 func (iv *issueVariantHandler) ListIssueVariants(
+	ctx context.Context,
 	filter *entity.IssueVariantFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.IssueVariantResult], error) {
@@ -91,7 +93,7 @@ func (iv *issueVariantHandler) ListIssueVariants(
 		"filter": filter,
 	})
 
-	res, err := iv.getIssueVariantResults(filter)
+	res, err := iv.getIssueVariantResults(ctx, filter)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Error while filtering for IssueVariants")
@@ -103,7 +105,7 @@ func (iv *issueVariantHandler) ListIssueVariants(
 				iv.cache,
 				CacheTtlGetAllIssueVariantCursors,
 				"GetAllIssueVariantCursors",
-				iv.database.GetAllIssueVariantCursors,
+				cache.WrapContext2(ctx, iv.database.GetAllIssueVariantCursors),
 				filter,
 				options.Order,
 			)
@@ -121,7 +123,7 @@ func (iv *issueVariantHandler) ListIssueVariants(
 			iv.cache,
 			CacheTtlCountIssueVariants,
 			"CountIssueVariants",
-			iv.database.CountIssueVariants,
+			cache.WrapContext1(ctx, iv.database.CountIssueVariants),
 			filter,
 		)
 		if err != nil {
@@ -146,6 +148,7 @@ func (iv *issueVariantHandler) ListIssueVariants(
 }
 
 func (iv *issueVariantHandler) ListEffectiveIssueVariants(
+	ctx context.Context,
 	filter *entity.IssueVariantFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.IssueVariantResult], error) {
@@ -154,7 +157,7 @@ func (iv *issueVariantHandler) ListEffectiveIssueVariants(
 		"filter": filter,
 	})
 
-	issueVariants, err := iv.ListIssueVariants(filter, options)
+	issueVariants, err := iv.ListIssueVariants(ctx, filter, options)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while returning issueVariants.")
@@ -173,7 +176,7 @@ func (iv *issueVariantHandler) ListEffectiveIssueVariants(
 
 	opts := entity.ListOptions{}
 
-	repositories, err := iv.repositoryService.ListIssueRepositories(&repositoryFilter, &opts)
+	repositories, err := iv.repositoryService.ListIssueRepositories(ctx, &repositoryFilter, &opts)
 	if err != nil {
 		l.Error(err)
 
@@ -247,7 +250,7 @@ func (iv *issueVariantHandler) CreateIssueVariant(
 
 	issueVariant.UpdatedBy = issueVariant.CreatedBy
 
-	issueVariants, err := iv.ListIssueVariants(f, &entity.ListOptions{})
+	issueVariants, err := iv.ListIssueVariants(ctx, f, &entity.ListOptions{})
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant.")
@@ -299,6 +302,7 @@ func (iv *issueVariantHandler) UpdateIssueVariant(
 	}
 
 	ivResult, err := iv.ListIssueVariants(
+		ctx,
 		&entity.IssueVariantFilter{Id: []*int64{&issueVariant.Id}},
 		&entity.ListOptions{},
 	)

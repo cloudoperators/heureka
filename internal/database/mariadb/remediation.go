@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -191,6 +192,7 @@ func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.Remediati
 }
 
 func (s *SqlDatabase) buildRemediationStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.RemediationFilter,
 	withCursor bool,
@@ -216,7 +218,7 @@ func (s *SqlDatabase) buildRemediationStatement(
 		query = fmt.Sprintf(baseQuery, whereClause, ord)
 	}
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -235,6 +237,7 @@ func (s *SqlDatabase) buildRemediationStatement(
 }
 
 func (s *SqlDatabase) GetRemediations(
+	ctx context.Context,
 	filter *entity.RemediationFilter,
 	order []entity.Order,
 ) ([]entity.RemediationResult, error) {
@@ -251,7 +254,7 @@ func (s *SqlDatabase) GetRemediations(
 		GROUP BY R.remediation_id ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildRemediationStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation query: %w", err)
 	}
@@ -263,6 +266,7 @@ func (s *SqlDatabase) GetRemediations(
 	}()
 
 	results, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -287,7 +291,7 @@ func (s *SqlDatabase) GetRemediations(
 	return results, nil
 }
 
-func (s *SqlDatabase) CountRemediations(filter *entity.RemediationFilter) (int64, error) {
+func (s *SqlDatabase) CountRemediations(ctx context.Context, filter *entity.RemediationFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  "database.CountRemediations",
 		"filter": filter,
@@ -300,6 +304,7 @@ func (s *SqlDatabase) CountRemediations(filter *entity.RemediationFilter) (int64
 	`
 
 	stmt, filterParameters, err := s.buildRemediationStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -316,7 +321,7 @@ func (s *SqlDatabase) CountRemediations(filter *entity.RemediationFilter) (int64
 		}
 	}()
 
-	count, err := performCountScan(stmt, filterParameters, l)
+	count, err := performCountScan(ctx, stmt, filterParameters, l)
 	if err != nil {
 		return -1, fmt.Errorf("failed to count Remediations: %w", err)
 	}
@@ -325,6 +330,7 @@ func (s *SqlDatabase) CountRemediations(filter *entity.RemediationFilter) (int64
 }
 
 func (s *SqlDatabase) GetAllRemediationCursors(
+	ctx context.Context,
 	filter *entity.RemediationFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -340,7 +346,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 
 	filter = ensureRemediationFilter(filter)
 
-	stmt, filterParameters, err := s.buildRemediationStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation cursor query: %w", err)
 	}
@@ -352,6 +358,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 	}()
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,

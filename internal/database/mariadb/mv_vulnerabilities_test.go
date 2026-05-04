@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -23,7 +24,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 	var seedCollection *test.SeedCollection
 
 	testIssueSeverityCount := func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
-		issueSeverityCounts, err := db.CountIssueRatings(filter)
+		issueSeverityCounts, err := db.CountIssueRatings(context.Background(), filter)
 
 		By("throwing no error", func() {
 			Expect(err).To(BeNil())
@@ -395,10 +396,11 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			Expect(err).To(BeNil())
 			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 
-			counts, err := db.CountIssueRatings(&entity.IssueFilter{
-				ComponentVersionId: []*int64{&cv.Id.Int64},
-				ServiceId:          []*int64{&remediation.ServiceId},
-			})
+			counts, err := db.CountIssueRatings(context.Background(),
+				&entity.IssueFilter{
+					ComponentVersionId: []*int64{&cv.Id.Int64},
+					ServiceId:          []*int64{&remediation.ServiceId},
+				})
 
 			Expect(err).To(BeNil())
 
@@ -409,10 +411,11 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			Expect(counts.None).To(BeEquivalentTo(0))
 			Expect(counts.Total).To(BeEquivalentTo(0))
 
-			countsEmpty, err := db.CountIssueRatings(&entity.IssueFilter{
-				ComponentVersionId: []*int64{&cv.Id.Int64},
-				ServiceId:          []*int64{&newCi.ServiceId},
-			})
+			countsEmpty, err := db.CountIssueRatings(context.Background(),
+				&entity.IssueFilter{
+					ComponentVersionId: []*int64{&cv.Id.Int64},
+					ServiceId:          []*int64{&newCi.ServiceId},
+				})
 			Expect(err).To(BeNil())
 
 			cvId := fmt.Sprintf("%d", cv.Id.Int64)

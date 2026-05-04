@@ -5,6 +5,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -74,6 +75,16 @@ func (vc *ValkeyCache) Get(key string) (string, bool, error) {
 	return val, true, nil
 }
 
+func (vc *ValkeyCache) GetAllKeys() ([]string, error) {
+	res := vc.client.Do(vc.ctx, vc.client.B().Keys().Pattern("*").Build())
+
+	if err := res.Error(); err != nil {
+		return nil, err
+	}
+
+	return res.AsStrSlice()
+}
+
 // ttl = 0 <- infinite
 func (vc *ValkeyCache) Set(key string, value string, ttl time.Duration) error {
 	return vc.client.Do(vc.ctx, vc.client.B().Set().Key(key).Value(value).Px(ttl).Build()).Error()
@@ -85,4 +96,30 @@ func (vc *ValkeyCache) Invalidate(key string) error {
 
 func (vc *ValkeyCache) invalidateAll() error {
 	return vc.client.Do(vc.ctx, vc.client.B().Flushall().Build()).Error()
+}
+
+func (vc *ValkeyCache) GetKeyHashType() KeyHashType {
+	return vc.keyHash
+}
+
+func (vc *ValkeyCache) InvalidateByMatch(keyMatcher func(decodedKey string) bool) error {
+	keys, err := vc.GetAllKeys()
+	if err != nil {
+		return fmt.Errorf("cache: failed to get cache keys: %w", err)
+	}
+
+	for _, key := range keys {
+		decodedKey, err := DecodeKey(key, vc.GetKeyHashType())
+		if err != nil {
+			return fmt.Errorf("cache: failed to decode cached key: %w", err)
+		}
+
+		if keyMatcher(decodedKey) {
+			if err := vc.Invalidate(key); err != nil {
+				return fmt.Errorf("cache: failed to invalidate key: [key: %s, error: %w]", decodedKey, err)
+			}
+		}
+	}
+
+	return nil
 }

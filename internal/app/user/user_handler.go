@@ -104,7 +104,7 @@ func (u *userHandler) ListUsers(
 		u.cache,
 		CacheTtlGetUsers,
 		"GetUsers",
-		u.database.GetUsers,
+		cache.WrapContext1(ctx, u.database.GetUsers),
 		filter,
 	)
 	if err != nil {
@@ -122,7 +122,7 @@ func (u *userHandler) ListUsers(
 				u.cache,
 				CacheTtlGetAllUserCursors,
 				"GetAllUserCursors",
-				u.database.GetAllUserCursors,
+				cache.WrapContext2(ctx, u.database.GetAllUserCursors),
 				filter,
 				options.Order,
 			)
@@ -139,7 +139,7 @@ func (u *userHandler) ListUsers(
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
-		count, err = u.database.CountUsers(filter)
+		count, err = u.database.CountUsers(ctx, filter)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
 			applog.LogError(u.logger, wrappedErr, logrus.Fields{
@@ -268,6 +268,7 @@ func (u *userHandler) DeleteUser(ctx context.Context, id int64) error {
 }
 
 func (u *userHandler) ListUserNames(
+	ctx context.Context,
 	filter *entity.UserFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -276,7 +277,7 @@ func (u *userHandler) ListUserNames(
 		"filter": filter,
 	})
 
-	userNames, err := u.database.GetUserNames(filter)
+	userNames, err := u.database.GetUserNames(ctx, filter)
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving userNames.")
@@ -290,6 +291,7 @@ func (u *userHandler) ListUserNames(
 }
 
 func (u *userHandler) ListUniqueUserIDs(
+	ctx context.Context,
 	filter *entity.UserFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -298,7 +300,7 @@ func (u *userHandler) ListUniqueUserIDs(
 		"filter": filter,
 	})
 
-	uniqueUserID, err := u.database.GetUniqueUserIDs(filter)
+	uniqueUserID, err := u.database.GetUniqueUserIDs(ctx, filter)
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving uniqueUserID.")
@@ -312,6 +314,7 @@ func (u *userHandler) ListUniqueUserIDs(
 }
 
 func (u *userHandler) ListUserNamesAndIds(
+	ctx context.Context,
 	filter *entity.UserFilter,
 	options *entity.ListOptions,
 ) ([]string, []string, error) {
@@ -320,7 +323,7 @@ func (u *userHandler) ListUserNamesAndIds(
 		"filter": filter,
 	})
 
-	users, err := u.database.GetUsers(filter)
+	users, err := u.database.GetUsers(ctx, filter)
 	if err != nil {
 		l.Error(err)
 		return nil, nil, NewUserHandlerError("Internal error while retrieving user.")

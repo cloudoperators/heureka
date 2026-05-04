@@ -26,38 +26,46 @@ type ComponentInstanceHandler interface {
 		*string,
 	) (*entity.ComponentInstance, error)
 	DeleteComponentInstance(context.Context, int64) error
-	ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
+	ListCcrns(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListRegions(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)
 	ListClusters(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)
 	ListNamespaces(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)
 	ListDomains(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)
 	ListProjects(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)
-	ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
+	ListPods(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListContainers(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)
-	ListTypes(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
+	ListTypes(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListParents(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)
 	ListContexts(
+		ctx context.Context,
 		filter *entity.ComponentInstanceFilter,
 		options *entity.ListOptions,
 	) ([]string, error)

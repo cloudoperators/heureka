@@ -146,7 +146,7 @@ func SupportGroupCcrnBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListSupportGroupCcrns(f, opt)
+	names, err := app.ListSupportGroupCcrns(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("SupportGroupCcrnBaseResolver", err.Error())
 	}

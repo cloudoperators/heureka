@@ -90,10 +90,10 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetIssueMatches", filter, []entity.Order{}).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.IssueMatchResult{}, nil)
-			db.On("CountIssueMatches", filter).Return(int64(1337), nil)
+			db.On("CountIssueMatches", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
@@ -138,9 +138,9 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 					c, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, im))
 					cursors = append(cursors, c)
 				}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetIssueMatches", filter, []entity.Order{}).Return(matches, nil)
-				db.On("GetAllIssueMatchCursors", filter, []entity.Order{}).Return(cursors, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).Return(matches, nil)
+				db.On("GetAllIssueMatchCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
 				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 				res, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -171,8 +171,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		Context("and the given filter does not have any matches in the database", func() {
 			BeforeEach(func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetIssueMatches", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.IssueMatchResult{}, nil)
 			})
 			It("should return an empty result", func() {
@@ -184,7 +184,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				issueMatches := []entity.IssueMatchResult{}
 				for _, im := range test.NNewFakeIssueMatches(15) {
 					issueMatches = append(
@@ -192,7 +192,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 						entity.IssueMatchResult{IssueMatch: new(im)},
 					)
 				}
-				db.On("GetIssueMatches", filter, []entity.Order{}).Return(issueMatches, nil)
+				db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).Return(issueMatches, nil)
 			})
 			It("should return the expected matches in the result", func() {
 				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
@@ -204,8 +204,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetIssueMatches", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.IssueMatchResult{}, errors.New("some error"))
 			})
 
@@ -239,8 +239,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			BeforeEach(func() {
 				componentInstanceIds := int64(-1)
 				filter.ComponentInstanceId = []*int64{&componentInstanceIds}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetIssueMatches", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.IssueMatchResult{}, nil)
 			})
 
@@ -265,8 +265,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 					systemUserId := int64(1)
 					filter.ServiceId = []*int64{&serviceId}
 					issueMatch = test.NewFakeIssueMatch()
-					db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-					db.On("GetIssueMatches", filter, []entity.Order{}).
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+					db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).
 						Return([]entity.IssueMatchResult{{IssueMatch: &issueMatch}}, nil)
 
 					relations := []openfga.RelationInput{
@@ -392,9 +392,9 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		irFilter.Id = []*int64{&repositories[0].Id}
 		ivFilter.IssueId = []*int64{&issueMatch.IssueId}
 		issueMatch.Severity = issueVariants[0].Severity
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueMatch", &issueMatch).Return(&issueMatch, nil)
-		db.On("GetIssueVariants", ivFilter, mock.Anything).Return([]entity.IssueVariantResult{
+		db.On("GetIssueVariants", mock.Anything, ivFilter, mock.Anything).Return([]entity.IssueVariantResult{
 			{
 				IssueVariant: &issueVariants[0],
 			},
@@ -408,7 +408,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 			})
 		}
 
-		db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
+		db.On("GetIssueRepositories", mock.Anything, irFilter, mock.Anything).Return(irResults, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, ss)
 		newIssueMatch, err := issueMatchHandler.CreateIssueMatch(
 			common.NewAdminContext(),
@@ -511,7 +511,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 	})
 
 	It("updates issueMatch", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueMatch", issueMatch.IssueMatch).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 		if issueMatch.Status == entity.NewIssueMatchStatusValue("new") {
@@ -520,7 +520,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			issueMatch.Status = entity.NewIssueMatchStatusValue("new")
 		}
 		filter.Id = []*int64{&issueMatch.Id}
-		db.On("GetIssueMatches", filter, []entity.Order{}).
+		db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).
 			Return([]entity.IssueMatchResult{issueMatch}, nil)
 		updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(
 			common.NewAdminContext(),
@@ -642,10 +642,10 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 	})
 
 	It("deletes issueMatch", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueMatch", id, mock.Anything).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
+		db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 		err := issueMatchHandler.DeleteIssueMatch(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -781,7 +781,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				service.Id = 1
 
 				// Mocks
-				db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
+				db.On("GetServiceIssueVariants", mock.Anything, &entity.ServiceIssueVariantFilter{
 					ComponentInstanceId: []*int64{new(int64(1))},
 				}, mock.Anything).Return([]entity.ServiceIssueVariantResult{}, nil)
 			})
@@ -807,7 +807,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				}
 
 				// Mocks
-				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
+				db.On("GetServiceIssueVariants", mock.Anything, mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about
 					// their contents
 					return filter.ComponentInstanceId != nil
@@ -839,7 +839,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				}
 
 				// Mocks
-				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
+				db.On("GetServiceIssueVariants", mock.Anything, mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about
 					// their contents
 					return filter.ComponentInstanceId != nil
@@ -869,7 +869,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				}
 
 				// Mocks
-				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
+				db.On("GetServiceIssueVariants", mock.Anything, mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about
 					// their contents
 					return filter.ComponentInstanceId != nil
@@ -907,7 +907,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				}
 
 				// Mocks
-				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
+				db.On("GetServiceIssueVariants", mock.Anything, mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about
 					// their contents
 					return filter.ComponentInstanceId != nil
@@ -916,7 +916,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 			})
 
 			It("should create issue matches for each issue", func() {
-				db.On("GetIssueMatches", mock.Anything, mock.Anything).
+				db.On("GetIssueMatches", mock.Anything, mock.Anything, mock.Anything).
 					Return([]entity.IssueMatchResult{}, nil)
 				// Mock CreateIssueMatch
 				db.On("CreateIssueMatch", mock.AnythingOfType("*entity.IssueMatch")).
@@ -938,7 +938,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					issueMatch := test.NewFakeIssueMatchResult()
 					issueMatch.IssueId = 2 // issue2.Id
 					// when issueid is 2 return a fake issue match
-					db.On("GetIssueMatches", mock.Anything, mock.Anything).
+					db.On("GetIssueMatches", mock.Anything, mock.Anything, mock.Anything).
 						Return([]entity.IssueMatchResult{issueMatch}, nil).
 						Once()
 				})

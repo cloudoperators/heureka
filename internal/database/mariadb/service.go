@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -219,6 +220,7 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 }
 
 func (s *SqlDatabase) buildServiceStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.ServiceFilter,
 	withCursor bool,
@@ -248,7 +250,7 @@ func (s *SqlDatabase) buildServiceStatement(
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -267,7 +269,7 @@ func (s *SqlDatabase) buildServiceStatement(
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error) {
+func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountServices",
 	})
@@ -280,6 +282,7 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
 	`
 
 	stmt, filterParameters, err := s.buildServiceStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -296,10 +299,11 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
 		}
 	}()
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetServices(
+	ctx context.Context,
 	filter *entity.ServiceFilter,
 	order []entity.Order,
 ) ([]entity.ServiceResult, error) {
@@ -318,7 +322,7 @@ func (s *SqlDatabase) GetServices(
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
-	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -330,6 +334,7 @@ func (s *SqlDatabase) GetServices(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -358,6 +363,7 @@ func (s *SqlDatabase) GetServices(
 }
 
 func (s *SqlDatabase) GetServicesWithAggregations(
+	ctx context.Context,
 	filter *entity.ServiceFilter,
 	order []entity.Order,
 ) ([]entity.ServiceResult, error) {
@@ -444,7 +450,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord)
 	query := fmt.Sprintf(baseQuery, imQuery, ciQuery)
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -471,6 +477,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -501,6 +508,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 }
 
 func (s *SqlDatabase) GetAllServiceCursors(
+	ctx context.Context,
 	filter *entity.ServiceFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -519,7 +527,7 @@ func (s *SqlDatabase) GetAllServiceCursors(
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
-	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -531,6 +539,7 @@ func (s *SqlDatabase) GetAllServiceCursors(
 	}()
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -703,6 +712,7 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(
 }
 
 func (s *SqlDatabase) getServiceAttr(
+	ctx context.Context,
 	attrName string,
 	filter *entity.ServiceFilter,
 ) ([]string, error) {
@@ -727,7 +737,7 @@ func (s *SqlDatabase) getServiceAttr(
 	}
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildServiceStatement(context.Background(), baseQuery, filter, false, order, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
@@ -740,7 +750,7 @@ func (s *SqlDatabase) getServiceAttr(
 	}()
 
 	// Execute the query
-	rows, err := stmt.Queryx(filterParameters...)
+	rows, err := stmt.QueryxContext(context.Background(), filterParameters...)
 	if err != nil {
 		l.Error("Error executing query: ", err)
 		return nil, err
@@ -773,8 +783,8 @@ func (s *SqlDatabase) getServiceAttr(
 	return serviceAttrs, nil
 }
 
-func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, error) {
-	ccrns, err := s.getServiceAttr("ccrn", filter)
+func (s *SqlDatabase) GetServiceCcrns(ctx context.Context, filter *entity.ServiceFilter) ([]string, error) {
+	ccrns, err := s.getServiceAttr(ctx, "ccrn", filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Service ccrns: %w", err)
 	}
@@ -782,8 +792,8 @@ func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, e
 	return ccrns, nil
 }
 
-func (s *SqlDatabase) GetServiceDomains(filter *entity.ServiceFilter) ([]string, error) {
-	domains, err := s.getServiceAttr("domain", filter)
+func (s *SqlDatabase) GetServiceDomains(ctx context.Context, filter *entity.ServiceFilter) ([]string, error) {
+	domains, err := s.getServiceAttr(ctx, "domain", filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Service domains: %w", err)
 	}
@@ -791,8 +801,8 @@ func (s *SqlDatabase) GetServiceDomains(filter *entity.ServiceFilter) ([]string,
 	return domains, nil
 }
 
-func (s *SqlDatabase) GetServiceRegions(filter *entity.ServiceFilter) ([]string, error) {
-	regions, err := s.getServiceAttr("region", filter)
+func (s *SqlDatabase) GetServiceRegions(ctx context.Context, filter *entity.ServiceFilter) ([]string, error) {
+	regions, err := s.getServiceAttr(ctx, "region", filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Service regions: %w", err)
 	}

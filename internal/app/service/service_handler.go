@@ -179,7 +179,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 			s.cache,
 			CacheTtlGetServicesWithAggregations,
 			"GetServicesWithAggregations",
-			s.database.GetServicesWithAggregations,
+			cache.WrapContext2(ctx, s.database.GetServicesWithAggregations),
 			filter,
 			options.Order,
 		)
@@ -196,7 +196,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 			s.cache,
 			CacheTtlGetServices,
 			"GetServices",
-			s.database.GetServices,
+			cache.WrapContext2(ctx, s.database.GetServices),
 			filter,
 			options.Order,
 		)
@@ -216,7 +216,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 				s.cache,
 				CacheTtlGetAllSericeCursors,
 				"GetAllServiceCursors",
-				s.database.GetAllServiceCursors,
+				cache.WrapContext2(ctx, s.database.GetAllServiceCursors),
 				filter,
 				options.Order,
 			)
@@ -237,7 +237,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 			s.cache,
 			CacheTtlCountServices,
 			"CountServices",
-			s.database.CountServices,
+			cache.WrapContext1(ctx, s.database.CountServices),
 			filter,
 		)
 		if err != nil {
@@ -457,6 +457,7 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(
 }
 
 func (s *serviceHandler) ListServiceCcrns(
+	ctx context.Context,
 	filter *entity.ServiceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -469,7 +470,7 @@ func (s *serviceHandler) ListServiceCcrns(
 		s.cache,
 		CacheTtlGetServiceAttrs,
 		"GetServiceCcrns",
-		s.database.GetServiceCcrns,
+		cache.WrapContext1(ctx, s.database.GetServiceCcrns),
 		filter,
 	)
 	if err != nil {
@@ -485,6 +486,7 @@ func (s *serviceHandler) ListServiceCcrns(
 }
 
 func (s *serviceHandler) ListServiceDomains(
+	ctx context.Context,
 	filter *entity.ServiceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -497,7 +499,7 @@ func (s *serviceHandler) ListServiceDomains(
 		s.cache,
 		CacheTtlGetServiceAttrs,
 		"GetServiceDomains",
-		s.database.GetServiceDomains,
+		cache.WrapContext1(ctx, s.database.GetServiceDomains),
 		filter,
 	)
 	if err != nil {
@@ -513,6 +515,7 @@ func (s *serviceHandler) ListServiceDomains(
 }
 
 func (s *serviceHandler) ListServiceRegions(
+	ctx context.Context,
 	filter *entity.ServiceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
@@ -521,8 +524,13 @@ func (s *serviceHandler) ListServiceRegions(
 		"filter": filter,
 	})
 
-	serviceRegions, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceAttrs,
-		"GetServiceRegions", s.database.GetServiceRegions, filter)
+	serviceRegions, err := cache.CallCached[[]string](
+		s.cache,
+		CacheTtlGetServiceAttrs,
+		"GetServiceRegions",
+		cache.WrapContext1(ctx, s.database.GetServiceRegions),
+		filter,
+	)
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while retrieving serviceRegions.")
