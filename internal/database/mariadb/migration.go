@@ -73,7 +73,8 @@ func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 
 	m, err := migrate.NewWithInstance(
 		"iofs", d,
-		"mysql", driver)
+		"mysql", driver,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +404,7 @@ func (s *SqlDatabase) proceduresExist(procedures []string) (bool, error) {
 
 func (s *SqlDatabase) runPostMigrationProcessInBackground(procs []string) {
 	s.runPostMigrationProceduresInBackground(procs)
-	s.runPostMigrationCleanupRoutineInBackground(procs)
+	s.runPostMigrationCleanupRoutineInBackground()
 }
 
 func (s *SqlDatabase) runPostMigrationProceduresInBackground(procs []string) {
@@ -416,7 +417,7 @@ func (s *SqlDatabase) runPostMigrationProceduresInBackground(procs []string) {
 	}
 }
 
-func (s *SqlDatabase) runPostMigrationCleanupRoutineInBackground(procs []string) {
+func (s *SqlDatabase) runPostMigrationCleanupRoutineInBackground() {
 	go func() {
 		if err := s.WaitPostMigrations(); err != nil {
 			logrus.WithError(err).Error(err)
