@@ -13,7 +13,6 @@ import (
 )
 
 var patchObject = DbObject[*entity.Patch]{
-	Properties: []*Property{},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty(
 			"P.patch_id = ?",
@@ -72,16 +71,20 @@ func (s *SqlDatabase) buildPatchStatement(
 		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc})
-	whereClause, hasFilter := patchObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := patchObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, ord)
+	statement := Statement{
+		Obj:                &patchObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
@@ -114,6 +117,7 @@ func (s *SqlDatabase) GetPatches(
 
 	baseQuery := `
 		SELECT P.* FROM Patch P
+		%s
 		%s
 		%s
 		GROUP BY P.patch_id ORDER BY %s LIMIT ?
@@ -165,6 +169,7 @@ func (s *SqlDatabase) CountPatches(ctx context.Context, filter *entity.PatchFilt
 	baseQuery := `
 		SELECT count(distinct P.patch_id) FROM Patch P
 		%s
+		%s
         ORDER BY %s
 	`
 
@@ -206,6 +211,7 @@ func (s *SqlDatabase) GetAllPatchCursors(
 
 	baseQuery := `
 		SELECT P.* FROM Patch P
+		%s
 	    %s GROUP BY P.patch_id ORDER BY %s
     `
 

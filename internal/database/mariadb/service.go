@@ -227,8 +227,6 @@ func (s *SqlDatabase) buildServiceStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	var query string
-
 	filter = ensureServiceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
@@ -237,17 +235,20 @@ func (s *SqlDatabase) buildServiceStatement(
 		return nil, nil, err
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
-	joins := serviceObject.GetJoins(filter, ord)
-	whereClause, hasFilter := serviceObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := serviceObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, true)
-
-	// construct final query
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
+	statement := Statement{
+		Obj:                &serviceObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         true,
 	}
+
+	query := statement.BuildQuery()
 
 	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.PreparexContext(ctx, query)

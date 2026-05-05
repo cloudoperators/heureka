@@ -61,16 +61,20 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 		return nil, nil, fmt.Errorf("failed to decode ServiceIssueVariant cursor: %w", err)
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc})
-	whereClause, hasFilter := serviceIssueVariantObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := serviceIssueVariantObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, ord)
+	statement := Statement{
+		Obj:                &serviceIssueVariantObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.PreparexContext(ctx, query)
@@ -119,6 +123,7 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 
 			# Join to from repo and issue to IssueVariant
 			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
+		%s
 		%s
 		%s ORDER BY %s LIMIT ?
     `

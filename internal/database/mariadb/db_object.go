@@ -165,27 +165,24 @@ func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 	return NewJoinResolver(do.JoinDefs).Build(filter, order)
 }
 
-func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) (string, bool) {
-	filterStr := do.GetFilterQuery(filter)
-
-	hasFilter := filterStr != ""
-	if hasFilter || withCursor {
-		return fmt.Sprintf("WHERE %s", filterStr), hasFilter
+func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) string {
+	if filterStr := do.GetFilterQuery(filter); filterStr != "" || withCursor {
+		return fmt.Sprintf("WHERE %s", filterStr)
 	}
 
-	return "", false
+	return ""
 }
 
-func (do *DbObject[ET]) GetCursorQuery(hasFilter *bool, cursorFields []Field, withCursor *bool, aggregated bool) string {
+func (do *DbObject[ET]) GetCursorQuery(filter any, cursorFields []Field, withCursor bool, checkCursor bool, aggregated bool) string {
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	if aggregated {
-		if (withCursor == nil || *withCursor) && (hasFilter == nil || *hasFilter) && cursorQuery != "" {
+		if (!checkCursor || withCursor) && (filter == nil || do.GetFilterQuery(filter) != "") && cursorQuery != "" {
 			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 		}
 	} else {
-		if hasFilter != nil {
-			if *hasFilter && *withCursor && cursorQuery != "" {
+		if filter != nil {
+			if do.GetFilterQuery(filter) != "" && withCursor && cursorQuery != "" {
 				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 			}
 		} else {
@@ -194,6 +191,37 @@ func (do *DbObject[ET]) GetCursorQuery(hasFilter *bool, cursorFields []Field, wi
 	}
 
 	return cursorQuery
+}
+
+type Object interface {
+	GetJoins(any, *Order) string
+	GetFilterWhereClause(any, bool) string
+	GetCursorQuery(any, []Field, bool, bool, bool) string
+}
+
+type Statement struct {
+	Obj                Object
+	BaseQuery          string
+	Order              *Order
+	Filter             any
+	WithCursor         bool
+	CheckCursorInWhere bool
+	CheckCursor        bool
+	CheckFilter        bool
+	CursorFields       []Field
+	Aggregated         bool
+}
+
+func (s *Statement) BuildQuery() string {
+	joins := s.Obj.GetJoins(s.Filter, s.Order)
+	whereClause := s.Obj.GetFilterWhereClause(s.Filter, s.CheckCursorInWhere && s.WithCursor)
+	f := lo.Ternary(s.CheckFilter, s.Filter, nil)
+	cursorQuery := s.Obj.GetCursorQuery(f, s.CursorFields, s.WithCursor, s.CheckCursor, s.Aggregated)
+
+	if s.WithCursor {
+		return fmt.Sprintf(s.BaseQuery, joins, whereClause, cursorQuery, s.Order)
+	}
+	return fmt.Sprintf(s.BaseQuery, joins, whereClause, s.Order)
 }
 
 // Property

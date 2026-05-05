@@ -126,7 +126,6 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	var query string
 
 	filter = ensureSupportGroupFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
@@ -136,16 +135,20 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 		return nil, nil, err
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc})
-	joins := supportGroupObject.GetJoins(filter, ord)
-	whereClause, hasFilter := supportGroupObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := supportGroupObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
+	statement := Statement{
+		Obj:                &supportGroupObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.PreparexContext(ctx, query)

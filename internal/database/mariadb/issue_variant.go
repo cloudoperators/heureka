@@ -177,17 +177,20 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 		return nil, nil, fmt.Errorf("failed to decode IssueVariant cursor: %w", err)
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc})
-	joins := issueVariantObject.GetJoins(filter, ord)
-	whereClause, hasFilter := issueVariantObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := issueVariantObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
+	statement := Statement{
+		Obj:                &issueVariantObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
@@ -197,8 +200,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			},
-		).Error(msg)
+			}).Error(msg)
 
 		return nil, nil, fmt.Errorf("failed to prepare IssueVariant statement: %w", err)
 	}

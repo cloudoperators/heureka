@@ -120,17 +120,20 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 		return nil, nil, fmt.Errorf("failed to decode IssueRepository cursor: %w", err)
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc})
-	joins := issueRepositoryObject.GetJoins(filter, ord)
-	whereClause, hasFilter := issueRepositoryObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := issueRepositoryObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
+	statement := Statement{
+		Obj:                &issueRepositoryObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
@@ -140,8 +143,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			},
-		).Error(msg)
+			}).Error(msg)
 
 		return nil, nil, fmt.Errorf("failed to prepare IssueRepository statement: %w", err)
 	}

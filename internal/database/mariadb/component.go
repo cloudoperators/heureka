@@ -195,17 +195,20 @@ func (s *SqlDatabase) buildComponentStatement(
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc})
-	joins := componentObject.GetJoins(filter, ord)
-	whereClause, hasFilter := componentObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := componentObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
+	statement := Statement{
+		Obj:                &componentObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.PreparexContext(ctx, query)

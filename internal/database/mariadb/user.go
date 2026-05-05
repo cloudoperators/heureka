@@ -123,17 +123,20 @@ func (s *SqlDatabase) buildUserStatement(
 		return nil, nil, fmt.Errorf("failed to decode User cursor: %w", err)
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc})
-	joins := userObject.GetJoins(filter, ord)
-	whereClause, hasFilter := userObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := userObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
+	statement := Statement{
+		Obj:                &userObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {

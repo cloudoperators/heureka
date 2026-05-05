@@ -207,16 +207,20 @@ func (s *SqlDatabase) buildRemediationStatement(
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc})
-	whereClause, hasFilter := remediationObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := remediationObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, ord)
+	statement := Statement{
+		Obj:                &remediationObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		CursorFields:       cursorFields,
+		Aggregated:         false,
 	}
+
+	query := statement.BuildQuery()
 
 	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
@@ -249,6 +253,7 @@ func (s *SqlDatabase) GetRemediations(
 
 	baseQuery := `
 		SELECT R.* FROM Remediation R
+		%s
 		%s
 		%s
 		GROUP BY R.remediation_id ORDER BY %s LIMIT ?
@@ -300,6 +305,7 @@ func (s *SqlDatabase) CountRemediations(ctx context.Context, filter *entity.Reme
 	baseQuery := `
 		SELECT count(distinct R.remediation_id) FROM Remediation R
 		%s
+		%s
         ORDER BY %s
 	`
 
@@ -341,6 +347,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 
 	baseQuery := `
 		SELECT R.* FROM Remediation R 
+		%s
 	    %s GROUP BY R.remediation_id ORDER BY %s
     `
 

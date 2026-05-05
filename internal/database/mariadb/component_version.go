@@ -257,19 +257,20 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 		return nil, nil, err
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc})
-	joins := componentVersionObject.GetJoins(filter, ord)
-	whereClause, _ := componentVersionObject.GetFilterWhereClause(filter, false)
-	cursorQuery := componentVersionObject.GetCursorQuery(nil, cursorFields, &withCursor, true)
-
-	var query string
-
-	columns := s.getComponentVersionColumns(order)
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, ord)
+	statement := Statement{
+		Obj:                &componentVersionObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc}),
+		Filter:             filter,
+		WithCursor:         withCursor,
+		CheckCursorInWhere: false,
+		CheckCursor:        true,
+		CheckFilter:        false,
+		CursorFields:       cursorFields,
+		Aggregated:         true,
 	}
+
+	query := statement.BuildQuery()
 
 	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.PreparexContext(ctx, query)
@@ -300,11 +301,11 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
 		"event":  "database.GetAllComponentVersionCursors",
 	})
 
-	baseQuery := `
-		SELECT CV.* %s FROM ComponentVersion CV 
+	baseQuery := fmt.Sprintf(`
+		SELECT CV.* %s FROM ComponentVersion CV
 		%s
 	    %s GROUP BY CV.componentversion_id ORDER BY %s
-    `
+    `, s.getComponentVersionColumns(order), "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
 		ctx,
@@ -354,12 +355,12 @@ func (s *SqlDatabase) GetComponentVersions(
 		"event": "database.GetComponentVersions",
 	})
 
-	baseQuery := `
-		SELECT CV.* %s FROM ComponentVersion CV 
+	baseQuery := fmt.Sprintf(`
+		SELECT CV.* %s FROM ComponentVersion CV
 		%s
 		%s
 		GROUP BY CV.componentversion_id %s ORDER BY %s LIMIT ?
-    `
+    `, s.getComponentVersionColumns(order), "%s", "%s", "%s", "%s")
 
 	filter = ensureComponentVersionFilter(filter)
 
@@ -414,7 +415,7 @@ func (s *SqlDatabase) CountComponentVersions(ctx context.Context, filter *entity
 	})
 
 	baseQuery := `
-		SELECT count(distinct CV.componentversion_id) %s FROM ComponentVersion CV 
+		SELECT count(distinct CV.componentversion_id) FROM ComponentVersion CV
 		%s
 		%s
 		ORDER BY %s
