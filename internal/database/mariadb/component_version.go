@@ -280,7 +280,8 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
@@ -394,7 +395,7 @@ func (s *SqlDatabase) GetComponentVersions(
 				isc = e.AsIssueSeverityCounts()
 			}
 
-			cursor, _ := EncodeCursor((WithComponentVersion(order, cv, isc)))
+			cursor, _ := EncodeCursor(WithComponentVersion(order, cv, isc))
 
 			cvr := entity.ComponentVersionResult{
 				WithCursor: entity.WithCursor{

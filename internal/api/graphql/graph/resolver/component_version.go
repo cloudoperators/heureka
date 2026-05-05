@@ -34,7 +34,8 @@ func (r *componentVersionResolver) Component(ctx context.Context, obj *model.Com
 			Parent:     obj,
 			ParentName: model.IssueMatchNodeName,
 			ChildIds:   childIds,
-		})
+		},
+	)
 }
 
 func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {

@@ -55,7 +55,8 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 						},
 						"first": 3,
 						"after": "",
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				expectRespDataCounts(respData.Images, 5, 3)
@@ -108,7 +109,8 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 						},
 						"first": 3,
 						"after": "",
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				expectRespDataCounts(respData.Images, 1, 1)
@@ -294,7 +296,8 @@ func (it *imageTest) testImageSortingWithTieBreaker() {
 			},
 			"first": 20,
 			"after": "",
-		})
+		},
+	)
 
 	Expect(err).ToNot(HaveOccurred())
 	Expect(respData.Images.Edges).To(HaveLen(7), "Should return all 7 images")

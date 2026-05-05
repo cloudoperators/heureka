@@ -145,7 +145,8 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						x := row.CCRN.String
 						expectedIssues = append(
 							expectedIssues,
-							seedCollection.GetIssueByService(&row)...)
+							seedCollection.GetIssueByService(&row)...,
+						)
 						serviceCcrns[i] = &x
 					}
 					expectedIssues = lo.Uniq(expectedIssues)
@@ -480,29 +481,30 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 			})
 			Context("and using pagination", func() {
-				DescribeTable("can correctly paginate", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetIssues,
-						func(first *int, after *string) *entity.IssueFilter {
-							return &entity.IssueFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.IssueResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithIssue(
-									[]entity.Order{},
-									*entries[len(entries)-1].Issue,
-									0,
-								),
-							)
-							return after
-						},
-						len(seedCollection.IssueRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetIssues,
+							func(first *int, after *string) *entity.IssueFilter {
+								return &entity.IssueFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.IssueResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithIssue(
+										[]entity.Order{},
+										*entries[len(entries)-1].Issue,
+										0,
+									),
+								)
+								return after
+							},
+							len(seedCollection.IssueRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),
@@ -529,7 +531,8 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				By("returning some aggregations", func() {
 					for _, entryWithAggregations := range entriesWithAggregations {
 						Expect(entryWithAggregations).NotTo(
-							BeEquivalentTo(entity.IssueAggregations{}))
+							BeEquivalentTo(entity.IssueAggregations{}),
+						)
 						Expect(
 							entryWithAggregations.IssueAggregations.IssueMatches,
 						).To(BeEquivalentTo(0))
@@ -563,7 +566,8 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				By("returning some aggregations", func() {
 					for _, entryWithAggregations := range entriesWithAggregations {
 						Expect(entryWithAggregations).NotTo(
-							BeEquivalentTo(entity.IssueAggregations{}))
+							BeEquivalentTo(entity.IssueAggregations{}),
+						)
 					}
 				})
 				By("returning all ld constraints exclude all Go files inservices", func() {
@@ -584,18 +588,19 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	})
 	When("Counting Issues", Label("CountIssues"), func() {
 		Context("and using no filter", func() {
-			DescribeTable("it returns correct count", func(x int) {
-				_ = seeder.SeedDbWithNFakeData(x)
-				res, err := db.CountIssues(context.Background(), nil)
+			DescribeTable(
+				"it returns correct count", func(x int) {
+					_ = seeder.SeedDbWithNFakeData(x)
+					res, err := db.CountIssues(context.Background(), nil)
 
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
 
-				By("returning the correct count", func() {
-					Expect(res).To(BeEquivalentTo(x))
-				})
-			},
+					By("returning the correct count", func() {
+						Expect(res).To(BeEquivalentTo(x))
+					})
+				},
 				Entry("when page size is 0", 0),
 				Entry("when page size is 1", 1),
 				Entry("when page size is 11", 11),

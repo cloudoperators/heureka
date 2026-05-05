@@ -250,29 +250,30 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				})
 			})
 			Context("and using pagination", func() {
-				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetComponents,
-						func(first *int, after *string) *entity.ComponentFilter {
-							return &entity.ComponentFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.ComponentResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithComponent(
-									[]entity.Order{},
-									*entries[len(entries)-1].Component,
-									entity.IssueSeverityCounts{},
-								),
-							)
-							return after
-						},
-						len(seedCollection.ComponentRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate with x elements", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetComponents,
+							func(first *int, after *string) *entity.ComponentFilter {
+								return &entity.ComponentFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.ComponentResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithComponent(
+										[]entity.Order{},
+										*entries[len(entries)-1].Component,
+										entity.IssueSeverityCounts{},
+									),
+								)
+								return after
+							},
+							len(seedCollection.ComponentRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),
@@ -326,24 +327,25 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			})
 
 			Context("and using a filter", func() {
-				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-					components := lo.Filter(
-						seedCollection.ComponentRows,
-						func(cr mariadb.ComponentRow, _ int) bool {
-							return cr.CCRN.String == randomComponent.CCRN.String
-						},
-					)
+				DescribeTable(
+					"can count with a filter", func(pageSize int, filterMatches int) {
+						components := lo.Filter(
+							seedCollection.ComponentRows,
+							func(cr mariadb.ComponentRow, _ int) bool {
+								return cr.CCRN.String == randomComponent.CCRN.String
+							},
+						)
 
-					filter := &entity.ComponentFilter{
-						Paginated: entity.Paginated{
-							First: &pageSize,
-							After: nil,
-						},
-						CCRN: []*string{&randomComponent.CCRN.String},
-					}
+						filter := &entity.ComponentFilter{
+							Paginated: entity.Paginated{
+								First: &pageSize,
+								After: nil,
+							},
+							CCRN: []*string{&randomComponent.CCRN.String},
+						}
 
-					testCountComponents(filter, len(components))
-				},
+						testCountComponents(filter, len(components))
+					},
 					Entry("and pageSize is 1 and it has 13 elements", 1, 13),
 					Entry("and  pageSize is 20 and it has 5 elements", 20, 5),
 					Entry("and  pageSize is 100 and it has 100 elements", 100, 100),

@@ -56,7 +56,8 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 					"filter": map[string]string{},
 					"first":  10,
 					"after":  "",
-				})
+				},
+			)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.Remediations.TotalCount).To(Equal(0))
@@ -82,7 +83,8 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 						"filter": map[string]string{},
 						"first":  5,
 						"after":  "",
-					})
+					},
+				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(
 					respData.Remediations.TotalCount,
@@ -190,7 +192,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
 							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Description).To(Equal(remediation.Description))
@@ -228,7 +231,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
 							"remediatedBy":   remediation.RemediatedBy,
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Description).To(Equal(remediation.Description))
@@ -262,7 +266,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
 							"remediatedBy":   remediation.RemediatedBy,
 						},
-					})
+					},
+				)
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -285,7 +290,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"remediatedBy":   remediation.RemediatedBy,
 							"url":            "invalid-url",
 						},
-					})
+					},
+				)
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -308,7 +314,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"remediatedBy":   remediation.RemediatedBy,
 							"url":            "https://example.com/risk-acceptance",
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -362,7 +369,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"input": map[string]string{
 							"description": description,
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Description).To(Equal(description))
@@ -391,7 +399,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"input": map[string]string{
 							"service": service.CCRN.String,
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Service).To(Equal(service.CCRN.String))
@@ -411,7 +420,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"input": map[string]string{
 							"image": component.Repository.String,
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Image).To(Equal(component.Repository.String))
@@ -431,7 +441,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"input": map[string]string{
 							"vulnerability": issue.PrimaryName.String,
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Vulnerability).To(Equal(issue.PrimaryName.String))
@@ -452,7 +463,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 							"type": entity.RemediationTypeRiskAccepted.String(),
 							"url":  "invalid-url",
 						},
-					})
+					},
+				)
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -469,7 +481,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 							"type": entity.RemediationTypeRiskAccepted.String(),
 							"url":  "https://example.com/risk-acceptance",
 						},
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Remediation.Type.String()).To(Equal(entity.RemediationTypeRiskAccepted.String()))
@@ -519,7 +532,8 @@ var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), f
 					"../api/graphql/graph/queryCollection/remediation/delete.graphql",
 					map[string]any{
 						"id": id,
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Id).To(Equal(id))

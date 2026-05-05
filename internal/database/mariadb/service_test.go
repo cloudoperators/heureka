@@ -414,29 +414,30 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 			})
 			Context("and using pagination", func() {
-				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetServices,
-						func(first *int, after *string) *entity.ServiceFilter {
-							return &entity.ServiceFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.ServiceResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithService(
-									[]entity.Order{},
-									*entries[len(entries)-1].Service,
-									entity.IssueSeverityCounts{},
-								),
-							)
-							return after
-						},
-						len(seedCollection.ServiceRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate with x elements", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetServices,
+							func(first *int, after *string) *entity.ServiceFilter {
+								return &entity.ServiceFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.ServiceResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithService(
+										[]entity.Order{},
+										*entries[len(entries)-1].Service,
+										entity.IssueSeverityCounts{},
+									),
+								)
+								return after
+							},
+							len(seedCollection.ServiceRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),
@@ -463,7 +464,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				By("returning some aggregations", func() {
 					for _, entryWithAggregations := range entriesWithAggregations {
 						Expect(entryWithAggregations).NotTo(
-							BeEquivalentTo(entity.ServiceAggregations{}))
+							BeEquivalentTo(entity.ServiceAggregations{}),
+						)
 						Expect(
 							entryWithAggregations.ServiceAggregations.ComponentInstances,
 						).To(BeEquivalentTo(0))
@@ -491,7 +493,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				By("returning some aggregations", func() {
 					for _, entryWithAggregations := range entriesWithAggregations {
 						Expect(entryWithAggregations).NotTo(
-							BeEquivalentTo(entity.ServiceAggregations{}))
+							BeEquivalentTo(entity.ServiceAggregations{}),
+						)
 					}
 				})
 				By("returning all services", func() {
@@ -566,35 +569,36 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 
 			Context("and using a filter", func() {
-				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-					// select a support group
-					sgRow := test.PickOne(seedCollection.SupportGroupRows)
+				DescribeTable(
+					"can count with a filter", func(pageSize int, filterMatches int) {
+						// select a support group
+						sgRow := test.PickOne(seedCollection.SupportGroupRows)
 
-					// collect all service ids that belong to the support group
-					serviceIds := []int64{}
-					for _, sgsRow := range seedCollection.SupportGroupServiceRows {
-						if sgsRow.SupportGroupId.Int64 == sgRow.Id.Int64 {
-							serviceIds = append(serviceIds, sgsRow.ServiceId.Int64)
+						// collect all service ids that belong to the support group
+						serviceIds := []int64{}
+						for _, sgsRow := range seedCollection.SupportGroupServiceRows {
+							if sgsRow.SupportGroupId.Int64 == sgRow.Id.Int64 {
+								serviceIds = append(serviceIds, sgsRow.ServiceId.Int64)
+							}
 						}
-					}
 
-					after := ""
-					filter := &entity.ServiceFilter{
-						Paginated: entity.Paginated{
-							First: &pageSize,
-							After: &after,
-						},
-						SupportGroupCCRN: []*string{&sgRow.CCRN.String},
-					}
-					entries, err := db.CountServices(context.Background(), filter)
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
+						after := ""
+						filter := &entity.ServiceFilter{
+							Paginated: entity.Paginated{
+								First: &pageSize,
+								After: &after,
+							},
+							SupportGroupCCRN: []*string{&sgRow.CCRN.String},
+						}
+						entries, err := db.CountServices(context.Background(), filter)
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
 
-					By("returning the correct count", func() {
-						Expect(entries).To(BeEquivalentTo(len(serviceIds)))
-					})
-				},
+						By("returning the correct count", func() {
+							Expect(entries).To(BeEquivalentTo(len(serviceIds)))
+						})
+					},
 					Entry("and pageSize is 1 and it has 13 elements", 1, 13),
 					Entry("and  pageSize is 20 and it has 5 elements", 20, 5),
 					Entry("and  pageSize is 100 and it has 100 elements", 100, 100),

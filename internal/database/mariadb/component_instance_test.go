@@ -194,8 +194,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					cir := test.PickOne(seedCollection.ComponentInstanceRows)
 					service, ok := seedCollection.GetServiceById(cir.ServiceId.Int64)
 					Expect(ok).To(BeTrue())
-					Expect(service.Id.Valid).To((BeTrue()))
-					Expect(service.CCRN.Valid).To((BeTrue()))
+					Expect(service.Id.Valid).To(BeTrue())
+					Expect(service.CCRN.Valid).To(BeTrue())
 					filter := &entity.ComponentInstanceFilter{
 						Paginated:   entity.Paginated{},
 						ServiceCcrn: []*string{lo.ToPtr(service.CCRN.String)},
@@ -292,28 +292,29 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 			})
 			Context("and using Pagination", func() {
-				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetComponentInstances,
-						func(first *int, after *string) *entity.ComponentInstanceFilter {
-							return &entity.ComponentInstanceFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.ComponentInstanceResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithComponentInstance(
-									[]entity.Order{},
-									*entries[len(entries)-1].ComponentInstance,
-								),
-							)
-							return after
-						},
-						len(seedCollection.ComponentInstanceRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate with x elements", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetComponentInstances,
+							func(first *int, after *string) *entity.ComponentInstanceFilter {
+								return &entity.ComponentInstanceFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.ComponentInstanceResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithComponentInstance(
+										[]entity.Order{},
+										*entries[len(entries)-1].ComponentInstance,
+									),
+								)
+								return after
+							},
+							len(seedCollection.ComponentInstanceRows),
+							pageSize,
+						)
+					},
 					Entry("when x is 1", 1),
 					Entry("when x is 3", 3),
 					Entry("when x is 5", 5),

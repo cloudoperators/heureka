@@ -315,7 +315,8 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, nil, fmt.Errorf("%s", msg)
 	}

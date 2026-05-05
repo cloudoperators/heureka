@@ -159,7 +159,8 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					issueVariants := seedCollection.GetIssueVariantsByIssueId(issueId1)
 					issueVariants = append(
 						issueVariants,
-						seedCollection.GetIssueVariantsByIssueId(issueId2)...)
+						seedCollection.GetIssueVariantsByIssueId(issueId2)...,
+					)
 					issueVariants = lo.UniqBy(
 						issueVariants,
 						func(e mariadb.IssueVariantRow) int64 { return e.Id.Int64 },
@@ -298,28 +299,29 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 				})
 			})
 			Context("and using Pagination", func() {
-				DescribeTable("can correctly paginate", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetIssueVariants,
-						func(first *int, after *string) *entity.IssueVariantFilter {
-							return &entity.IssueVariantFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.IssueVariantResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithIssueVariant(
-									[]entity.Order{},
-									*entries[len(entries)-1].IssueVariant,
-								),
-							)
-							return after
-						},
-						len(seedCollection.IssueVariantRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetIssueVariants,
+							func(first *int, after *string) *entity.IssueVariantFilter {
+								return &entity.IssueVariantFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.IssueVariantResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithIssueVariant(
+										[]entity.Order{},
+										*entries[len(entries)-1].IssueVariant,
+									),
+								)
+								return after
+							},
+							len(seedCollection.IssueVariantRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),
@@ -384,27 +386,28 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 			})
 
 			Context("and using a filter", func() {
-				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-					rnd := test.PickOne(seedCollection.IssueVariantRows)
-					issueId := rnd.IssueId.Int64
+				DescribeTable(
+					"can count with a filter", func(pageSize int, filterMatches int) {
+						rnd := test.PickOne(seedCollection.IssueVariantRows)
+						issueId := rnd.IssueId.Int64
 
-					issueVariants := seedCollection.GetIssueVariantsByIssueId(issueId)
+						issueVariants := seedCollection.GetIssueVariantsByIssueId(issueId)
 
-					filter := &entity.IssueVariantFilter{
-						Paginated: entity.Paginated{
-							First: &pageSize,
-							After: nil,
-						},
-						IssueId: []*int64{&issueId},
-					}
-					entries, err := db.CountIssueVariants(context.Background(), filter)
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-					By("returning the correct count", func() {
-						Expect(entries).To(BeEquivalentTo(len(issueVariants)))
-					})
-				},
+						filter := &entity.IssueVariantFilter{
+							Paginated: entity.Paginated{
+								First: &pageSize,
+								After: nil,
+							},
+							IssueId: []*int64{&issueId},
+						}
+						entries, err := db.CountIssueVariants(context.Background(), filter)
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
+						By("returning the correct count", func() {
+							Expect(entries).To(BeEquivalentTo(len(issueVariants)))
+						})
+					},
 					Entry("and pageSize is 1 and it has 13 elements", 1, 13),
 					Entry("and pageSize is 20 and it has 5 elements", 20, 5),
 					Entry("and pageSize is 100 and it has 100 elements", 100, 100),

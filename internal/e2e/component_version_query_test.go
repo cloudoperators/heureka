@@ -95,7 +95,8 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 			It("returns correct result", func() {
 				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
-				}](cfg.Port,
+				}](
+					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
 					map[string]any{
 						"filter": map[string]bool{
@@ -116,7 +117,8 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 			It("returns correct result", func() {
 				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
-				}](cfg.Port,
+				}](
+					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
 					map[string]any{
 						"filter": map[string]bool{

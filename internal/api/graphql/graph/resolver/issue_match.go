@@ -28,7 +28,8 @@ func (r *issueMatchResolver) EffectiveIssueVariants(ctx context.Context, obj *mo
 		&model.NodeParent{
 			Parent:     obj,
 			ParentName: model.IssueMatchNodeName,
-		})
+		},
+	)
 }
 
 func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (*model.Issue, error) {
@@ -45,7 +46,8 @@ func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (
 			Parent:     obj,
 			ParentName: model.IssueMatchNodeName,
 			ChildIds:   childIds,
-		})
+		},
+	)
 }
 
 func (r *issueMatchResolver) ComponentInstance(ctx context.Context, obj *model.IssueMatch) (*model.ComponentInstance, error) {
@@ -62,7 +64,8 @@ func (r *issueMatchResolver) ComponentInstance(ctx context.Context, obj *model.I
 			Parent:     obj,
 			ParentName: model.IssueMatchNodeName,
 			ChildIds:   childIds,
-		})
+		},
+	)
 }
 
 func (r *Resolver) IssueMatch() graph.IssueMatchResolver { return &issueMatchResolver{r} }
