@@ -157,7 +157,8 @@ func (ct *cacheTest) expectTestResource() {
 		existingServiceCcrns,
 		func(cifv model.ComponentInstanceFilterValue) []*string {
 			return cifv.ServiceCcrn.Values
-		})
+		},
+	)
 }
 
 func (ct *cacheTest) expectTestResources(n int) {
@@ -179,7 +180,8 @@ func (ct *cacheTest) expectTestResources(n int) {
 			existingServiceCcrns,
 			func(cifv model.ComponentInstanceFilterValue) []*string {
 				return cifv.ServiceCcrn.Values
-			})
+			},
+		)
 	}
 }
 
@@ -196,7 +198,8 @@ func (ct *cacheTest) expectTestResourceAndAddedResource() {
 		existingServiceCcrns,
 		func(cifv model.ComponentInstanceFilterValue) []*string {
 			return cifv.ServiceCcrn.Values
-		})
+		},
+	)
 }
 
 func (ct *cacheTest) expectNoResource() {
@@ -205,7 +208,8 @@ func (ct *cacheTest) expectNoResource() {
 		[]string{},
 		func(cifv model.ComponentInstanceFilterValue) []*string {
 			return cifv.ServiceCcrn.Values
-		})
+		},
+	)
 }
 
 func (ct *cacheTest) addDbResource() {

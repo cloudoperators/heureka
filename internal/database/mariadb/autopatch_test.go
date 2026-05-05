@@ -213,13 +213,15 @@ func (apt *autoPatchTest) ExpectComponentVersionIssuesToBeStoredInDatabase(
 	).To(BeNil(), "%s THEN component version issues: '%s' should not be deleted yet (%s)", when, strings.Join(
 		lo.Map(expectComponentVersionIssues, func(cvi test.ComponentVersionIssue, _ int) string {
 			return fmt.Sprintf("i:%s cv:%s", cvi.Issue, cvi.ComponentVersion)
-		}), ", "), err)
+		}), ", ",
+	), err)
 	Expect(
 		componentVersionIssues,
 	).To(test.ContainAll(expectComponentVersionIssues), "%s THEN component version issues: '%s' should be deleted yet", when, strings.Join(
 		lo.Map(expectComponentVersionIssues, func(cvi test.ComponentVersionIssue, _ int) string {
 			return fmt.Sprintf("i:%s cv:%s", cvi.Issue, cvi.ComponentVersion)
-		}), ", "))
+		}), ", ",
+	))
 }
 
 func (apt *autoPatchTest) ExpectComponentVersionIssuesToBeDeleted(

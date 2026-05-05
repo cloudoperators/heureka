@@ -193,25 +193,26 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 				})
 			})
 			Context("and using pagination", func() {
-				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetPatches,
-						func(first *int, after *string) *entity.PatchFilter {
-							return &entity.PatchFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.PatchResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithPatch([]entity.Order{}, *entries[len(entries)-1].Patch),
-							)
-							return after
-						},
-						len(seedCollection.PatchRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate with x elements", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetPatches,
+							func(first *int, after *string) *entity.PatchFilter {
+								return &entity.PatchFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.PatchResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithPatch([]entity.Order{}, *entries[len(entries)-1].Patch),
+								)
+								return after
+							},
+							len(seedCollection.PatchRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),

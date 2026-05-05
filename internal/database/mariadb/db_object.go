@@ -65,7 +65,8 @@ func (do *DbObject[ET]) GetFilterParameters(
 		paginated := filter.GetPaginated()
 		filterParameters = append(
 			filterParameters,
-			GetCursorQueryParameters(paginated.First, cursorFields)...)
+			GetCursorQueryParameters(paginated.First, cursorFields)...,
+		)
 	}
 
 	return filterParameters
@@ -369,7 +370,8 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 
 		uniqTableName[j.Table] = struct{}{}
 
-		joinSQL := fmt.Sprintf("%s %s ON %s",
+		joinSQL := fmt.Sprintf(
+			"%s %s ON %s",
 			j.Type,
 			j.Table,
 			j.On,

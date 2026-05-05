@@ -103,7 +103,8 @@ func (s *SqlDatabase) CountIssueRatings(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}

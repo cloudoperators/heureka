@@ -544,31 +544,32 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				Context("and and we use Pagination", func() {
-					DescribeTable("can correctly paginate ", func(pageSize int) {
-						test.TestPaginationOfListWithOrder(
-							db.GetIssueMatches,
-							func(first *int, after *string) *entity.IssueMatchFilter {
-								return &entity.IssueMatchFilter{
-									Paginated: entity.Paginated{
-										First: first,
-										After: after,
-									},
-								}
-							},
-							[]entity.Order{},
-							func(entries []entity.IssueMatchResult) string {
-								after, _ := mariadb.EncodeCursor(
-									mariadb.WithIssueMatch(
-										[]entity.Order{},
-										*entries[len(entries)-1].IssueMatch,
-									),
-								)
-								return after
-							},
-							len(issueMatches),
-							pageSize,
-						)
-					},
+					DescribeTable(
+						"can correctly paginate ", func(pageSize int) {
+							test.TestPaginationOfListWithOrder(
+								db.GetIssueMatches,
+								func(first *int, after *string) *entity.IssueMatchFilter {
+									return &entity.IssueMatchFilter{
+										Paginated: entity.Paginated{
+											First: first,
+											After: after,
+										},
+									}
+								},
+								[]entity.Order{},
+								func(entries []entity.IssueMatchResult) string {
+									after, _ := mariadb.EncodeCursor(
+										mariadb.WithIssueMatch(
+											[]entity.Order{},
+											*entries[len(entries)-1].IssueMatch,
+										),
+									)
+									return after
+								},
+								len(issueMatches),
+								pageSize,
+							)
+						},
 						Entry("when pageSize is 1", 1),
 						Entry("when pageSize is 3", 3),
 						Entry("when pageSize is 5", 5),

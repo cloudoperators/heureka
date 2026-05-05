@@ -390,7 +390,8 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
@@ -427,7 +428,8 @@ func (s *SqlDatabase) buildIssueStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
@@ -526,7 +528,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -536,7 +539,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	// parameters for agg query
 	filterParameters = append(
 		filterParameters,
-		issueObject.GetFilterParameters(filter, true, cursorFields)...)
+		issueObject.GetFilterParameters(filter, true, cursorFields)...,
+	)
 
 	defer func() {
 		if err := stmt.Close(); err != nil {

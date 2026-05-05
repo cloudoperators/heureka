@@ -53,7 +53,8 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 					"filter": map[string]string{},
 					"first":  10,
 					"after":  "",
-				})
+				},
+			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(respData.Patches.TotalCount).To(Equal(0))
 		})
@@ -77,7 +78,8 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 						"filter": map[string]string{},
 						"first":  5,
 						"after":  "",
-					})
+					},
+				)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Patches.TotalCount).To(Equal(len(seedCollection.PatchRows)))

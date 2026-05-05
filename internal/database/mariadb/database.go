@@ -159,7 +159,8 @@ func performInsert[T any](s *SqlDatabase, query string, item T, l *logrus.Entry)
 		l.WithFields(
 			logrus.Fields{
 				"error": err,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return -1, fmt.Errorf("%s", msg)
 	}
@@ -167,7 +168,8 @@ func performInsert[T any](s *SqlDatabase, query string, item T, l *logrus.Entry)
 	l.WithFields(
 		logrus.Fields{
 			"id": id,
-		}).Debug("Successfully performed insert")
+		},
+	).Debug("Successfully performed insert")
 
 	return id, nil
 }
@@ -180,7 +182,8 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 			logrus.Fields{
 				"error": err,
 				"query": query,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -196,7 +199,8 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 		l.WithFields(
 			logrus.Fields{
 				"error": err,
-			}).Error(err.Error())
+			},
+		).Error(err.Error())
 
 		return nil, err
 	}
@@ -218,7 +222,8 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 			logrus.Fields{
 				"error":      err.Error(),
 				"parameters": filterParameters,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -242,7 +247,8 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 				logrus.Fields{
 					"error":           err.Error(),
 					"returnedColumns": cols,
-				}).Error(msg)
+				},
+			).Error(msg)
 
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -256,7 +262,8 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 			logrus.Fields{
 				"error":      err.Error(),
 				"parameters": filterParameters,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -264,7 +271,8 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 	l.WithFields(
 		logrus.Fields{
 			"count": len(listEntries),
-		}).Debug("Successfully performed list scan")
+		},
+	).Debug("Successfully performed list scan")
 
 	return listEntries, nil
 }
@@ -278,7 +286,8 @@ func performIdScan(ctx context.Context, stmt Stmt, filterParameters []any, l *lo
 				"error":             err,
 				"preparedStatement": stmt,
 				"parameters":        filterParameters,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return make([]int64, 0), fmt.Errorf("%s", msg)
 	}
@@ -302,7 +311,8 @@ func performIdScan(ctx context.Context, stmt Stmt, filterParameters []any, l *lo
 				logrus.Fields{
 					"error":           err,
 					"returnedColumns": cols,
-				}).Error(msg)
+				},
+			).Error(msg)
 
 			return make([]int64, 0), fmt.Errorf("%s", msg)
 		}
@@ -313,7 +323,8 @@ func performIdScan(ctx context.Context, stmt Stmt, filterParameters []any, l *lo
 	l.WithFields(
 		logrus.Fields{
 			"id_count": len(listEntries),
-		}).Debug("Successfully performed id scan")
+		},
+	).Debug("Successfully performed id scan")
 
 	return listEntries, nil
 }
@@ -327,7 +338,8 @@ func performCountScan(ctx context.Context, stmt Stmt, filterParameters []any, l 
 				"error":             err,
 				"preparedStatement": stmt,
 				"parameters":        filterParameters,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return -1, fmt.Errorf("%s", msg)
 	}
@@ -350,7 +362,8 @@ func performCountScan(ctx context.Context, stmt Stmt, filterParameters []any, l 
 			logrus.Fields{
 				"error":           err,
 				"returnedColumns": cols,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return -1, fmt.Errorf("%s", msg)
 	}
@@ -358,7 +371,8 @@ func performCountScan(ctx context.Context, stmt Stmt, filterParameters []any, l 
 	l.WithFields(
 		logrus.Fields{
 			"count": row,
-		}).Debug("Successfully performed count scan")
+		},
+	).Debug("Successfully performed count scan")
 
 	return row, nil
 }

@@ -122,7 +122,8 @@ func GetNestedPreloads(
 				ctx,
 				graphql.CollectFields(ctx, column.Selections, nil),
 				prefixColumn,
-			)...)
+			)...,
+		)
 	}
 
 	return

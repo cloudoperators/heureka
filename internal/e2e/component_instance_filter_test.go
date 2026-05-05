@@ -225,7 +225,8 @@ var _ = Describe(
 						existingPods,
 						func(cifv model.ComponentInstanceFilterValue) []*string {
 							return cifv.Pod.Values
-						})
+						},
+					)
 				})
 				It("returns correct container", func() {
 					existingContainers := seedCollection.GetComponentInstanceVal(

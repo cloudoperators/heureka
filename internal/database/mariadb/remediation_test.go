@@ -395,28 +395,29 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				})
 			})
 			Context("and using pagination", func() {
-				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetRemediations,
-						func(first *int, after *string) *entity.RemediationFilter {
-							return &entity.RemediationFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.RemediationResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithRemediation(
-									[]entity.Order{},
-									*entries[len(entries)-1].Remediation,
-								),
-							)
-							return after
-						},
-						len(seedCollection.RemediationRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate with x elements", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetRemediations,
+							func(first *int, after *string) *entity.RemediationFilter {
+								return &entity.RemediationFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.RemediationResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithRemediation(
+										[]entity.Order{},
+										*entries[len(entries)-1].Remediation,
+									),
+								)
+								return after
+							},
+							len(seedCollection.RemediationRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),

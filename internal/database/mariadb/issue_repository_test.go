@@ -166,28 +166,29 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				})
 			})
 			Context("and using pagination", func() {
-				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetIssueRepositories,
-						func(first *int, after *string) *entity.IssueRepositoryFilter {
-							return &entity.IssueRepositoryFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.IssueRepositoryResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithIssueRepository(
-									[]entity.Order{},
-									*entries[len(entries)-1].IssueRepository,
-								),
-							)
-							return after
-						},
-						len(seedCollection.IssueRepositoryRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate with x elements", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetIssueRepositories,
+							func(first *int, after *string) *entity.IssueRepositoryFilter {
+								return &entity.IssueRepositoryFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.IssueRepositoryResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithIssueRepository(
+										[]entity.Order{},
+										*entries[len(entries)-1].IssueRepository,
+									),
+								)
+								return after
+							},
+							len(seedCollection.IssueRepositoryRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),
@@ -252,34 +253,35 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 			})
 
 			Context("and using a filter", func() {
-				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-					// select a service
-					sRow := test.PickOne(seedCollection.ServiceRows)
+				DescribeTable(
+					"can count with a filter", func(pageSize int, filterMatches int) {
+						// select a service
+						sRow := test.PickOne(seedCollection.ServiceRows)
 
-					// collect all issue repository ids that belong to the service
-					irIds := []int64{}
-					for _, irsRow := range seedCollection.IssueRepositoryServiceRows {
-						if irsRow.ServiceId.Int64 == sRow.Id.Int64 {
-							irIds = append(irIds, irsRow.IssueRepositoryId.Int64)
+						// collect all issue repository ids that belong to the service
+						irIds := []int64{}
+						for _, irsRow := range seedCollection.IssueRepositoryServiceRows {
+							if irsRow.ServiceId.Int64 == sRow.Id.Int64 {
+								irIds = append(irIds, irsRow.IssueRepositoryId.Int64)
+							}
 						}
-					}
 
-					filter := &entity.IssueRepositoryFilter{
-						Paginated: entity.Paginated{
-							First: &pageSize,
-							After: nil,
-						},
-						ServiceCCRN: []*string{&sRow.CCRN.String},
-					}
-					entries, err := db.CountIssueRepositories(context.Background(), filter)
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
+						filter := &entity.IssueRepositoryFilter{
+							Paginated: entity.Paginated{
+								First: &pageSize,
+								After: nil,
+							},
+							ServiceCCRN: []*string{&sRow.CCRN.String},
+						}
+						entries, err := db.CountIssueRepositories(context.Background(), filter)
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
 
-					By("returning the correct count", func() {
-						Expect(entries).To(BeEquivalentTo(len(irIds)))
-					})
-				},
+						By("returning the correct count", func() {
+							Expect(entries).To(BeEquivalentTo(len(irIds)))
+						})
+					},
 					Entry("and pageSize is 1 and it has 13 elements", 1, 13),
 					Entry("and pageSize is 20 and it has 5 elements", 20, 5),
 					Entry("and pageSize is 100 and it has 100 elements", 100, 100),

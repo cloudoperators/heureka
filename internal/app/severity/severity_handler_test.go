@@ -123,7 +123,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
 				severity, err := severityHandler.GetSeverity(context.Background(), sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(severity).ToNot((BeNil()), "severity should exist.")
+				Expect(severity).ToNot(BeNil(), "severity should exist.")
 				Expect(
 					severity.Score,
 				).To(BeEquivalentTo(maxSeverityScore), "severity score is correct.")
@@ -139,7 +139,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
 				severity, err := severityHandler.GetSeverity(context.Background(), sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(severity).ToNot((BeNil()), "severity should exist.")
+				Expect(severity).ToNot(BeNil(), "severity should exist.")
 				Expect(
 					severity.Score,
 				).To(BeEquivalentTo(maxSeverityScore-1), "severity score is correct.")
@@ -188,7 +188,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
 				severity, err := severityHandler.GetSeverity(context.Background(), sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(severity).ToNot((BeNil()), "severity should exist.")
+				Expect(severity).ToNot(BeNil(), "severity should exist.")
 				Expect(
 					severity.Score,
 				).To(BeEquivalentTo(maxSeverityScore), "severity score ist correct.")

@@ -258,7 +258,8 @@ func (s *SqlDatabase) buildServiceStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
@@ -458,7 +459,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -468,7 +470,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	// parameters for component instance query
 	filterParameters = append(
 		filterParameters,
-		serviceObject.GetFilterParameters(filter, true, cursorFields)...)
+		serviceObject.GetFilterParameters(filter, true, cursorFields)...,
+	)
 
 	defer func() {
 		if err := stmt.Close(); err != nil {

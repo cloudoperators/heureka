@@ -85,7 +85,8 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 						graphqlPath,
 						map[string]any{
 							"input": input,
-						})
+						},
+					)
 					Expect(err).To(BeNil())
 
 					Expect(*respData.SIEM.Name).To(Equal(alertName))
@@ -202,7 +203,8 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					graphqlPath,
 					map[string]any{
 						"input": input,
-					})
+					},
+				)
 				Expect(err).To(BeNil())
 
 				Expect(*respData.SIEM.Name).To(Equal(alertName))
@@ -229,7 +231,8 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					&entity.IssueVariantFilter{
 						IssueId:           []*int64{&issueId},
 						IssueRepositoryId: []*int64{&repos[0].Id},
-					}, []entity.Order{})
+					}, []entity.Order{},
+				)
 				Expect(err).To(BeNil())
 				Expect(len(ivs)).To(Equal(1))
 			})
@@ -270,7 +273,8 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					graphqlPath,
 					map[string]any{
 						"input": input,
-					})
+					},
+				)
 				Expect(
 					err,
 				).NotTo(BeNil(), "Expected mutation to fail with missing ComponentInstance data")

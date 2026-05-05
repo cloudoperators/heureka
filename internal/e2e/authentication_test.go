@@ -190,7 +190,8 @@ func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.
 				"type":        issue.Type.String(),
 			},
 		},
-		at.getHeaders(user))
+		at.getHeaders(user),
+	)
 
 	Expect(err).ToNot(HaveOccurred())
 	Expect(*respData.Issue.PrimaryName).To(Equal(issue.PrimaryName))
@@ -211,7 +212,8 @@ func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.
 			"id":    strconv.FormatInt(issue.Id, 10),
 			"input": map[string]string{"description": issue.Description},
 		},
-		at.getHeaders(user))
+		at.getHeaders(user),
+	)
 
 	Expect(err).ToNot(HaveOccurred())
 	Expect(*respData.Issue.Description).To(Equal(issue.Description))
@@ -229,7 +231,8 @@ func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.
 		map[string]any{
 			"id": strconv.FormatInt(issue.Id, 10),
 		},
-		at.getHeaders(user))
+		at.getHeaders(user),
+	)
 
 	Expect(err).ToNot(HaveOccurred())
 	Expect(respData.Id).To(Equal(strconv.FormatInt(issue.Id, 10)))
@@ -248,7 +251,8 @@ func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) 
 			"first":  defaultTestFakeDataItems,
 			"after":  "",
 		},
-		at.getHeaders(user))
+		at.getHeaders(user),
+	)
 
 	item, ok := lo.Find(
 		respData.Issues.Edges,

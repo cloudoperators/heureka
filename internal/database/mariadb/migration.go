@@ -73,7 +73,8 @@ func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 
 	m, err := migrate.NewWithInstance(
 		"iofs", d,
-		"mysql", driver)
+		"mysql", driver,
+	)
 	if err != nil {
 		return nil, err
 	}

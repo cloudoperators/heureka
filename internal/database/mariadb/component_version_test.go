@@ -400,29 +400,30 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 			})
 
 			Context("and using pagination", func() {
-				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfListWithOrder(
-						db.GetComponentVersions,
-						func(first *int, after *string) *entity.ComponentVersionFilter {
-							return &entity.ComponentVersionFilter{
-								Paginated: entity.Paginated{First: first, After: after},
-							}
-						},
-						[]entity.Order{},
-						func(entries []entity.ComponentVersionResult) string {
-							after, _ := mariadb.EncodeCursor(
-								mariadb.WithComponentVersion(
-									[]entity.Order{},
-									*entries[len(entries)-1].ComponentVersion,
-									entity.IssueSeverityCounts{},
-								),
-							)
-							return after
-						},
-						len(seedCollection.ComponentVersionRows),
-						pageSize,
-					)
-				},
+				DescribeTable(
+					"can correctly paginate with x elements", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetComponentVersions,
+							func(first *int, after *string) *entity.ComponentVersionFilter {
+								return &entity.ComponentVersionFilter{
+									Paginated: entity.Paginated{First: first, After: after},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.ComponentVersionResult) string {
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithComponentVersion(
+										[]entity.Order{},
+										*entries[len(entries)-1].ComponentVersion,
+										entity.IssueSeverityCounts{},
+									),
+								)
+								return after
+							},
+							len(seedCollection.ComponentVersionRows),
+							pageSize,
+						)
+					},
 					Entry("when pageSize is 1", 1),
 					Entry("when pageSize is 3", 3),
 					Entry("when pageSize is 5", 5),
