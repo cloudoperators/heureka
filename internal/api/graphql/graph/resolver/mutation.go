@@ -1032,7 +1032,7 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 		&entity.ServiceFilter{CCRN: []*string{input.Service}},
 		nil,
 	)
-	if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
+	if err != nil || len(serviceResult.Elements) != 1 {
 		return nil, baseResolver.NewResolverError(
 			"CreateRemediationMutationResolver",
 			"Internal Error - when creating remediation - service id not found",
@@ -1041,28 +1041,15 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 
 	remediation.ServiceId = serviceResult.Elements[0].Id
 
-	// fetch component id for given component name
-	componentResult, err := r.App.ListComponents(
-		ctx,
-		&entity.ComponentFilter{Repository: []*string{input.Image}},
-		nil,
-	)
-	if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
-		return nil, baseResolver.NewResolverError(
-			"CreateRemediationMutationResolver",
-			"Internal Error - when creating remediation - component id not found",
-		)
-	}
-
-	remediation.ComponentId = componentResult.Elements[0].Id
-
 	// fetch issue id for given issue name
 	issueResult, err := r.App.ListIssues(
 		ctx,
-		&entity.IssueFilter{PrimaryName: []*string{input.Vulnerability}},
+		&entity.IssueFilter{
+			PrimaryName: []*string{input.Vulnerability},
+		},
 		nil,
 	)
-	if err != nil || len(issueResult.Elements) == 0 || len(issueResult.Elements) > 1 {
+	if err != nil || len(issueResult.Elements) != 1 {
 		return nil, baseResolver.NewResolverError(
 			"CreateRemediationMutationResolver",
 			"Internal Error - when creating remediation - issue id not found",
@@ -1070,6 +1057,46 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 	}
 
 	remediation.IssueId = issueResult.Elements[0].Issue.Id
+
+	// fetch component version id
+	componentVersionResult, err := r.App.ListComponentVersions(ctx, &entity.ComponentVersionFilter{
+		IssueId: []*int64{
+			&issueResult.Elements[0].Issue.Id,
+		},
+		ServiceCCRN: []*string{
+			input.Service,
+		},
+		Repository: []*string{
+			input.Image,
+		},
+	}, &entity.ListOptions{})
+	if err != nil || len(componentVersionResult.Elements) != 1 {
+		return nil, baseResolver.NewResolverError(
+			"CreateRemediationMutationResolver",
+			"Internal Error - when creating remediation - component version not found",
+		)
+	}
+
+	componentVersionID := componentVersionResult.Elements[0].Id
+
+	// fetch component id for given component name
+	componentResult, err := r.App.ListComponents(
+		ctx,
+		&entity.ComponentFilter{
+			Repository:         []*string{input.Image},
+			ComponentVersionId: []*int64{&componentVersionID},
+			ServiceCCRN:        []*string{input.Service},
+		},
+		nil,
+	)
+	if err != nil || len(componentResult.Elements) != 1 {
+		return nil, baseResolver.NewResolverError(
+			"CreateRemediationMutationResolver",
+			"Internal Error - when creating remediation - component id not found",
+		)
+	}
+
+	remediation.ComponentId = componentResult.Elements[0].Id
 
 	if input.RemediatedBy != nil {
 		userUniqueUserIDs, err := r.App.ListUniqueUserIDs(ctx, &entity.UserFilter{
@@ -1132,7 +1159,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 			&entity.ServiceFilter{CCRN: []*string{input.Service}},
 			nil,
 		)
-		if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
+		if err != nil || len(serviceResult.Elements) != 1 {
 			return nil, baseResolver.NewResolverError(
 				"UpdateRemediationMutationResolver",
 				"Internal Error - when updating remediation - service id not found",
@@ -1150,7 +1177,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 			&entity.ComponentFilter{Repository: []*string{input.Image}},
 			nil,
 		)
-		if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
+		if err != nil || len(componentResult.Elements) != 1 {
 			return nil, baseResolver.NewResolverError(
 				"UpdateRemediationMutationResolver",
 				"Internal Error - when updating remediation - component id not found",
@@ -1167,7 +1194,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 			&entity.IssueFilter{PrimaryName: []*string{input.Vulnerability}},
 			nil,
 		)
-		if err != nil || len(issueResult.Elements) == 0 || len(issueResult.Elements) > 1 {
+		if err != nil || len(issueResult.Elements) != 1 {
 			return nil, baseResolver.NewResolverError(
 				"UpdateRemediationMutationResolver",
 				"Internal Error - when updating remediation - issue id not found",

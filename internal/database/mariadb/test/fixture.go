@@ -301,6 +301,41 @@ func (s *SeedCollection) FindMatchingComponentVersionAndIssueVariant() (
 	return mariadb.ComponentVersionRow{}, mariadb.IssueVariantRow{}, false
 }
 
+func (s *SeedCollection) FindLinkedRemediationData() (mariadb.BaseServiceRow, mariadb.ComponentRow, mariadb.IssueRow, bool) {
+	for _, cvi := range s.ComponentVersionIssueRows {
+		ci, ok := lo.Find(s.ComponentInstanceRows, func(ci mariadb.ComponentInstanceRow) bool {
+			return ci.ComponentVersionId.Int64 == cvi.ComponentVersionId.Int64
+		})
+		if !ok {
+			continue
+		}
+
+		service, ok := s.GetServiceById(ci.ServiceId.Int64)
+		if !ok {
+			continue
+		}
+
+		cv, ok := s.GetComponentVersionById(cvi.ComponentVersionId.Int64)
+		if !ok {
+			continue
+		}
+
+		component, ok := s.GetComponentById(cv.ComponentId.Int64)
+		if !ok {
+			continue
+		}
+
+		issue, ok := s.GetIssueById(cvi.IssueId.Int64)
+		if !ok {
+			continue
+		}
+
+		return service, component, issue, true
+	}
+
+	return mariadb.BaseServiceRow{}, mariadb.ComponentRow{}, mariadb.IssueRow{}, false
+}
+
 func (s *SeedCollection) FindMatchingSupportGroupAndIssueMatch() (mariadb.SupportGroupRow, mariadb.IssueMatchRow, bool) {
 	for _, imRow := range s.IssueMatchRows {
 		ciRow, ok := s.GetComponentInstanceById(imRow.ComponentInstanceId.Int64)
@@ -893,6 +928,7 @@ func (s *DatabaseSeeder) SeedComponentVersions(
 		component := components[randomIndex]
 		componentVersion.ComponentId = component.Id
 		componentVersion.EndOfLife = sql.NullBool{Bool: []bool{true, false}[i%2], Valid: true}
+		componentVersion.Repository = component.Repository
 
 		componentVersionId, err := s.InsertFakeComponentVersion(componentVersion)
 		if err != nil {
@@ -914,10 +950,10 @@ func (s *DatabaseSeeder) SeedComponentInstances(
 ) []mariadb.ComponentInstanceRow {
 	var componentInstances []mariadb.ComponentInstanceRow
 
-	for range num {
+	for i := range num {
 		componentInstance := NewFakeComponentInstance()
-		componentInstance.ComponentVersionId = PickOne(componentVersions).Id
-		componentInstance.ServiceId = PickOne(services).Id
+		componentInstance.ComponentVersionId = componentVersions[i].Id
+		componentInstance.ServiceId = services[i].Id
 
 		componentInstanceId, err := s.InsertFakeComponentInstance(componentInstance)
 		if err != nil {
@@ -982,8 +1018,8 @@ func (s *DatabaseSeeder) SeedComponentVersionIssues(
 	cviList := make([]mariadb.ComponentVersionIssueRow, num)
 	for i := range num {
 		cvi := NewFakeComponentVersionIssue()
-		cvi.IssueId = PickOne(issues).Id
-		cvi.ComponentVersionId = PickOne(componentVersions).Id
+		cvi.IssueId = issues[i].Id
+		cvi.ComponentVersionId = componentVersions[i].Id
 
 		_, err := s.InsertFakeComponentVersionIssue(cvi)
 		if err != nil {
