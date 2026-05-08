@@ -195,16 +195,6 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 	},
 }
 
-func ensureComponentVersionFilter(
-	filter *entity.ComponentVersionFilter,
-) *entity.ComponentVersionFilter {
-	if filter == nil {
-		filter = &entity.ComponentVersionFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
 	columns := ""
 
@@ -249,7 +239,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureComponentVersionFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -362,7 +352,7 @@ func (s *SqlDatabase) GetComponentVersions(
 		GROUP BY CV.componentversion_id %s ORDER BY %s LIMIT ?
     `, s.getComponentVersionColumns(order), "%s", "%s", "%s", "%s")
 
-	filter = ensureComponentVersionFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
 		ctx,

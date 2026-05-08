@@ -254,14 +254,6 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 	},
 }
 
-func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchFilter {
-	if filter == nil {
-		filter = &entity.IssueMatchFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 	columns := ""
 
@@ -285,7 +277,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureIssueMatchFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)

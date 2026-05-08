@@ -187,14 +187,6 @@ var serviceObject = DbObject[*entity.Service]{
 	},
 }
 
-func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
-	if filter == nil {
-		filter = &entity.ServiceFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []entity.Order) string {
 	columns := "S.*"
 	if len(filter.IssueRepositoryId) > 0 {
@@ -227,7 +219,7 @@ func (s *SqlDatabase) buildServiceStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -319,7 +311,7 @@ func (s *SqlDatabase) GetServices(
 		GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
 
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
@@ -424,7 +416,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         FROM ComponentInstanceCounts CIC
         JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
     `
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
 	joins := serviceObject.GetJoins(filter, ord)
 	columns := s.getServiceColumns(filter, ord.Sequence())
@@ -524,7 +516,7 @@ func (s *SqlDatabase) GetAllServiceCursors(
 	    %s GROUP BY S.service_id ORDER BY %s
     `
 
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
@@ -732,7 +724,7 @@ func (s *SqlDatabase) getServiceAttr(
 	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	order := []entity.Order{
 		{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc},
 	}

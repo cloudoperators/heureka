@@ -111,7 +111,7 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 }
 
 func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
-	filter = ensureScannerRunFilter(filter)
+	filter = EnsureFilter(filter)
 
 	baseQuery := `
 		SELECT * FROM ScannerRun
@@ -195,14 +195,6 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 	baseQuery += " LIMIT ?"
 
 	return queryArgs, baseQuery
-}
-
-func ensureScannerRunFilter(filter *entity.ScannerRunFilter) *entity.ScannerRunFilter {
-	if filter == nil {
-		filter = &entity.ScannerRunFilter{}
-	}
-
-	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {

@@ -110,14 +110,6 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 	},
 }
 
-func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.SupportGroupFilter {
-	if filter == nil {
-		filter = &entity.SupportGroupFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildSupportGroupStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -127,7 +119,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 
-	filter = ensureSupportGroupFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -185,7 +177,7 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(
 	    %s GROUP BY SG.supportgroup_id ORDER BY %s
     `
 
-	filter = ensureSupportGroupFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -453,7 +445,7 @@ func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.S
 	}
 
 	// Ensure the filter is initialized
-	filter = ensureSupportGroupFilter(filter)
+	filter = EnsureFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)

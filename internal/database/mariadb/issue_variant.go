@@ -153,14 +153,6 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 	},
 }
 
-func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVariantFilter {
-	if filter == nil {
-		filter = &entity.IssueVariantFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildIssueVariantStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -169,7 +161,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureIssueVariantFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -226,7 +218,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 		%s GROUP BY IV.issuevariant_id ORDER BY %s
 	`
 
-	filter = ensureIssueVariantFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {

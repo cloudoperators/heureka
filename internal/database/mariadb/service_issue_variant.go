@@ -35,16 +35,6 @@ var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
 	},
 }
 
-func ensureServiceIssueVariantFilter(
-	filter *entity.ServiceIssueVariantFilter,
-) *entity.ServiceIssueVariantFilter {
-	if filter == nil {
-		filter = &entity.ServiceIssueVariantFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -53,7 +43,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureServiceIssueVariantFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)

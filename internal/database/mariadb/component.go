@@ -142,14 +142,6 @@ var componentObject = DbObject[*entity.Component]{
 	},
 }
 
-func ensureComponentFilter(filter *entity.ComponentFilter) *entity.ComponentFilter {
-	if filter == nil {
-		filter = &entity.ComponentFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order *Order) bool {
 	return order.ByCount() && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0))
 }
@@ -187,7 +179,7 @@ func (s *SqlDatabase) buildComponentStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -245,7 +237,7 @@ func (s *SqlDatabase) GetAllComponentCursors(
 	    %s GROUP BY C.component_id ORDER BY %s
     `
 
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
@@ -303,7 +295,7 @@ func (s *SqlDatabase) GetComponents(
 		%s GROUP BY C.component_id ORDER BY %s LIMIT ?
     `
 
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
@@ -389,7 +381,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 		filterParameters []any
 	)
 
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 
 	query := `
 		SELECT CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM %s AS CVR
@@ -491,7 +483,7 @@ func (s *SqlDatabase) GetComponentCcrns(ctx context.Context, filter *entity.Comp
     `
 
 	// Ensure the filter is initialized
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 	order := []entity.Order{
 		{
 			By:        entity.ComponentCcrn,

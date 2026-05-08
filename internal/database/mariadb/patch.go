@@ -47,14 +47,6 @@ var patchObject = DbObject[*entity.Patch]{
 	},
 }
 
-func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
-	if filter == nil {
-		filter = &entity.PatchFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildPatchStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -63,7 +55,7 @@ func (s *SqlDatabase) buildPatchStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensurePatchFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -215,7 +207,7 @@ func (s *SqlDatabase) GetAllPatchCursors(
 	    %s GROUP BY P.patch_id ORDER BY %s
     `
 
-	filter = ensurePatchFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {

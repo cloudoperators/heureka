@@ -267,16 +267,6 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 	},
 }
 
-func ensureComponentInstanceFilter(
-	filter *entity.ComponentInstanceFilter,
-) *entity.ComponentInstanceFilter {
-	if filter == nil {
-		filter = &entity.ComponentInstanceFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildComponentInstanceStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -285,7 +275,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureComponentInstanceFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -518,7 +508,7 @@ func (s *SqlDatabase) getComponentInstanceAttr(
 	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
-	filter = ensureComponentInstanceFilter(filter)
+	filter = EnsureFilter(filter)
 
 	order := []entity.Order{
 		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},

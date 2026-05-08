@@ -410,7 +410,21 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 }
 
 // DB helpers
-func EnsurePagination[T entity.HasPagination](filter T) T {
+func EnsureFilter[
+	T any,
+	PT interface {
+		*T
+		entity.HasPagination
+	},
+](filter PT) PT {
+	if filter == nil {
+		filter = PT(new(T))
+	}
+
+	return ensurePagination(filter)
+}
+
+func ensurePagination[T entity.HasPagination](filter T) T {
 	first := 1000
 	after := ""
 

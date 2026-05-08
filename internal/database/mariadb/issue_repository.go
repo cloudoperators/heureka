@@ -94,16 +94,6 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 	},
 }
 
-func ensureIssueRepositoryFilter(
-	filter *entity.IssueRepositoryFilter,
-) *entity.IssueRepositoryFilter {
-	if filter == nil {
-		filter = &entity.IssueRepositoryFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildIssueRepositoryStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -112,7 +102,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureIssueRepositoryFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -169,7 +159,7 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(
 		%s GROUP BY IR.issuerepository_id ORDER BY %s
 	`
 
-	filter = ensureIssueRepositoryFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
 		ctx,
@@ -227,7 +217,7 @@ func (s *SqlDatabase) GetIssueRepositories(
 		%s GROUP BY IR.issuerepository_id ORDER BY %s LIMIT ?
     `
 
-	filter = ensureIssueRepositoryFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
 		ctx,

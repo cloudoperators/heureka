@@ -183,14 +183,6 @@ var remediationObject = DbObject[*entity.Remediation]{
 	},
 }
 
-func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {
-	if filter == nil {
-		filter = &entity.RemediationFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildRemediationStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -199,7 +191,7 @@ func (s *SqlDatabase) buildRemediationStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureRemediationFilter(filter)
+	filter = EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -351,7 +343,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 	    %s GROUP BY R.remediation_id ORDER BY %s
     `
 
-	filter = ensureRemediationFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {

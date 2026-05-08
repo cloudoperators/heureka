@@ -316,14 +316,6 @@ var issueObject = DbObject[*entity.Issue]{
 	},
 }
 
-func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {
-	if filter == nil {
-		filter = &entity.IssueFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func getIssueColumns(order []entity.Order) string {
 	columns := ""
 
@@ -341,7 +333,7 @@ func getIssueColumns(order []entity.Order) string {
 }
 
 func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
-	ifilter := ensureIssueFilter(filter)
+	ifilter := EnsureFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
 	cursorFields, err := DecodeCursor(ifilter.After)
@@ -385,7 +377,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 }
 
 func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
-	filter = ensureIssueFilter(filter)
+	filter = EnsureFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssuesWithAggregations",
@@ -435,7 +427,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         JOIN Aggs A ON CIC.issue_id = A.issue_id;
     `
 
-	filter = ensureIssueFilter(filter)
+	filter = EnsureFilter(filter)
 	joins := issueObject.GetJoins(filter, NewOrder(order, entity.Order{})) // It seems that this join is redundant for baseAppQuery
 	// We should improve testing and remove redundant joins from query
 
@@ -667,7 +659,7 @@ func (s *SqlDatabase) GetIssues(
 		GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
 
-	filter = ensureIssueFilter(filter)
+	filter = EnsureFilter(filter)
 
 	issueColumns := getIssueColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, issueColumns, "%s", "%s", "%s", "%s")
@@ -823,7 +815,7 @@ func (s *SqlDatabase) GetIssueNames(ctx context.Context, filter *entity.IssueFil
 	}
 
 	// Ensure the filter is initialized
-	filter = ensureIssueFilter(filter)
+	filter = EnsureFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, order, l)
