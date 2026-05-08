@@ -55,45 +55,20 @@ func (s *SqlDatabase) buildPatchStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = EnsureFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
-	}
-
 	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
 		Obj:                &patchObject,
 		BaseQuery:          baseQuery,
 		Order:              NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc}),
-		Filter:             filter,
 		WithCursor:         withCursor,
 		CheckCursorInWhere: true,
 		CheckCursor:        true,
 		CheckFilter:        true,
-		CursorFields:       cursorFields,
 		Aggregated:         false,
 	}
 
-	query := statement.BuildQuery()
-
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			}).Error(msg)
-
-		return nil, nil, fmt.Errorf("failed to prepare Patch statement: %w", err)
-	}
-
-	filterParameters := patchObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(statement, filter)
 }
 
 func (s *SqlDatabase) GetPatches(
