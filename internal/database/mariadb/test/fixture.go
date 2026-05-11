@@ -950,7 +950,9 @@ func (s *DatabaseSeeder) SeedComponentInstances(
 ) []mariadb.ComponentInstanceRow {
 	var componentInstances []mariadb.ComponentInstanceRow
 
-	for i := range num {
+	limit := min(len(services), min(len(componentVersions), num))
+
+	for i := range limit {
 		componentInstance := NewFakeComponentInstance()
 		componentInstance.ComponentVersionId = componentVersions[i].Id
 		componentInstance.ServiceId = services[i].Id
