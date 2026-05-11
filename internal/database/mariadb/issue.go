@@ -332,7 +332,7 @@ func getIssueColumns(order []entity.Order) string {
 	return columns
 }
 
-func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
+func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery string, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
 	statement := Statement{
 		Db:                 s.db,
 		L:                  l,
@@ -346,10 +346,10 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 		Aggregated:         true,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
-func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
+func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
 	filter = EnsureFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,

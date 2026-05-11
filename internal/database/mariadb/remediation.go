@@ -204,7 +204,7 @@ func (s *SqlDatabase) buildRemediationStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetRemediations(

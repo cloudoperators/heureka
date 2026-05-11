@@ -5,7 +5,6 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -56,7 +55,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 // TODO: adjust this function to fit dbObject

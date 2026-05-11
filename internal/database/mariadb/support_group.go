@@ -130,7 +130,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllSupportGroupCursors(

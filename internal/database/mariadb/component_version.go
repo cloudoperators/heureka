@@ -252,7 +252,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 		Aggregated:         true,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllComponentVersionCursors(

@@ -290,7 +290,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.IssueMatchFilter) ([]int64, error) {

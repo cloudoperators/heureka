@@ -120,7 +120,7 @@ func (s *SqlDatabase) buildUserStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllUserIds(ctx context.Context, filter *entity.UserFilter) ([]int64, error) {

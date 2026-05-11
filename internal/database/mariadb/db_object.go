@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -182,7 +183,7 @@ func (do *DbObject[ET]) GetCursorQuery(filter any, cursorFields []Field, withCur
 			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 		}
 	} else {
-		if filter != nil {
+		if !IsNil(filter) {
 			if do.GetFilterQuery(filter) != "" && withCursor && cursorQuery != "" {
 				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 			}
@@ -220,7 +221,7 @@ func BuildStatement[
 		*T
 		entity.HasPagination
 	},
-](s Statement, filter PT) (Stmt, []any, error) {
+](ctx context.Context, s Statement, filter PT) (Stmt, []any, error) {
 	filter = EnsureFilter(filter)
 	s.L.WithFields(logrus.Fields{"filter": filter})
 
@@ -247,7 +248,7 @@ func BuildStatement[
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.Db.Preparex(query)
+	stmt, err := s.Db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		s.L.WithFields(

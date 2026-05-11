@@ -288,7 +288,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetComponentInstances(

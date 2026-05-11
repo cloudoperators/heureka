@@ -115,7 +115,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllIssueRepositoryCursors(

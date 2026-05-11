@@ -192,7 +192,7 @@ func (s *SqlDatabase) buildComponentStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllComponentCursors(

@@ -232,7 +232,7 @@ func (s *SqlDatabase) buildServiceStatement(
 		Aggregated:         true,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceFilter) (int64, error) {

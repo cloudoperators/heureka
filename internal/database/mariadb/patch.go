@@ -68,7 +68,7 @@ func (s *SqlDatabase) buildPatchStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetPatches(

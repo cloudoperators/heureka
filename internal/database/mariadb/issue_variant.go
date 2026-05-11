@@ -174,7 +174,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 		Aggregated:         false,
 	}
 
-	return BuildStatement(statement, filter)
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllIssueVariantCursors(
