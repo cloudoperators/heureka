@@ -169,9 +169,11 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			remediation = testentity.NewFakeRemediationEntity()
-			remediation.Service = seedCollection.ServiceRows[0].CCRN.String
-			remediation.Component = seedCollection.ComponentRows[0].Repository.String
-			remediation.Issue = seedCollection.IssueRows[0].PrimaryName.String
+			service, component, issue, ok := seedCollection.FindLinkedRemediationData()
+			Expect(ok).To(BeTrue(), "linked service/component/issue data must exist in seed")
+			remediation.Service = service.CCRN.String
+			remediation.Component = component.Repository.String
+			remediation.Issue = issue.PrimaryName.String
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
