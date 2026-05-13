@@ -67,7 +67,8 @@ func (do *DbObject[ET]) GetFilterParameters(
 		paginated := filter.GetPaginated()
 		filterParameters = append(
 			filterParameters,
-			GetCursorQueryParameters(paginated.First, cursorFields)...)
+			GetCursorQueryParameters(paginated.First, cursorFields)...,
+		)
 	}
 
 	return filterParameters
@@ -208,6 +209,7 @@ type Statement struct {
 	Obj                Object
 	BaseQuery          string
 	Order              *Order
+	OrderPrefix        string
 	WithCursor         bool
 	CheckCursorInWhere bool
 	CheckCursor        bool
@@ -242,9 +244,9 @@ func BuildStatement[
 
 	var query string
 	if s.WithCursor {
-		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, cursorQuery, s.Order)
+		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, cursorQuery, s.Order.StringWithPrefix(s.OrderPrefix))
 	} else {
-		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, s.Order)
+		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, s.Order.StringWithPrefix(s.OrderPrefix))
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
@@ -256,7 +258,8 @@ func BuildStatement[
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
@@ -439,7 +442,8 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 
 		uniqTableName[j.Table] = struct{}{}
 
-		joinSQL := fmt.Sprintf("%s %s ON %s",
+		joinSQL := fmt.Sprintf(
+			"%s %s ON %s",
 			j.Type,
 			j.Table,
 			j.On,
