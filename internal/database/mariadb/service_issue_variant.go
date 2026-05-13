@@ -5,7 +5,6 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -35,16 +34,6 @@ var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
 	},
 }
 
-func ensureServiceIssueVariantFilter(
-	filter *entity.ServiceIssueVariantFilter,
-) *entity.ServiceIssueVariantFilter {
-	if filter == nil {
-		filter = &entity.ServiceIssueVariantFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -53,47 +42,20 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureServiceIssueVariantFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode ServiceIssueVariant cursor: %w", err)
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &serviceIssueVariantObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc})
-	whereClause, hasFilter := serviceIssueVariantObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := serviceIssueVariantObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, ord)
-	}
-
-	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("%s", msg)
-	}
-
-	filterParameters := serviceIssueVariantObject.GetFilterParameters(
-		filter,
-		withCursor,
-		cursorFields,
-	)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 // TODO: adjust this function to fit dbObject
@@ -120,6 +82,7 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 
 			# Join to from repo and issue to IssueVariant
 			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
+		%s
 		%s
 		%s ORDER BY %s LIMIT ?
     `

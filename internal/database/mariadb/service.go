@@ -187,14 +187,6 @@ var serviceObject = DbObject[*entity.Service]{
 	},
 }
 
-func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
-	if filter == nil {
-		filter = &entity.ServiceFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []entity.Order) string {
 	columns := "S.*"
 	if len(filter.IssueRepositoryId) > 0 {
@@ -227,47 +219,20 @@ func (s *SqlDatabase) buildServiceStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	var query string
-
-	filter = ensureServiceFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, err
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &serviceObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         true,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
-	joins := serviceObject.GetJoins(filter, ord)
-	whereClause, hasFilter := serviceObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := serviceObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, true)
-
-	// construct final query
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
-	}
-
-	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("%s", msg)
-	}
-
-	// adding parameters
-	filterParameters := serviceObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceFilter) (int64, error) {
@@ -319,7 +284,7 @@ func (s *SqlDatabase) GetServices(
 		GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
 
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
@@ -424,7 +389,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         FROM ComponentInstanceCounts CIC
         JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
     `
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
 	joins := serviceObject.GetJoins(filter, ord)
 	columns := s.getServiceColumns(filter, ord.Sequence())
@@ -459,8 +424,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			},
-		).Error(msg)
+			}).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -470,8 +434,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	// parameters for component instance query
 	filterParameters = append(
 		filterParameters,
-		serviceObject.GetFilterParameters(filter, true, cursorFields)...,
-	)
+		serviceObject.GetFilterParameters(filter, true, cursorFields)...)
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
@@ -526,7 +489,7 @@ func (s *SqlDatabase) GetAllServiceCursors(
 	    %s GROUP BY S.service_id ORDER BY %s
     `
 
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
@@ -734,7 +697,7 @@ func (s *SqlDatabase) getServiceAttr(
 	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
-	filter = ensureServiceFilter(filter)
+	filter = EnsureFilter(filter)
 	order := []entity.Order{
 		{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc},
 	}

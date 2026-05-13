@@ -183,14 +183,6 @@ var remediationObject = DbObject[*entity.Remediation]{
 	},
 }
 
-func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {
-	if filter == nil {
-		filter = &entity.RemediationFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildRemediationStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -199,42 +191,20 @@ func (s *SqlDatabase) buildRemediationStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureRemediationFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &remediationObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc})
-	whereClause, hasFilter := remediationObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := remediationObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, ord)
-	}
-
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("failed to prepare Remediation statement: %w", err)
-	}
-
-	filterParameters := remediationObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetRemediations(
@@ -250,6 +220,7 @@ func (s *SqlDatabase) GetRemediations(
 
 	baseQuery := `
 		SELECT R.* FROM Remediation R
+		%s
 		%s
 		%s
 		GROUP BY R.remediation_id ORDER BY %s LIMIT ?
@@ -301,6 +272,7 @@ func (s *SqlDatabase) CountRemediations(ctx context.Context, filter *entity.Reme
 	baseQuery := `
 		SELECT count(distinct R.remediation_id) FROM Remediation R
 		%s
+		%s
         ORDER BY %s
 	`
 
@@ -342,10 +314,11 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 
 	baseQuery := `
 		SELECT R.* FROM Remediation R 
+		%s
 	    %s GROUP BY R.remediation_id ORDER BY %s
     `
 
-	filter = ensureRemediationFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {

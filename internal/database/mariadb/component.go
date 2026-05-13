@@ -142,14 +142,6 @@ var componentObject = DbObject[*entity.Component]{
 	},
 }
 
-func ensureComponentFilter(filter *entity.ComponentFilter) *entity.ComponentFilter {
-	if filter == nil {
-		filter = &entity.ComponentFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order *Order) bool {
 	return order.ByCount() && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0))
 }
@@ -187,44 +179,20 @@ func (s *SqlDatabase) buildComponentStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureComponentFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &componentObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc})
-	joins := componentObject.GetJoins(filter, ord)
-	whereClause, hasFilter := componentObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := componentObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
-	}
-
-	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("%s", msg)
-	}
-
-	filterParameters := componentObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllComponentCursors(
@@ -243,7 +211,7 @@ func (s *SqlDatabase) GetAllComponentCursors(
 	    %s GROUP BY C.component_id ORDER BY %s
     `
 
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
@@ -301,7 +269,7 @@ func (s *SqlDatabase) GetComponents(
 		%s GROUP BY C.component_id ORDER BY %s LIMIT ?
     `
 
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
@@ -387,7 +355,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 		filterParameters []any
 	)
 
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 
 	query := `
 		SELECT CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM %s AS CVR
@@ -441,8 +409,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			},
-		).Error(msg)
+			}).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -490,7 +457,7 @@ func (s *SqlDatabase) GetComponentCcrns(ctx context.Context, filter *entity.Comp
     `
 
 	// Ensure the filter is initialized
-	filter = ensureComponentFilter(filter)
+	filter = EnsureFilter(filter)
 	order := []entity.Order{
 		{
 			By:        entity.ComponentCcrn,

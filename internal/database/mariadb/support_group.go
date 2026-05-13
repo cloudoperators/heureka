@@ -6,7 +6,6 @@ package mariadb
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -110,14 +109,6 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 	},
 }
 
-func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.SupportGroupFilter {
-	if filter == nil {
-		filter = &entity.SupportGroupFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildSupportGroupStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -126,45 +117,20 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	var query string
-
-	filter = ensureSupportGroupFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, err
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &supportGroupObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc})
-	joins := supportGroupObject.GetJoins(filter, ord)
-	whereClause, hasFilter := supportGroupObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := supportGroupObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
-	}
-
-	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("%s", msg)
-	}
-
-	filterParameters := supportGroupObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllSupportGroupCursors(
@@ -183,7 +149,7 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(
 	    %s GROUP BY SG.supportgroup_id ORDER BY %s
     `
 
-	filter = ensureSupportGroupFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -451,7 +417,7 @@ func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.S
 	}
 
 	// Ensure the filter is initialized
-	filter = ensureSupportGroupFilter(filter)
+	filter = EnsureFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)

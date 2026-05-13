@@ -13,7 +13,6 @@ import (
 )
 
 var patchObject = DbObject[*entity.Patch]{
-	Properties: []*Property{},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty(
 			"P.patch_id = ?",
@@ -48,14 +47,6 @@ var patchObject = DbObject[*entity.Patch]{
 	},
 }
 
-func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
-	if filter == nil {
-		filter = &entity.PatchFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildPatchStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -64,42 +55,20 @@ func (s *SqlDatabase) buildPatchStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensurePatchFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &patchObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc})
-	whereClause, hasFilter := patchObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := patchObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, ord)
-	}
-
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("failed to prepare Patch statement: %w", err)
-	}
-
-	filterParameters := patchObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetPatches(
@@ -115,6 +84,7 @@ func (s *SqlDatabase) GetPatches(
 
 	baseQuery := `
 		SELECT P.* FROM Patch P
+		%s
 		%s
 		%s
 		GROUP BY P.patch_id ORDER BY %s LIMIT ?
@@ -166,6 +136,7 @@ func (s *SqlDatabase) CountPatches(ctx context.Context, filter *entity.PatchFilt
 	baseQuery := `
 		SELECT count(distinct P.patch_id) FROM Patch P
 		%s
+		%s
         ORDER BY %s
 	`
 
@@ -207,10 +178,11 @@ func (s *SqlDatabase) GetAllPatchCursors(
 
 	baseQuery := `
 		SELECT P.* FROM Patch P
+		%s
 	    %s GROUP BY P.patch_id ORDER BY %s
     `
 
-	filter = ensurePatchFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {

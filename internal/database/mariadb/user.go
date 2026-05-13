@@ -99,14 +99,6 @@ var userObject = DbObject[*entity.User]{
 	},
 }
 
-func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
-	if filter == nil {
-		return &entity.UserFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildUserStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -115,43 +107,20 @@ func (s *SqlDatabase) buildUserStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureUserFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode User cursor: %w", err)
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &userObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc})
-	joins := userObject.GetJoins(filter, ord)
-	whereClause, hasFilter := userObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := userObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
-	}
-
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("failed to prepare User statement: %w", err)
-	}
-
-	filterParameters := userObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllUserIds(ctx context.Context, filter *entity.UserFilter) ([]int64, error) {
@@ -203,7 +172,7 @@ func (s *SqlDatabase) GetAllUserCursors(
 		%s GROUP BY U.user_id ORDER BY %s
 	`
 
-	filter = ensureUserFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -250,7 +219,7 @@ func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) (
 		%s GROUP BY U.user_id ORDER BY %s LIMIT ?
     `
 
-	filter = ensureUserFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildUserStatement(
 		ctx,
@@ -350,7 +319,7 @@ func (s *SqlDatabase) GetUserNames(ctx context.Context, filter *entity.UserFilte
     `
 
 	// Ensure the filter is initialized
-	filter = ensureUserFilter(filter)
+	filter = EnsureFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
@@ -417,7 +386,7 @@ func (s *SqlDatabase) GetUniqueUserIDs(ctx context.Context, filter *entity.UserF
     `
 
 	// Ensure the filter is initialized
-	filter = ensureUserFilter(filter)
+	filter = EnsureFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{

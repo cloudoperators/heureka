@@ -267,16 +267,6 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 	},
 }
 
-func ensureComponentInstanceFilter(
-	filter *entity.ComponentInstanceFilter,
-) *entity.ComponentInstanceFilter {
-	if filter == nil {
-		filter = &entity.ComponentInstanceFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildComponentInstanceStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -285,48 +275,20 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureComponentInstanceFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &componentInstanceObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc})
-	joins := componentInstanceObject.GetJoins(filter, ord)
-	whereClause, hasFilter := componentInstanceObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := componentInstanceObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
-	}
-
-	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("failed to prepare ComponentInstance statement: %w", err)
-	}
-
-	filterParameters := componentInstanceObject.GetFilterParameters(
-		filter,
-		withCursor,
-		cursorFields,
-	)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetComponentInstances(
@@ -516,7 +478,7 @@ func (s *SqlDatabase) getComponentInstanceAttr(
 	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
-	filter = ensureComponentInstanceFilter(filter)
+	filter = EnsureFilter(filter)
 
 	order := []entity.Order{
 		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},

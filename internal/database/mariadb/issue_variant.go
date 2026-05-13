@@ -153,14 +153,6 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 	},
 }
 
-func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVariantFilter {
-	if filter == nil {
-		filter = &entity.IssueVariantFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) buildIssueVariantStatement(
 	ctx context.Context,
 	baseQuery string,
@@ -169,43 +161,20 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureIssueVariantFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode IssueVariant cursor: %w", err)
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &issueVariantObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc})
-	joins := issueVariantObject.GetJoins(filter, ord)
-	whereClause, hasFilter := issueVariantObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := issueVariantObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
-	}
-
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("failed to prepare IssueVariant statement: %w", err)
-	}
-
-	filterParameters := issueVariantObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllIssueVariantCursors(
@@ -224,7 +193,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 		%s GROUP BY IV.issuevariant_id ORDER BY %s
 	`
 
-	filter = ensureIssueVariantFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {

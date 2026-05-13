@@ -254,14 +254,6 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 	},
 }
 
-func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchFilter {
-	if filter == nil {
-		filter = &entity.IssueMatchFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 	columns := ""
 
@@ -285,45 +277,20 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureIssueMatchFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, err
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &issueMatchObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: true,
+		CheckCursor:        true,
+		CheckFilter:        true,
+		Aggregated:         false,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc})
-	columns := s.getIssueMatchColumns(ord.Sequence())
-	joins := issueMatchObject.GetJoins(filter, ord)
-	whereClause, hasFilter := issueMatchObject.GetFilterWhereClause(filter, withCursor)
-	cursorQuery := issueMatchObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
-
-	var query string
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, ord)
-	}
-
-	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("%s", msg)
-	}
-
-	filterParameters := issueMatchObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.IssueMatchFilter) ([]int64, error) {
@@ -333,7 +300,7 @@ func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.Is
 	})
 
 	baseQuery := `
-		SELECT IM.issuematch_id %s FROM IssueMatch IM 
+		SELECT IM.issuematch_id FROM IssueMatch IM
 		%s
 	 	%s GROUP BY IM.issuematch_id ORDER BY %s
     `
@@ -364,10 +331,13 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(
 	})
 
 	baseQuery := `
-		SELECT IM.* %s FROM IssueMatch IM 
+		SELECT IM.* %s FROM IssueMatch IM
 		%s
 	    %s GROUP BY IM.issuematch_id ORDER BY %s
     `
+
+	columns := s.getIssueMatchColumns(order)
+	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -414,10 +384,13 @@ func (s *SqlDatabase) GetIssueMatches(
 	})
 
 	baseQuery := `
-		SELECT IM.* %s FROM IssueMatch IM 
+		SELECT IM.* %s FROM IssueMatch IM
 		%s
 	    %s %s GROUP BY IM.issuematch_id ORDER BY %s LIMIT ?
     `
+
+	columns := s.getIssueMatchColumns(order)
+	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
@@ -466,7 +439,7 @@ func (s *SqlDatabase) CountIssueMatches(ctx context.Context, filter *entity.Issu
 	})
 
 	baseQuery := `
-		SELECT count(distinct IM.issuematch_id) %s FROM IssueMatch IM 
+		SELECT count(distinct IM.issuematch_id) FROM IssueMatch IM
 		%s
 		%s
 		ORDER BY %s

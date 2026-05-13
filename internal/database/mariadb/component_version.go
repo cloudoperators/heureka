@@ -195,16 +195,6 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 	},
 }
 
-func ensureComponentVersionFilter(
-	filter *entity.ComponentVersionFilter,
-) *entity.ComponentVersionFilter {
-	if filter == nil {
-		filter = &entity.ComponentVersionFilter{}
-	}
-
-	return EnsurePagination(filter)
-}
-
 func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
 	columns := ""
 
@@ -249,46 +239,20 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	filter = ensureComponentVersionFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, nil, err
+	statement := Statement{
+		Db:                 s.db,
+		L:                  l,
+		Obj:                &componentVersionObject,
+		BaseQuery:          baseQuery,
+		Order:              NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc}),
+		WithCursor:         withCursor,
+		CheckCursorInWhere: false,
+		CheckCursor:        true,
+		CheckFilter:        false,
+		Aggregated:         true,
 	}
 
-	ord := NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc})
-	joins := componentVersionObject.GetJoins(filter, ord)
-	whereClause, _ := componentVersionObject.GetFilterWhereClause(filter, false)
-	cursorQuery := componentVersionObject.GetCursorQuery(nil, cursorFields, &withCursor, true)
-
-	var query string
-
-	columns := s.getComponentVersionColumns(order)
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, ord)
-	} else {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, ord)
-	}
-
-	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, nil, fmt.Errorf("%s", msg)
-	}
-
-	filterParameters := componentVersionObject.GetFilterParameters(filter, withCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllComponentVersionCursors(
@@ -301,11 +265,11 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
 		"event":  "database.GetAllComponentVersionCursors",
 	})
 
-	baseQuery := `
-		SELECT CV.* %s FROM ComponentVersion CV 
+	baseQuery := fmt.Sprintf(`
+		SELECT CV.* %s FROM ComponentVersion CV
 		%s
 	    %s GROUP BY CV.componentversion_id ORDER BY %s
-    `
+    `, s.getComponentVersionColumns(order), "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
 		ctx,
@@ -355,14 +319,14 @@ func (s *SqlDatabase) GetComponentVersions(
 		"event": "database.GetComponentVersions",
 	})
 
-	baseQuery := `
-		SELECT CV.* %s FROM ComponentVersion CV 
+	baseQuery := fmt.Sprintf(`
+		SELECT CV.* %s FROM ComponentVersion CV
 		%s
 		%s
 		GROUP BY CV.componentversion_id %s ORDER BY %s LIMIT ?
-    `
+    `, s.getComponentVersionColumns(order), "%s", "%s", "%s", "%s")
 
-	filter = ensureComponentVersionFilter(filter)
+	filter = EnsureFilter(filter)
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
 		ctx,
@@ -415,7 +379,7 @@ func (s *SqlDatabase) CountComponentVersions(ctx context.Context, filter *entity
 	})
 
 	baseQuery := `
-		SELECT count(distinct CV.componentversion_id) %s FROM ComponentVersion CV 
+		SELECT count(distinct CV.componentversion_id) FROM ComponentVersion CV
 		%s
 		%s
 		ORDER BY %s

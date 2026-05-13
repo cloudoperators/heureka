@@ -4,8 +4,10 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/database"
@@ -65,8 +67,7 @@ func (do *DbObject[ET]) GetFilterParameters(
 		paginated := filter.GetPaginated()
 		filterParameters = append(
 			filterParameters,
-			GetCursorQueryParameters(paginated.First, cursorFields)...,
-		)
+			GetCursorQueryParameters(paginated.First, cursorFields)...)
 	}
 
 	return filterParameters
@@ -166,27 +167,24 @@ func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 	return NewJoinResolver(do.JoinDefs).Build(filter, order)
 }
 
-func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) (string, bool) {
-	filterStr := do.GetFilterQuery(filter)
-
-	hasFilter := filterStr != ""
-	if hasFilter || withCursor {
-		return fmt.Sprintf("WHERE %s", filterStr), hasFilter
+func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) string {
+	if filterStr := do.GetFilterQuery(filter); filterStr != "" || withCursor {
+		return fmt.Sprintf("WHERE %s", filterStr)
 	}
 
-	return "", false
+	return ""
 }
 
-func (do *DbObject[ET]) GetCursorQuery(hasFilter *bool, cursorFields []Field, withCursor *bool, aggregated bool) string {
+func (do *DbObject[ET]) GetCursorQuery(filter any, cursorFields []Field, withCursor bool, checkCursor bool, aggregated bool) string {
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	if aggregated {
-		if (withCursor == nil || *withCursor) && (hasFilter == nil || *hasFilter) && cursorQuery != "" {
+		if (!checkCursor || withCursor) && (IsNil(filter) || do.GetFilterQuery(filter) != "") && cursorQuery != "" {
 			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 		}
 	} else {
-		if hasFilter != nil {
-			if *hasFilter && *withCursor && cursorQuery != "" {
+		if !IsNil(filter) {
+			if do.GetFilterQuery(filter) != "" && withCursor && cursorQuery != "" {
 				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 			}
 		} else {
@@ -195,6 +193,77 @@ func (do *DbObject[ET]) GetCursorQuery(hasFilter *bool, cursorFields []Field, wi
 	}
 
 	return cursorQuery
+}
+
+type Object interface {
+	GetJoins(any, *Order) string
+	GetFilterWhereClause(any, bool) string
+	GetCursorQuery(any, []Field, bool, bool, bool) string
+	GetFilterParameters(entity.HasPagination, bool, []Field) []any
+}
+
+type Statement struct {
+	Db                 Db
+	L                  *logrus.Entry
+	Obj                Object
+	BaseQuery          string
+	Order              *Order
+	WithCursor         bool
+	CheckCursorInWhere bool
+	CheckCursor        bool
+	CheckFilter        bool
+	Aggregated         bool
+}
+
+func BuildStatement[
+	T any,
+	PT interface {
+		*T
+		entity.HasPagination
+	},
+](ctx context.Context, s Statement, filter PT) (Stmt, []any, error) {
+	filter = EnsureFilter(filter)
+	s.L.WithFields(logrus.Fields{"filter": filter})
+
+	joins := s.Obj.GetJoins(filter, s.Order)
+	whereClause := s.Obj.GetFilterWhereClause(filter, s.CheckCursorInWhere && s.WithCursor)
+
+	var f PT
+	if s.CheckFilter {
+		f = filter
+	}
+
+	cursorFields, err := DecodeCursor(filter.GetPaginated().After)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
+	}
+
+	cursorQuery := s.Obj.GetCursorQuery(f, cursorFields, s.WithCursor, s.CheckCursor, s.Aggregated)
+
+	var query string
+	if s.WithCursor {
+		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, cursorQuery, s.Order)
+	} else {
+		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, s.Order)
+	}
+
+	// construct prepared statement and if where clause does exist add parameters
+	stmt, err := s.Db.PreparexContext(ctx, query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		s.L.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+				"stmt":  stmt,
+			}).Error(msg)
+
+		return nil, nil, fmt.Errorf("%s", msg)
+	}
+
+	filterParameters := s.Obj.GetFilterParameters(filter, s.WithCursor, cursorFields)
+
+	return stmt, filterParameters, nil
 }
 
 // Property
@@ -370,8 +439,7 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 
 		uniqTableName[j.Table] = struct{}{}
 
-		joinSQL := fmt.Sprintf(
-			"%s %s ON %s",
+		joinSQL := fmt.Sprintf("%s %s ON %s",
 			j.Type,
 			j.Table,
 			j.On,
@@ -384,7 +452,41 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 }
 
 // DB helpers
-func EnsurePagination[T entity.HasPagination](filter T) T {
+func EnsureFilter[
+	T any,
+	PT interface {
+		*T
+		entity.HasPagination
+	},
+](filter PT) PT {
+	if IsNil(filter) {
+		filter = PT(new(T))
+	}
+
+	return ensurePagination(filter)
+}
+
+func IsNil(v any) bool {
+	if v == nil {
+		return true
+	}
+
+	rv := reflect.ValueOf(v)
+
+	switch rv.Kind() {
+	case reflect.Ptr,
+		reflect.Interface,
+		reflect.Map,
+		reflect.Slice,
+		reflect.Func,
+		reflect.Chan:
+		return rv.IsNil()
+	}
+
+	return false
+}
+
+func ensurePagination[T entity.HasPagination](filter T) T {
 	first := 1000
 	after := ""
 
