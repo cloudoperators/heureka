@@ -6,7 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.90
 	github.com/Khan/genqlient v0.8.1
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/brianvoe/gofakeit/v7 v7.14.1
+	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
@@ -18,8 +18,8 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/olekukonko/tablewriter v1.1.4
-	github.com/onsi/ginkgo/v2 v2.28.3
-	github.com/onsi/gomega v1.40.0
+	github.com/onsi/ginkgo/v2 v2.29.0
+	github.com/onsi/gomega v1.41.0
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/openfga/go-sdk v0.8.0
 	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
@@ -29,7 +29,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.11.1
-	github.com/valkey-io/valkey-go v1.0.74
+	github.com/valkey-io/valkey-go v1.0.75
 	golang.org/x/text v0.37.0
 	golang.org/x/time v0.15.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
