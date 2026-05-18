@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -49,23 +50,23 @@ var patchObject = DbObject[*entity.Patch]{
 
 func (s *SqlDatabase) buildPatchStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.PatchFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &patchObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &patchObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		//CheckCursorInWhere: true,
+		//CheckCursor:        true,
+		//CheckFilter:        true,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -82,14 +83,7 @@ func (s *SqlDatabase) GetPatches(
 		"event":  "database.GetPatches",
 	})
 
-	baseQuery := `
-		SELECT P.* FROM Patch P
-		%s
-		%s
-		%s
-		GROUP BY P.patch_id ORDER BY %s LIMIT ?
-    `
-
+	baseQuery := sq.Select("P.*").From("Patch P").GroupBy("P.patch_id")
 	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch query: %w", err)
@@ -129,17 +123,11 @@ func (s *SqlDatabase) GetPatches(
 
 func (s *SqlDatabase) CountPatches(ctx context.Context, filter *entity.PatchFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":  "database.CountPatches",
 		"filter": filter,
+		"event":  "database.CountPatches",
 	})
 
-	baseQuery := `
-		SELECT count(distinct P.patch_id) FROM Patch P
-		%s
-		%s
-        ORDER BY %s
-	`
-
+	baseQuery := sq.Select("count(distinct P.patch_id)").From("Patch P")
 	stmt, filterParameters, err := s.buildPatchStatement(
 		ctx,
 		baseQuery,
@@ -176,14 +164,7 @@ func (s *SqlDatabase) GetAllPatchCursors(
 		"event":  "database.GetAllPatchCursors",
 	})
 
-	baseQuery := `
-		SELECT P.* FROM Patch P
-		%s
-	    %s GROUP BY P.patch_id ORDER BY %s
-    `
-
-	filter = EnsureFilter(filter)
-
+	baseQuery := sq.Select("P.*").From("Patch P").GroupBy("P.patch_id")
 	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch cursor query: %w", err)

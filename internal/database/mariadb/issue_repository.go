@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -96,23 +97,23 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 
 func (s *SqlDatabase) buildIssueRepositoryStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.IssueRepositoryFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &issueRepositoryObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &issueRepositoryObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		//CheckCursorInWhere: true,
+		//CheckCursor:        true,
+		//CheckFilter:        true,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -128,22 +129,8 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(
 		"event":  "database.GetAllIssueRepositoryCursors",
 	})
 
-	baseQuery := `
-		SELECT IR.* FROM IssueRepository IR 
-		%s
-		%s GROUP BY IR.issuerepository_id ORDER BY %s
-	`
-
-	filter = EnsureFilter(filter)
-
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		order,
-		l,
-	)
+	baseQuery := sq.Select("IR.*").From("IssueRepository IR").GroupBy("IR.issuerepository_id")
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build IssueRepository cursor query: %w", err)
 	}
@@ -182,26 +169,12 @@ func (s *SqlDatabase) GetIssueRepositories(
 	order []entity.Order,
 ) ([]entity.IssueRepositoryResult, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetIssueRepositories",
+		"filter": filter,
+		"event":  "database.GetIssueRepositories",
 	})
 
-	baseQuery := `
-		SELECT IR.* FROM IssueRepository IR 
-		%s
-		%s
-		%s GROUP BY IR.issuerepository_id ORDER BY %s LIMIT ?
-    `
-
-	filter = EnsureFilter(filter)
-
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
-		ctx,
-		baseQuery,
-		filter,
-		true,
-		order,
-		l,
-	)
+	baseQuery := sq.Select("IR.*").From("IssueRepository IR").GroupBy("IR.issuerepository_id")
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -235,16 +208,11 @@ func (s *SqlDatabase) GetIssueRepositories(
 
 func (s *SqlDatabase) CountIssueRepositories(ctx context.Context, filter *entity.IssueRepositoryFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountIssueRepositories",
+		"filter": filter,
+		"event":  "database.CountIssueRepositories",
 	})
 
-	baseQuery := `
-		SELECT count(distinct IR.issuerepository_id) FROM IssueRepository IR 
-		%s
-		%s
-		ORDER BY %s
-	`
-
+	baseQuery := sq.Select("count(distinct IR.issuerepository_id)").From("IssueRepository IR")
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
 		ctx,
 		baseQuery,

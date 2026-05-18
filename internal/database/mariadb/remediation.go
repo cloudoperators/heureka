@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -185,23 +186,23 @@ var remediationObject = DbObject[*entity.Remediation]{
 
 func (s *SqlDatabase) buildRemediationStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.RemediationFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &remediationObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &remediationObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		//CheckCursorInWhere: true,
+		//CheckCursor:        true,
+		//CheckFilter:        true,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -218,14 +219,7 @@ func (s *SqlDatabase) GetRemediations(
 		"event":  "database.GetRemediations",
 	})
 
-	baseQuery := `
-		SELECT R.* FROM Remediation R
-		%s
-		%s
-		%s
-		GROUP BY R.remediation_id ORDER BY %s LIMIT ?
-    `
-
+	baseQuery := sq.Select("R.*").From("Remediation R").GroupBy("R.remediation_id")
 	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation query: %w", err)
@@ -265,17 +259,11 @@ func (s *SqlDatabase) GetRemediations(
 
 func (s *SqlDatabase) CountRemediations(ctx context.Context, filter *entity.RemediationFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":  "database.CountRemediations",
 		"filter": filter,
+		"event":  "database.CountRemediations",
 	})
 
-	baseQuery := `
-		SELECT count(distinct R.remediation_id) FROM Remediation R
-		%s
-		%s
-        ORDER BY %s
-	`
-
+	baseQuery := sq.Select("count(distinct R.remediation_id)").From("Remediation R")
 	stmt, filterParameters, err := s.buildRemediationStatement(
 		ctx,
 		baseQuery,
@@ -312,14 +300,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 		"event":  "database.GetAllRemediationCursors",
 	})
 
-	baseQuery := `
-		SELECT R.* FROM Remediation R 
-		%s
-	    %s GROUP BY R.remediation_id ORDER BY %s
-    `
-
-	filter = EnsureFilter(filter)
-
+	baseQuery := sq.Select("R.*").From("Remediation R").GroupBy("R.remediation_id")
 	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation cursor query: %w", err)
@@ -327,7 +308,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
+			l.Warnf("error during close stmt: %s", err)
 		}
 	}()
 
