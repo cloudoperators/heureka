@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/go-sql-driver/mysql"
@@ -187,49 +189,48 @@ var serviceObject = DbObject[*entity.Service]{
 	},
 }
 
-func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []entity.Order) string {
-	columns := "S.*"
+func appendServiceColumns(s []string, filter *entity.ServiceFilter, order []entity.Order) []string {
 	if len(filter.IssueRepositoryId) > 0 {
-		columns = fmt.Sprintf("%s, %s", columns, "IRS.*")
+		s = append(s, "IRS.*")
 	}
 
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
-			columns = fmt.Sprintf("%s, SIC.critical_count", columns)
+			s = append(s, "SIC.critical_count")
 		case entity.HighCount:
-			columns = fmt.Sprintf("%s, SIC.high_count", columns)
+			s = append(s, "SIC.high_count")
 		case entity.MediumCount:
-			columns = fmt.Sprintf("%s, SIC.medium_count", columns)
+			s = append(s, "SIC.medium_count")
 		case entity.LowCount:
-			columns = fmt.Sprintf("%s, SIC.low_count", columns)
+			s = append(s, "SIC.low_count")
 		case entity.NoneCount:
-			columns = fmt.Sprintf("%s, SIC.none_count", columns)
+			s = append(s, "SIC.none_count")
 		}
 	}
 
-	return columns
+	return s
 }
 
 func (s *SqlDatabase) buildServiceStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.ServiceFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &serviceObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         true,
+		Db:         s.db,
+		L:          l,
+		Obj:        &serviceObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		//CheckCursorInWhere: true,
+		//CheckCursor:        true,
+		//CheckFilter:        true,
+		Aggregated: true,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -237,16 +238,11 @@ func (s *SqlDatabase) buildServiceStatement(
 
 func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountServices",
+		"filter": filter,
+		"event":  "database.CountServices",
 	})
 
-	baseQuery := `
-		SELECT count(distinct S.service_id) FROM Service S
-		%s
-		%s
-        ORDER BY %s
-	`
-
+	baseQuery := sq.Select("count(distinct S.service_id)").From("Service S")
 	stmt, filterParameters, err := s.buildServiceStatement(
 		ctx,
 		baseQuery,
@@ -277,17 +273,7 @@ func (s *SqlDatabase) GetServices(
 		"event": "database.GetServices",
 	})
 
-	baseQuery := `
-		SELECT %s FROM Service S
-		%s
-		%s
-		GROUP BY S.service_id %s ORDER BY %s LIMIT ?
-    `
-
-	filter = EnsureFilter(filter)
-	columns := s.getServiceColumns(filter, order)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
-
+	baseQuery := sq.Select(appendServiceColumns([]string{"S.*"}, filter, order)...).From("Service S").GroupBy("S.service_id")
 	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
@@ -391,8 +377,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(
     `
 	filter = EnsureFilter(filter)
 	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
-	joins := serviceObject.GetJoins(filter, ord)
-	columns := s.getServiceColumns(filter, ord.Sequence())
+	joins := serviceObject.GetJoins_tmp(filter, ord)
+	columns := strings.Join(appendServiceColumns([]string{"S.*"}, filter, ord.Sequence()), ",")
 
 	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
@@ -401,7 +387,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	filterStr := serviceObject.GetFilterQuery(filter)
+	filterStr := serviceObject.GetFilterQuery_tmp(filter)
 
 	whereClause := ""
 	if filterStr != "" || cursorQuery != "" {
@@ -430,11 +416,11 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	}
 
 	// parameters for issue match query
-	filterParameters := serviceObject.GetFilterParameters(filter, true, cursorFields)
+	filterParameters := serviceObject.GetFilterParameters_tmp(filter, true, cursorFields)
 	// parameters for component instance query
 	filterParameters = append(
 		filterParameters,
-		serviceObject.GetFilterParameters(filter, true, cursorFields)...)
+		serviceObject.GetFilterParameters_tmp(filter, true, cursorFields)...)
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
@@ -483,16 +469,7 @@ func (s *SqlDatabase) GetAllServiceCursors(
 		"event":  "database.GetAllServiceCursors",
 	})
 
-	baseQuery := `
-		SELECT %s FROM Service S 
-		%s
-	    %s GROUP BY S.service_id ORDER BY %s
-    `
-
-	filter = EnsureFilter(filter)
-	columns := s.getServiceColumns(filter, order)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
-
+	baseQuery := sq.Select(appendServiceColumns([]string{"S.*"}, filter, order)...).From("Service S").GroupBy("S.service_id")
 	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
@@ -500,7 +477,7 @@ func (s *SqlDatabase) GetAllServiceCursors(
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
+			l.Warnf("error during close stmt: %s", err)
 		}
 	}()
 
@@ -687,17 +664,8 @@ func (s *SqlDatabase) getServiceAttr(
 		"event":  "database.getServiceAttr",
 	})
 
-	baseQuery := `
-    SELECT service_%s FROM Service S
-    %s
-    %s
-    ORDER BY %s
-    `
+	baseQuery := sq.Select(fmt.Sprintf("service_%s", attrName)).From("Service S")
 
-	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
-
-	// Ensure the filter is initialized
-	filter = EnsureFilter(filter)
 	order := []entity.Order{
 		{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc},
 	}

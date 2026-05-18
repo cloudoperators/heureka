@@ -6,6 +6,7 @@ package mariadb
 import (
 	"context"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
@@ -36,23 +37,23 @@ var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
 
 func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.ServiceIssueVariantFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &serviceIssueVariantObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &serviceIssueVariantObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		//CheckCursorInWhere: true,
+		//CheckCursor:        true,
+		//CheckFilter:        true,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -68,9 +69,8 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 		"event": "database.GetIssueVariants",
 	})
 
-	baseQuery := `
-		SELECT IRS.issuerepositoryservice_priority, IV.*  FROM  ComponentInstance CI
-			# Join path to Issue
+	baseQuery := sq.Select("IRS.issuerepositoryservice_priority", "IV.*").From("ComponentInstance CI")
+	baseQuery = baseQuery.JoinClause(`
 			INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id
 			INNER JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id
 			INNER JOIN Issue I on CVI.componentversionissue_issue_id = I.issue_id
@@ -82,11 +82,7 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 
 			# Join to from repo and issue to IssueVariant
 			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
-		%s
-		%s
-		%s ORDER BY %s LIMIT ?
-    `
-
+	`) //TODO: move all joins to DbObject
 	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(
 		ctx,
 		baseQuery,

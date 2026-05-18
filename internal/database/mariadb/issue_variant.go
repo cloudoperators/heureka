@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -155,23 +156,23 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 
 func (s *SqlDatabase) buildIssueVariantStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.IssueVariantFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &issueVariantObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &issueVariantObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		//CheckCursorInWhere: true,
+		//CheckCursor:        true,
+		//CheckFilter:        true,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -187,14 +188,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 		"event":  "database.GetAllIssueVariantCursors",
 	})
 
-	baseQuery := `
-		SELECT IV.* FROM  IssueVariant IV 
-		%s
-		%s GROUP BY IV.issuevariant_id ORDER BY %s
-	`
-
-	filter = EnsureFilter(filter)
-
+	baseQuery := sq.Select("IV.*").From("IssueVariant IV").GroupBy("IV.issuevariant_id")
 	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build IssueVariant cursor query: %w", err)
@@ -234,16 +228,11 @@ func (s *SqlDatabase) GetIssueVariants(
 	order []entity.Order,
 ) ([]entity.IssueVariantResult, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetIssueVariants",
+		"filter": filter,
+		"event":  "database.GetIssueVariants",
 	})
 
-	baseQuery := `
-		SELECT IV.* FROM  IssueVariant IV 
-		%s
-		%s
-		%s ORDER BY %s LIMIT ?
-    `
-
+	baseQuery := sq.Select("IV.*").From("IssueVariant IV").GroupBy("IV.issuevariant_id")
 	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
@@ -278,16 +267,11 @@ func (s *SqlDatabase) GetIssueVariants(
 
 func (s *SqlDatabase) CountIssueVariants(ctx context.Context, filter *entity.IssueVariantFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountIssueVariants",
+		"filter": filter,
+		"event":  "database.CountIssueVariants",
 	})
 
-	baseQuery := `
-		SELECT count(distinct IV.issuevariant_id) FROM  IssueVariant IV 
-		%s
-		%s
-		ORDER BY %s
-    `
-
+	baseQuery := sq.Select("count(distinct IV.issuevariant_id)").From("IssueVariant IV")
 	stmt, filterParameters, err := s.buildIssueVariantStatement(
 		ctx,
 		baseQuery,
@@ -306,12 +290,7 @@ func (s *SqlDatabase) CountIssueVariants(ctx context.Context, filter *entity.Iss
 		}
 	}()
 
-	return performCountScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-	)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CreateIssueVariant(

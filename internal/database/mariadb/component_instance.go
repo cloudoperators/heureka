@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -269,23 +270,23 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 
 func (s *SqlDatabase) buildComponentInstanceStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.ComponentInstanceFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &componentInstanceObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &componentInstanceObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		//CheckCursorInWhere: true,
+		//CheckCursor:        true,
+		//CheckFilter:        true,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -299,21 +300,9 @@ func (s *SqlDatabase) GetComponentInstances(
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetComponentInstances",
 	})
-	baseQuery := `
-			SELECT CI.* FROM ComponentInstance CI
-			%s
-			%s
-			%s GROUP BY CI.componentinstance_id ORDER BY %s LIMIT ? 
-		`
 
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(
-		ctx,
-		baseQuery,
-		filter,
-		true,
-		order,
-		l,
-	)
+	baseQuery := sq.Select("CI.*").From("ComponentInstance CI").GroupBy("CI.componentinstance_id")
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build ComponentInstances query: %w", err)
 	}
@@ -361,20 +350,8 @@ func (s *SqlDatabase) GetAllComponentInstanceCursors(
 		"event":  "database.GetAllComponentInstanceCursors",
 	})
 
-	baseQuery := `
-		SELECT CI.* FROM ComponentInstance CI 
-		%s
-	    %s GROUP BY CI.componentinstance_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		order,
-		l,
-	)
+	baseQuery := sq.Select("CI.*").From("ComponentInstance CI").GroupBy("CI.componentinstance_id")
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build ComponentInstance cursors query: %w", err)
 	}
@@ -402,22 +379,12 @@ func (s *SqlDatabase) GetAllComponentInstanceCursors(
 	return cursors, nil
 }
 
-func (s *SqlDatabase) CountComponentInstances(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-) (int64, error) {
+func (s *SqlDatabase) CountComponentInstances(ctx context.Context, filter *entity.ComponentInstanceFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountComponentInstances",
 	})
 
-	// Building the Base Query
-	baseQuery := `
-		SELECT count(distinct CI.componentinstance_id) FROM ComponentInstance CI
-		%s
-		%s 
-		ORDER BY %s
-	`
-
+	baseQuery := sq.Select("count(distinct CI.componentinstance_id)").From("ComponentInstance CI")
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(
 		ctx,
 		baseQuery,
@@ -468,18 +435,7 @@ func (s *SqlDatabase) getComponentInstanceAttr(
 		"event":  "database.getComponentInstanceAttr",
 	})
 
-	baseQuery := `
-    SELECT CI.componentinstance_%s FROM ComponentInstance CI
-    %s
-    %s
-    ORDER BY %s
-    `
-
-	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
-
-	// Ensure the filter is initialized
-	filter = EnsureFilter(filter)
-
+	baseQuery := sq.Select(fmt.Sprintf("CI.componentinstance_%s", attrName)).From("ComponentInstance CI").GroupBy("CI.componentinstance_id")
 	order := []entity.Order{
 		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
 	}
