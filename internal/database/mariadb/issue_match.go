@@ -5,9 +5,9 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -254,40 +254,35 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 	},
 }
 
-func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
-	columns := ""
-
+func appendIssueMatchColumns(s []string, order []entity.Order) []string {
 	for _, o := range order {
 		switch o.By {
 		case entity.IssuePrimaryName:
-			columns = fmt.Sprintf("%s, I.issue_primary_name", columns)
+			s = append(s, "I.issue_primary_name")
 		case entity.ComponentInstanceCcrn:
-			columns = fmt.Sprintf("%s, CI.componentinstance_ccrn", columns)
+			s = append(s, "CI.componentinstance_ccrn")
 		}
 	}
 
-	return columns
+	return s
 }
 
 func (s *SqlDatabase) buildIssueMatchStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.IssueMatchFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &issueMatchObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &issueMatchObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -299,20 +294,10 @@ func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.Is
 		"event":  "database.GetAllIssueMatchIds",
 	})
 
-	baseQuery := `
-		SELECT IM.issuematch_id FROM IssueMatch IM
-		%s
-	 	%s GROUP BY IM.issuematch_id ORDER BY %s
-    `
+	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("IM.issuematch_id").From("IssueMatch IM").GroupBy("IM.issuematch_id")
 
-	stmt, filterParameters, err := s.buildIssueMatchStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
+	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
 	if err != nil {
 		return nil, err
 	}
@@ -330,14 +315,8 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(
 		"event":  "database.GetIssueAllIssueMatchCursors",
 	})
 
-	baseQuery := `
-		SELECT IM.* %s FROM IssueMatch IM
-		%s
-	    %s GROUP BY IM.issuematch_id ORDER BY %s
-    `
-
-	columns := s.getIssueMatchColumns(order)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
+	filter = EnsureFilter(filter)
+	baseQuery := sq.Select(appendIssueMatchColumns([]string{"IM.*"}, order)...).From("IssueMatch IM").GroupBy("IM.issuematch_id")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -383,14 +362,8 @@ func (s *SqlDatabase) GetIssueMatches(
 		"event":  "database.GetIssueMatches",
 	})
 
-	baseQuery := `
-		SELECT IM.* %s FROM IssueMatch IM
-		%s
-	    %s %s GROUP BY IM.issuematch_id ORDER BY %s LIMIT ?
-    `
-
-	columns := s.getIssueMatchColumns(order)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
+	filter = EnsureFilter(filter)
+	baseQuery := sq.Select(appendIssueMatchColumns([]string{"IM.*"}, order)...).From("IssueMatch IM").GroupBy("IM.issuematch_id")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
@@ -438,12 +411,8 @@ func (s *SqlDatabase) CountIssueMatches(ctx context.Context, filter *entity.Issu
 		"event":  "database.CountIssueMatches",
 	})
 
-	baseQuery := `
-		SELECT count(distinct IM.issuematch_id) FROM IssueMatch IM
-		%s
-		%s
-		ORDER BY %s
-    `
+	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("count(distinct IM.issuematch_id)").From("IssueMatch IM")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(
 		ctx,

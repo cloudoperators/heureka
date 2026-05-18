@@ -6,6 +6,7 @@ package mariadb
 import (
 	"context"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
@@ -32,33 +33,78 @@ var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "CV",
+			Type:  InnerJoin,
+			Table: "ComponentVersion CV",
+			On:    "CI.componentinstance_component_version_id = CV.componentversion_id",
+		},
+		{
+			Name:      "CVI",
+			Type:      InnerJoin,
+			Table:     "ComponentVersionIssue CVI",
+			On:        "CV.componentversion_id = CVI.componentversionissue_component_version_id",
+			DependsOn: []string{"CV"},
+		},
+		{
+			Name:      "I",
+			Type:      InnerJoin,
+			Table:     "Issue I",
+			On:        "CVI.componentversionissue_issue_id = I.issue_id",
+			DependsOn: []string{"CVI"},
+		},
+		{
+			Name:  "S",
+			Type:  InnerJoin,
+			Table: "Service S",
+			On:    "CI.componentinstance_service_id = S.service_id",
+		},
+		{
+			Name:      "IRS",
+			Type:      InnerJoin,
+			Table:     "IssueRepositoryService IRS",
+			On:        "S.service_id = IRS.issuerepositoryservice_service_id",
+			DependsOn: []string{"S"},
+		},
+		{
+			Name:      "IR",
+			Type:      InnerJoin,
+			Table:     "IssueRepository IR",
+			On:        "IRS.issuerepositoryservice_issue_repository_id = IR.issuerepository_id",
+			DependsOn: []string{"IRS"},
+		}, // S, IRS, IR - Join path to Repository
+		{
+			Name:      "IV",
+			Type:      InnerJoin,
+			Table:     "IssueVariant IV",
+			On:        "I.issue_id = IV.issuevariant_issue_id and IR.issuerepository_id = IV.issuevariant_repository_id",
+			DependsOn: []string{"I", "IR"},
+		}, // Join to from repo and issue to IssueVariant
+	},
 }
 
 func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.ServiceIssueVariantFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &serviceIssueVariantObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &serviceIssueVariantObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
 }
 
-// TODO: adjust this function to fit dbObject
 func (s *SqlDatabase) GetServiceIssueVariants(
 	ctx context.Context,
 	filter *entity.ServiceIssueVariantFilter,
@@ -68,24 +114,8 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 		"event": "database.GetIssueVariants",
 	})
 
-	baseQuery := `
-		SELECT IRS.issuerepositoryservice_priority, IV.*  FROM  ComponentInstance CI
-			# Join path to Issue
-			INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id
-			INNER JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id
-			INNER JOIN Issue I on CVI.componentversionissue_issue_id = I.issue_id
-
-			# Join path to Repository
-			INNER JOIN Service S on CI.componentinstance_service_id = S.service_id
-			INNER JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
-			INNER JOIN IssueRepository IR on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id
-
-			# Join to from repo and issue to IssueVariant
-			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
-		%s
-		%s
-		%s ORDER BY %s LIMIT ?
-    `
+	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("IRS.issuerepositoryservice_priority", "IV.*").From("ComponentInstance CI")
 
 	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(
 		ctx,

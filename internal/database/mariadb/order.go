@@ -131,7 +131,7 @@ func NewOrderWithCounterPrefix(seq []entity.Order, defaultOrder entity.Order, pr
 	return &o
 }
 
-func (o Order) String() string {
+func (o Order) ToSql() string {
 	orderElements := lo.Map(o.sequence, func(eo entity.Order, _ int) string {
 		col := ColumnName(eo.By)
 		if o.counterPrefix != "" {

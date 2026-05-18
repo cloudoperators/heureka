@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -101,23 +102,20 @@ var userObject = DbObject[*entity.User]{
 
 func (s *SqlDatabase) buildUserStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.UserFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &userObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &userObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -125,15 +123,12 @@ func (s *SqlDatabase) buildUserStatement(
 
 func (s *SqlDatabase) GetAllUserIds(ctx context.Context, filter *entity.UserFilter) ([]int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetUserIds",
+		"filter": filter,
+		"event":  "database.GetUserIds",
 	})
 
-	baseQuery := `
-		SELECT U.user_id FROM User U 
-		%s
-		%s
-	 	GROUP BY U.user_id ORDER BY %s
-    `
+	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("U.user_id").From("User U").GroupBy("U.user_id")
 
 	stmt, filterParameters, err := s.buildUserStatement(
 		ctx,
@@ -166,13 +161,8 @@ func (s *SqlDatabase) GetAllUserCursors(
 		"event":  "database.GetAllUserCursors",
 	})
 
-	baseQuery := `
-		SELECT U.* FROM User U 
-		%s
-		%s GROUP BY U.user_id ORDER BY %s
-	`
-
 	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("U.*").From("User U").GroupBy("U.user_id")
 
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -209,17 +199,12 @@ func (s *SqlDatabase) GetAllUserCursors(
 
 func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) ([]entity.UserResult, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetUsers",
+		"filter": filter,
+		"event":  "database.GetUsers",
 	})
 
-	baseQuery := `
-		SELECT U.* FROM User U
-		%s
-		%s
-		%s GROUP BY U.user_id ORDER BY %s LIMIT ?
-    `
-
 	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("U.*").From("User U").GroupBy("U.user_id")
 
 	stmt, filterParameters, err := s.buildUserStatement(
 		ctx,
@@ -262,15 +247,12 @@ func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) (
 
 func (s *SqlDatabase) CountUsers(ctx context.Context, filter *entity.UserFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountUsers",
+		"filter": filter,
+		"event":  "database.CountUsers",
 	})
 
-	baseQuery := `
-		SELECT count(distinct U.user_id) FROM User U
-		%s
-		%s
-		ORDER BY %s
-	`
+	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("count(distinct U.user_id)").From("User U")
 
 	stmt, filterParameters, err := s.buildUserStatement(
 		ctx,
@@ -311,17 +293,9 @@ func (s *SqlDatabase) GetUserNames(ctx context.Context, filter *entity.UserFilte
 		"event":  "database.GetUserNames",
 	})
 
-	baseQuery := `
-		SELECT U.user_name FROM User U
-		%s
-		%s
-		ORDER BY %s
-    `
-
-	// Ensure the filter is initialized
 	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("U.user_name").From("User U")
 
-	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
 		{
 			By: entity.UserName,
@@ -378,17 +352,9 @@ func (s *SqlDatabase) GetUniqueUserIDs(ctx context.Context, filter *entity.UserF
 		"event":  "database.GetUniqueUserIDs",
 	})
 
-	baseQuery := `
-		SELECT U.user_unique_user_id FROM User U
-		%s
-		%s
-		ORDER BY %s
-    `
-
-	// Ensure the filter is initialized
 	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("U.user_unique_user_id").From("User U")
 
-	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
 		{
 			By: entity.UserUniqueUserID,

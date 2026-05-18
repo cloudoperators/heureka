@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -150,46 +151,41 @@ func needAllComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter
 	return order.ByCount() && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
 }
 
-func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
-	columns := "C.*"
-
+func appendComponentColumns(s []string, order []entity.Order) []string {
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
-			columns = fmt.Sprintf("%s, CVR.critical_count", columns)
+			s = append(s, "CVR.critical_count")
 		case entity.HighCount:
-			columns = fmt.Sprintf("%s, CVR.high_count", columns)
+			s = append(s, "CVR.high_count")
 		case entity.MediumCount:
-			columns = fmt.Sprintf("%s, CVR.medium_count", columns)
+			s = append(s, "CVR.medium_count")
 		case entity.LowCount:
-			columns = fmt.Sprintf("%s, CVR.low_count", columns)
+			s = append(s, "CVR.low_count")
 		case entity.NoneCount:
-			columns = fmt.Sprintf("%s, CVR.none_count", columns)
+			s = append(s, "CVR.none_count")
 		}
 	}
 
-	return columns
+	return s
 }
 
 func (s *SqlDatabase) buildComponentStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.ComponentFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &componentObject,
-		BaseQuery:          baseQuery,
+		Db:         s.db,
+		L:          l,
+		Obj:        &componentObject,
+		BaseQuery:  baseQuery,
 		Order:              NewOrderWithCounterPrefix(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}, "CVR"),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		WithCursor: withCursor,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -205,15 +201,8 @@ func (s *SqlDatabase) GetAllComponentCursors(
 		"event":  "database.GetAllComponentCursors",
 	})
 
-	baseQuery := `
-		SELECT %s FROM Component C 
-		%s
-	    %s GROUP BY C.component_id ORDER BY %s
-    `
-
 	filter = EnsureFilter(filter)
-	columns := s.getComponentColumns(order)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
+	baseQuery := sq.Select(appendComponentColumns([]string{"C.*"}, order)...).From("Component C").GroupBy("C.component_id")
 
 	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -222,7 +211,7 @@ func (s *SqlDatabase) GetAllComponentCursors(
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
+			l.Warnf("error during close stmt: %s", err)
 		}
 	}()
 
@@ -259,19 +248,12 @@ func (s *SqlDatabase) GetComponents(
 	order []entity.Order,
 ) ([]entity.ComponentResult, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetComponents",
+		"filter": filter,
+		"event":  "database.GetComponents",
 	})
 
-	baseQuery := `
-		SELECT %s FROM Component C
-		%s
-		%s
-		%s GROUP BY C.component_id ORDER BY %s LIMIT ?
-    `
-
 	filter = EnsureFilter(filter)
-	columns := s.getComponentColumns(order)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
+	baseQuery := sq.Select(appendComponentColumns([]string{"C.*"}, order)...).From("Component C").GroupBy("C.component_id")
 
 	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
@@ -311,15 +293,13 @@ func (s *SqlDatabase) GetComponents(
 
 func (s *SqlDatabase) CountComponents(ctx context.Context, filter *entity.ComponentFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountComponents",
+		"filter": filter,
+		"event":  "database.CountComponents",
 	})
 
-	baseQuery := `
-		SELECT count(distinct C.component_id) FROM Component C
-		%s
-		%s
-		ORDER BY %s
-	`
+	filter = EnsureFilter(filter)
+
+	baseQuery := sq.Select("count(distinct C.component_id)").From("Component C")
 
 	stmt, filterParameters, err := s.buildComponentStatement(
 		ctx,
@@ -450,15 +430,9 @@ func (s *SqlDatabase) GetComponentCcrns(ctx context.Context, filter *entity.Comp
 		"event":  "database.GetComponentCcrns",
 	})
 
-	baseQuery := `
-    SELECT C.component_ccrn FROM Component C
-    %s
-    %s
-    ORDER BY %s
-    `
-
-	// Ensure the filter is initialized
 	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("C.component_ccrn").From("Component C")
+
 	order := []entity.Order{
 		{
 			By:        entity.ComponentCcrn,
