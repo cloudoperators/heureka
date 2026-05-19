@@ -64,6 +64,9 @@ push:
 run:
 	go run cmd/heureka/main.go
 
+run-demo-seed:
+	go run cmd/demo_seed/main.go
+
 gqlgen: install-build-dependencies gqlclient
 	cd internal/api/graphql && gqlgen generate
 
