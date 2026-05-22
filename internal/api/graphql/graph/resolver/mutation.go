@@ -1058,38 +1058,39 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 
 	remediation.IssueId = issueResult.Elements[0].Issue.Id
 
-	// fetch component version id
-	componentVersionResult, err := r.App.ListComponentVersions(ctx, &entity.ComponentVersionFilter{
-		IssueId: []*int64{
-			&issueResult.Elements[0].Issue.Id,
-		},
-		ServiceCCRN: []*string{
-			input.Service,
-		},
-		Repository: []*string{
-			input.Image,
-		},
-	}, &entity.ListOptions{})
-	if err != nil || len(componentVersionResult.Elements) != 1 {
-		return nil, baseResolver.NewResolverError(
-			"CreateRemediationMutationResolver",
-			"Internal Error - when creating remediation - component version not found",
-		)
-	}
-
-	componentVersionID := componentVersionResult.Elements[0].Id
-
-	// fetch component id for given component name
+	// fetch component id - prefer service-scoped lookup for uniqueness, fall back to repository only
 	componentResult, err := r.App.ListComponents(
 		ctx,
 		&entity.ComponentFilter{
-			Repository:         []*string{input.Image},
-			ComponentVersionId: []*int64{&componentVersionID},
-			ServiceCCRN:        []*string{input.Service},
+			Repository:  []*string{input.Image},
+			ServiceCCRN: []*string{input.Service},
 		},
 		nil,
 	)
-	if err != nil || len(componentResult.Elements) != 1 {
+	if err != nil {
+		return nil, baseResolver.NewResolverError(
+			"CreateRemediationMutationResolver",
+			"Internal Error - when creating remediation - component id not found",
+		)
+	}
+
+	if len(componentResult.Elements) == 0 {
+		componentResult, err = r.App.ListComponents(
+			ctx,
+			&entity.ComponentFilter{
+				Repository: []*string{input.Image},
+			},
+			nil,
+		)
+		if err != nil {
+			return nil, baseResolver.NewResolverError(
+				"CreateRemediationMutationResolver",
+				"Internal Error - when creating remediation - component id not found",
+			)
+		}
+	}
+
+	if len(componentResult.Elements) != 1 {
 		return nil, baseResolver.NewResolverError(
 			"CreateRemediationMutationResolver",
 			"Internal Error - when creating remediation - component id not found",
