@@ -209,7 +209,6 @@ type Statement struct {
 	Obj                Object
 	BaseQuery          string
 	Order              *Order
-	OrderPrefix        string
 	WithCursor         bool
 	CheckCursorInWhere bool
 	CheckCursor        bool
@@ -244,9 +243,9 @@ func BuildStatement[
 
 	var query string
 	if s.WithCursor {
-		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, cursorQuery, s.Order.StringWithPrefix(s.OrderPrefix))
+		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, cursorQuery, s.Order)
 	} else {
-		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, s.Order.StringWithPrefix(s.OrderPrefix))
+		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, s.Order)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
