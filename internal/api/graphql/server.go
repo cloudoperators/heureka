@@ -8,6 +8,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/directive"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
 	gqlmiddleware "github.com/cloudoperators/heureka/internal/api/graphql/middleware"
 	"github.com/cloudoperators/heureka/internal/app"
@@ -27,7 +28,9 @@ type GraphQLAPI struct {
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
-	server := handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a)))
+	gqlCfg := resolver.NewResolver(a)
+	gqlCfg.Directives.Constraint = directive.Constraint
+	server := handler.NewDefaultServer(graph.NewExecutableSchema(gqlCfg))
 	server.Use(depth.FixedDepthLimit(cfg.GQLDepthLimit))
 
 	graphQLAPI := GraphQLAPI{
