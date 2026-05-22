@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -225,6 +226,7 @@ func (s *SqlDatabase) buildServiceStatement(
 		Obj:                &serviceObject,
 		BaseQuery:          baseQuery,
 		Order:              NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}),
+		OrderPrefix:        "SIC",
 		WithCursor:         withCursor,
 		CheckCursorInWhere: true,
 		CheckCursor:        true,
@@ -352,32 +354,6 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
 
-	orderBySeverity := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.CriticalCount || o.By == entity.HighCount ||
-			o.By == entity.MediumCount ||
-			o.By == entity.LowCount ||
-			o.By == entity.NoneCount
-	})
-
-	if !orderBySeverity {
-		baseImQuery = fmt.Sprintf(
-			baseImQuery,
-			"%s",
-			"%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id",
-			"%s",
-			"%s",
-			"%s",
-		)
-		baseCiQuery = fmt.Sprintf(
-			baseCiQuery,
-			"%s",
-			"%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id",
-			"%s",
-			"%s",
-			"%s",
-		)
-	}
-
 	baseQuery := `
         WITH IssueMatchCounts AS (
             %s
@@ -387,11 +363,18 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         )
         SELECT IMC.*, CIC.*
         FROM ComponentInstanceCounts CIC
-        JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
+        JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id
+        ORDER BY %s;
     `
 	filter = EnsureFilter(filter)
 	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
 	joins := serviceObject.GetJoins(filter, ord)
+
+	// Ensure ComponentInstance is joined for aggregations
+	if !strings.Contains(joins, "ComponentInstance CI") {
+		joins = fmt.Sprintf("%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", joins)
+	}
+
 	columns := s.getServiceColumns(filter, ord.Sequence())
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -412,9 +395,9 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
 	}
 
-	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord)
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord)
-	query := fmt.Sprintf(baseQuery, imQuery, ciQuery)
+	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord.StringWithPrefix("SIC"))
+	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord.StringWithPrefix("SIC"))
+	query := fmt.Sprintf(baseQuery, imQuery, ciQuery, ord.StringWithPrefixAll("IMC"))
 
 	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
@@ -424,7 +407,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -434,7 +418,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	// parameters for component instance query
 	filterParameters = append(
 		filterParameters,
-		serviceObject.GetFilterParameters(filter, true, cursorFields)...)
+		serviceObject.GetFilterParameters(filter, true, cursorFields)...,
+	)
 
 	defer func() {
 		if err := stmt.Close(); err != nil {

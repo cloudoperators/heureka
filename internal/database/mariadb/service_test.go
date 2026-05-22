@@ -5,7 +5,9 @@ package mariadb_test
 
 import (
 	"context"
+	"database/sql"
 	"sort"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -1167,8 +1169,34 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 				Expect(err).To(BeNil())
 			}
 			for _, ci := range componentInstances {
-				_, err := seeder.InsertFakeComponentInstance(ci)
+				ciId, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
+
+				for _, cvi := range componentVersionIssues {
+					if cvi.ComponentVersionId == ci.ComponentVersionId {
+						// Find the corresponding rating from issue variants
+						rating := "None"
+						for _, iv := range issueVariants {
+							if iv.IssueId == cvi.IssueId {
+								rating = iv.Rating.String
+								break
+							}
+						}
+
+						_, err := seeder.InsertFakeIssueMatch(mariadb.IssueMatchRow{
+							Status:              sql.NullString{String: "Discovery", Valid: true},
+							Rating:              sql.NullString{String: rating, Valid: true},
+							UserId:              sql.NullInt64{Int64: 1, Valid: true},
+							IssueId:             sql.NullInt64{Int64: cvi.IssueId.Int64, Valid: true},
+							ComponentInstanceId: sql.NullInt64{Int64: ciId, Valid: true},
+							TargetRemediationDate: sql.NullTime{
+								Time:  time.Now().Add(24 * time.Hour),
+								Valid: true,
+							},
+						})
+						Expect(err).To(BeNil())
+					}
+				}
 			}
 			err = seeder.RefreshServiceIssueCounters()
 			Expect(err).To(BeNil())

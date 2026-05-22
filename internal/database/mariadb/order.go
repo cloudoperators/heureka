@@ -153,6 +153,67 @@ func (o Order) Sequence() []entity.Order {
 	return o.sequence
 }
 
+func (o Order) StringWithPrefix(prefix string) string {
+	orderStr := ""
+
+	for i, o := range o.sequence {
+		col := ColumnName(o.By)
+		if prefix != "" {
+			switch o.By {
+			case entity.CriticalCount, entity.HighCount, entity.MediumCount, entity.LowCount, entity.NoneCount:
+				col = fmt.Sprintf("%s.%s", prefix, col)
+			}
+		}
+
+		if i > 0 {
+			orderStr = fmt.Sprintf(
+				"%s, %s %s",
+				orderStr,
+				col,
+				OrderDirectionStr(o.Direction),
+			)
+		} else {
+			orderStr = fmt.Sprintf(
+				"%s %s %s",
+				orderStr,
+				col,
+				OrderDirectionStr(o.Direction),
+			)
+		}
+	}
+
+	return orderStr
+}
+
+func (o Order) StringWithPrefixAll(prefix string) string {
+	orderStr := ""
+
+	for i, o := range o.sequence {
+		col := ColumnName(o.By)
+		if prefix != "" {
+			col = fmt.Sprintf("%s.%s", prefix, col)
+		}
+
+		if i > 0 {
+			orderStr = fmt.Sprintf(
+				"%s, %s %s",
+				orderStr,
+				col,
+				OrderDirectionStr(o.Direction),
+			)
+		} else {
+			orderStr = fmt.Sprintf(
+				"%s %s %s",
+				orderStr,
+				col,
+				OrderDirectionStr(o.Direction),
+			)
+		}
+	}
+
+	return orderStr
+}
+
 func (o Order) By(fields ...entity.OrderByField) bool {
 	return lo.ContainsBy(o.sequence, func(o entity.Order) bool {
 		return lo.ContainsBy(fields, func(f entity.OrderByField) bool {

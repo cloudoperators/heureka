@@ -331,7 +331,15 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					"../api/graphql/graph/queryCollection/remediation/create.graphql",
 					map[string]any{
 						"input": map[string]any{
-							"url": strings.Repeat("a", 2049),
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+							"url":             "https://example.com/" + strings.Repeat("a", 2029),
 						},
 					},
 				)
@@ -346,7 +354,14 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					"../api/graphql/graph/queryCollection/remediation/create.graphql",
 					map[string]any{
 						"input": map[string]any{
-							"description": strings.Repeat("a", 4097),
+							"description":     strings.Repeat("a", 4097),
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
 						},
 					},
 				)
@@ -361,7 +376,15 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					"../api/graphql/graph/queryCollection/remediation/create.graphql",
 					map[string]any{
 						"input": map[string]any{
-							"remediatedBy": strings.Repeat("a", 256),
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+							"remediatedBy":    strings.Repeat("a", 256),
 						},
 					},
 				)
@@ -376,7 +399,14 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					"../api/graphql/graph/queryCollection/remediation/create.graphql",
 					map[string]any{
 						"input": map[string]any{
-							"service": strings.Repeat("a", 256),
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         strings.Repeat("a", 256),
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
 						},
 					},
 				)
@@ -391,7 +421,14 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					"../api/graphql/graph/queryCollection/remediation/create.graphql",
 					map[string]any{
 						"input": map[string]any{
-							"image": strings.Repeat("a", 256),
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           strings.Repeat("a", 256),
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
 						},
 					},
 				)
@@ -406,7 +443,14 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					"../api/graphql/graph/queryCollection/remediation/create.graphql",
 					map[string]any{
 						"input": map[string]any{
-							"vulnerability": strings.Repeat("a", 256),
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   strings.Repeat("a", 256),
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
 						},
 					},
 				)

@@ -41,7 +41,7 @@ func Constraint(ctx context.Context, obj any, next graphql.Resolver, minLength *
 	}
 
 	if format != nil && *format == "url" {
-		if _, err := url.ParseRequestURI(str); err != nil {
+		if parsedURL, err := url.Parse(str); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
 			return nil, fmt.Errorf("value must be a valid URL")
 		}
 	}
