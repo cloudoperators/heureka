@@ -127,7 +127,6 @@ func (s *SqlDatabase) GetAllUserIds(ctx context.Context, filter *entity.UserFilt
 		"event":  "database.GetUserIds",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("U.user_id").From("User U").GroupBy("U.user_id")
 
 	stmt, filterParameters, err := s.buildUserStatement(
@@ -161,7 +160,6 @@ func (s *SqlDatabase) GetAllUserCursors(
 		"event":  "database.GetAllUserCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("U.*").From("User U").GroupBy("U.user_id")
 
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, order, l)
@@ -203,7 +201,6 @@ func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) (
 		"event":  "database.GetUsers",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("U.*").From("User U").GroupBy("U.user_id")
 
 	stmt, filterParameters, err := s.buildUserStatement(
@@ -251,7 +248,6 @@ func (s *SqlDatabase) CountUsers(ctx context.Context, filter *entity.UserFilter)
 		"event":  "database.CountUsers",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct U.user_id)").From("User U")
 
 	stmt, filterParameters, err := s.buildUserStatement(
@@ -293,7 +289,6 @@ func (s *SqlDatabase) GetUserNames(ctx context.Context, filter *entity.UserFilte
 		"event":  "database.GetUserNames",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("U.user_name").From("User U")
 
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
@@ -352,7 +347,6 @@ func (s *SqlDatabase) GetUniqueUserIDs(ctx context.Context, filter *entity.UserF
 		"event":  "database.GetUniqueUserIDs",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("U.user_unique_user_id").From("User U")
 
 	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{

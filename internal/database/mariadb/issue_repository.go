@@ -126,7 +126,6 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(
 		"event":  "database.GetAllIssueRepositoryCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("IR.*").From("IssueRepository IR").GroupBy("IR.issuerepository_id")
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(ctx, baseQuery, filter, false, order, l)
@@ -172,7 +171,6 @@ func (s *SqlDatabase) GetIssueRepositories(
 		"event":  "database.GetIssueRepositories",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("IR.*").From("IssueRepository IR").GroupBy("IR.issuerepository_id")
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(ctx, baseQuery, filter, true, order, l)
@@ -213,7 +211,6 @@ func (s *SqlDatabase) CountIssueRepositories(ctx context.Context, filter *entity
 		"event":  "database.CountIssueRepositories",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct IR.issuerepository_id)").From("IssueRepository IR")
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(

@@ -245,7 +245,6 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
 		"event":  "database.GetAllComponentVersionCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendComponentVersionColumns([]string{"CV.*"}, order)...).From("ComponentVersion CV").GroupBy("CV.componentversion_id")
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(ctx, baseQuery, filter, false, order, l)
@@ -289,7 +288,6 @@ func (s *SqlDatabase) GetComponentVersions(
 		"event": "database.GetComponentVersions",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendComponentVersionColumns([]string{"CV.*"}, order)...).From("ComponentVersion CV").GroupBy("CV.componentversion_id")
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(ctx, baseQuery, filter, true, order, l)
@@ -333,7 +331,6 @@ func (s *SqlDatabase) CountComponentVersions(ctx context.Context, filter *entity
 		"event": "database.CountComponentVersions",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct CV.componentversion_id)").From("ComponentVersion CV")
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(

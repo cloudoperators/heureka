@@ -190,7 +190,7 @@ var serviceObject = DbObject[*entity.Service]{
 }
 
 func appendServiceColumns(s []string, filter *entity.ServiceFilter, order []entity.Order) []string {
-	if len(filter.IssueRepositoryId) > 0 {
+	if filter != nil && len(filter.IssueRepositoryId) > 0 {
 		s = append(s, "IRS.*")
 	}
 
@@ -225,7 +225,7 @@ func (s *SqlDatabase) buildServiceStatement(
 		L:          l,
 		Obj:        &serviceObject,
 		BaseQuery:  baseQuery,
-		Order:              NewOrderWithCounterPrefix(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}, "SIC"),
+		Order:      NewOrderWithCounterPrefix(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}, "SIC"),
 		WithCursor: withCursor,
 		Aggregated: true,
 	}
@@ -239,7 +239,6 @@ func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceF
 		"event":  "database.CountServices",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct S.service_id)").From("Service S")
 
 	stmt, filterParameters, err := s.buildServiceStatement(
@@ -272,7 +271,6 @@ func (s *SqlDatabase) GetServices(
 		"event": "database.GetServices",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendServiceColumns([]string{"S.*"}, filter, order)...).From("Service S").GroupBy("S.service_id")
 
 	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, true, order, l)
@@ -315,6 +313,7 @@ func (s *SqlDatabase) GetServices(
 	)
 }
 
+// TODO use DbObject
 func (s *SqlDatabase) GetServicesWithAggregations(
 	ctx context.Context,
 	filter *entity.ServiceFilter,
@@ -380,9 +379,9 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
 	}
 
-	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord)
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord)
-	query := fmt.Sprintf(baseQuery, imQuery, ciQuery, ord.StringWithPrefixAll("IMC"))
+	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
+	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
+	query := fmt.Sprintf(baseQuery, imQuery, ciQuery, ord.ToSqlWithPrefixAll("IMC"))
 
 	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
@@ -453,7 +452,6 @@ func (s *SqlDatabase) GetAllServiceCursors(
 		"event":  "database.GetAllServiceCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendServiceColumns([]string{"S.*"}, filter, order)...).From("Service S").GroupBy("S.service_id")
 
 	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, false, order, l)
@@ -650,7 +648,6 @@ func (s *SqlDatabase) getServiceAttr(
 		"event":  "database.getServiceAttr",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(fmt.Sprintf("service_%s", attrName)).From("Service S")
 
 	order := []entity.Order{

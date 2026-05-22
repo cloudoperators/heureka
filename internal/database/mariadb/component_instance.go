@@ -298,7 +298,6 @@ func (s *SqlDatabase) GetComponentInstances(
 		"event": "database.GetComponentInstances",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("CI.*").From("ComponentInstance CI").GroupBy("CI.componentinstance_id")
 
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(ctx, baseQuery, filter, true, order, l)
@@ -349,7 +348,6 @@ func (s *SqlDatabase) GetAllComponentInstanceCursors(
 		"event":  "database.GetAllComponentInstanceCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("CI.*").From("ComponentInstance CI").GroupBy("CI.componentinstance_id")
 
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(ctx, baseQuery, filter, false, order, l)
@@ -385,7 +383,6 @@ func (s *SqlDatabase) CountComponentInstances(ctx context.Context, filter *entit
 		"event": "database.CountComponentInstances",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct CI.componentinstance_id)").From("ComponentInstance CI")
 
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(
@@ -438,7 +435,6 @@ func (s *SqlDatabase) getComponentInstanceAttr(
 		"event":  "database.getComponentInstanceAttr",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(fmt.Sprintf("CI.componentinstance_%s", attrName)).From("ComponentInstance CI")
 	order := []entity.Order{
 		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},

@@ -216,7 +216,6 @@ func (s *SqlDatabase) GetRemediations(
 		"event":  "database.GetRemediations",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("R.*").From("Remediation R").GroupBy("R.remediation_id")
 
 	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, true, order, l)
@@ -262,7 +261,6 @@ func (s *SqlDatabase) CountRemediations(ctx context.Context, filter *entity.Reme
 		"event":  "database.CountRemediations",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct R.remediation_id)").From("Remediation R")
 
 	stmt, filterParameters, err := s.buildRemediationStatement(
@@ -301,7 +299,6 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 		"event":  "database.GetAllRemediationCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("R.*").From("Remediation R").GroupBy("R.remediation_id")
 
 	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, false, order, l)

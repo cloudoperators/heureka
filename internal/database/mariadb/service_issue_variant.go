@@ -114,7 +114,6 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 		"event": "database.GetIssueVariants",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("IRS.issuerepositoryservice_priority", "IV.*").From("ComponentInstance CI")
 
 	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(

@@ -148,7 +148,7 @@ func (o Order) ToSql() string {
 }
 
 // TODO: remove it when GetServicesWithAggregations will use DbObject
-func (o Order) StringWithPrefixAll(prefix string) string {
+func (o Order) ToSqlWithPrefixAll(prefix string) string {
 	orderElements := lo.Map(o.sequence, func(eo entity.Order, _ int) string {
 		col := ColumnName(eo.By)
 		if prefix != "" {

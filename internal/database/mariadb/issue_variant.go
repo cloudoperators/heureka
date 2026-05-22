@@ -185,7 +185,6 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 		"event":  "database.GetAllIssueVariantCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("IV.*").From("IssueVariant IV").GroupBy("IV.issuevariant_id")
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, false, order, l)
@@ -231,7 +230,6 @@ func (s *SqlDatabase) GetIssueVariants(
 		"event":  "database.GetIssueVariants",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("IV.*").From("IssueVariant IV").GroupBy("IV.issuevariant_id")
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, true, order, l)
@@ -272,7 +270,6 @@ func (s *SqlDatabase) CountIssueVariants(ctx context.Context, filter *entity.Iss
 		"event":  "database.CountIssueVariants",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct IV.issuevariant_id)").From("IssueVariant IV")
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(

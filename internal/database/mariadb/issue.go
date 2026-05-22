@@ -395,7 +395,6 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
         JOIN Aggs A ON CIC.issue_id = A.issue_id;
     `
 
-	filter = EnsureFilter(filter)
 	joins := issueObject.GetJoins_tmp(filter, NewOrder(order, entity.Order{})) // It seems that this join is redundant for baseAppQuery
 	// We should improve testing and remove redundant joins from query
 
@@ -482,7 +481,6 @@ func (s *SqlDatabase) CountIssues(ctx context.Context, filter *entity.IssueFilte
 		"event": "database.CountIssues",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct I.issue_id)").From("Issue I")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
@@ -504,7 +502,6 @@ func (s *SqlDatabase) CountIssueTypes(ctx context.Context, filter *entity.IssueF
 		"event": "database.CountIssueTypes",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("I.issue_type AS issue_value", "COUNT(distinct I.issue_id) as issue_count").From("Issue I").GroupBy("I.issue_type")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
@@ -557,7 +554,6 @@ func (s *SqlDatabase) GetAllIssueCursors(
 		"event":  "database.GetAllIssueCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendIssueColumns([]string{"I.*"}, order)...).From("Issue I").GroupBy("I.issue_id")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, order, l)
@@ -607,7 +603,6 @@ func (s *SqlDatabase) GetIssues(
 		"event": "database.GetIssues",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendIssueColumns([]string{"I.*"}, order)...).From("Issue I").GroupBy("I.issue_id")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, true, order, l)
@@ -747,7 +742,6 @@ func (s *SqlDatabase) GetIssueNames(ctx context.Context, filter *entity.IssueFil
 		"event":  "database.GetIssueNames",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("I.issue_primary_name").From("Issue I")
 
 	order := []entity.Order{

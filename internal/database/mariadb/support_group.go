@@ -141,7 +141,6 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(
 		"event":  "database.GetAllSupportGroupCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("SG.*").From("SupportGroup SG").GroupBy("SG.supportgroup_id")
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
@@ -181,7 +180,6 @@ func (s *SqlDatabase) GetSupportGroups(
 		"event":  "database.GetSupportGroups",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("SG.*").From("SupportGroup SG").GroupBy("SG.supportgroup_id")
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, true, order, l)
@@ -222,7 +220,6 @@ func (s *SqlDatabase) CountSupportGroups(ctx context.Context, filter *entity.Sup
 		"event":  "database.CountSupportGroups",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct SG.supportgroup_id)").From("SupportGroup SG")
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(
@@ -388,7 +385,6 @@ func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.S
 		"event":  "database.GetSupportGroupCcrns",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("SG.supportgroup_ccrn").From("SupportGroup SG")
 
 	order := []entity.Order{

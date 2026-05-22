@@ -183,7 +183,7 @@ func (s *SqlDatabase) buildComponentStatement(
 		L:          l,
 		Obj:        &componentObject,
 		BaseQuery:  baseQuery,
-		Order:              NewOrderWithCounterPrefix(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}, "CVR"),
+		Order:      NewOrderWithCounterPrefix(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}, "CVR"),
 		WithCursor: withCursor,
 		Aggregated: false,
 	}
@@ -201,7 +201,6 @@ func (s *SqlDatabase) GetAllComponentCursors(
 		"event":  "database.GetAllComponentCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendComponentColumns([]string{"C.*"}, order)...).From("Component C").GroupBy("C.component_id")
 
 	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, false, order, l)
@@ -252,7 +251,6 @@ func (s *SqlDatabase) GetComponents(
 		"event":  "database.GetComponents",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendComponentColumns([]string{"C.*"}, order)...).From("Component C").GroupBy("C.component_id")
 
 	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, true, order, l)
@@ -297,8 +295,6 @@ func (s *SqlDatabase) CountComponents(ctx context.Context, filter *entity.Compon
 		"event":  "database.CountComponents",
 	})
 
-	filter = EnsureFilter(filter)
-
 	baseQuery := sq.Select("count(distinct C.component_id)").From("Component C")
 
 	stmt, filterParameters, err := s.buildComponentStatement(
@@ -322,6 +318,7 @@ func (s *SqlDatabase) CountComponents(ctx context.Context, filter *entity.Compon
 	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
+// TODO use DbObject
 func (s *SqlDatabase) CountComponentVulnerabilities(
 	ctx context.Context,
 	filter *entity.ComponentFilter,
@@ -430,7 +427,6 @@ func (s *SqlDatabase) GetComponentCcrns(ctx context.Context, filter *entity.Comp
 		"event":  "database.GetComponentCcrns",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("C.component_ccrn").From("Component C")
 
 	order := []entity.Order{

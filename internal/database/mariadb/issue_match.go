@@ -294,7 +294,6 @@ func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.Is
 		"event":  "database.GetAllIssueMatchIds",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("IM.issuematch_id").From("IssueMatch IM").GroupBy("IM.issuematch_id")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
@@ -315,7 +314,6 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(
 		"event":  "database.GetIssueAllIssueMatchCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendIssueMatchColumns([]string{"IM.*"}, order)...).From("IssueMatch IM").GroupBy("IM.issuematch_id")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, order, l)
@@ -362,7 +360,6 @@ func (s *SqlDatabase) GetIssueMatches(
 		"event":  "database.GetIssueMatches",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select(appendIssueMatchColumns([]string{"IM.*"}, order)...).From("IssueMatch IM").GroupBy("IM.issuematch_id")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, true, order, l)
@@ -411,7 +408,6 @@ func (s *SqlDatabase) CountIssueMatches(ctx context.Context, filter *entity.Issu
 		"event":  "database.CountIssueMatches",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct IM.issuematch_id)").From("IssueMatch IM")
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(

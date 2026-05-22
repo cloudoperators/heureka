@@ -80,7 +80,6 @@ func (s *SqlDatabase) GetPatches(
 		"event":  "database.GetPatches",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("P.*").From("Patch P").GroupBy("P.patch_id")
 
 	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, true, order, l)
@@ -126,7 +125,6 @@ func (s *SqlDatabase) CountPatches(ctx context.Context, filter *entity.PatchFilt
 		"event":  "database.CountPatches",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("count(distinct P.patch_id)").From("Patch P")
 
 	stmt, filterParameters, err := s.buildPatchStatement(
@@ -165,7 +163,6 @@ func (s *SqlDatabase) GetAllPatchCursors(
 		"event":  "database.GetAllPatchCursors",
 	})
 
-	filter = EnsureFilter(filter)
 	baseQuery := sq.Select("P.*").From("Patch P").GroupBy("P.patch_id")
 
 	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, false, order, l)

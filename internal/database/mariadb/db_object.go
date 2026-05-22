@@ -209,6 +209,7 @@ func BuildStatement[
 		entity.HasPagination
 	},
 ](ctx context.Context, s Statement, filter PT) (Stmt, []any, error) {
+	filter = EnsureFilter(filter)
 	s.L.WithFields(logrus.Fields{"filter": filter})
 
 	qb := s.Obj.AddJoins(s.BaseQuery, filter, s.Order)
@@ -405,7 +406,7 @@ func (jr *JoinResolver) require(name string) {
 
 func (jr *JoinResolver) Build(filter any, order *Order) []string {
 	for _, def := range jr.defs {
-		if def.Condition != nil && def.Condition(filter, order) {
+		if def.Condition == nil || (def.Condition != nil && def.Condition(filter, order)) {
 			jr.require(def.Name)
 		}
 	}
