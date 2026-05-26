@@ -433,7 +433,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}

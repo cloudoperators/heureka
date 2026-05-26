@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
@@ -111,11 +112,16 @@ func OrderDirectionStr(dir entity.OrderDirection) string {
 }
 
 type Order struct {
-	sequence []entity.Order
+	sequence      []entity.Order
+	counterPrefix string
 }
 
 func NewOrder(seq []entity.Order, defaultOrder entity.Order) *Order {
-	o := Order{}
+	return NewOrderWithCounterPrefix(seq, defaultOrder, "")
+}
+
+func NewOrderWithCounterPrefix(seq []entity.Order, defaultOrder entity.Order, prefix string) *Order {
+	o := Order{counterPrefix: prefix}
 	if len(seq) == 0 {
 		o.sequence = []entity.Order{defaultOrder}
 	} else {
@@ -126,27 +132,33 @@ func NewOrder(seq []entity.Order, defaultOrder entity.Order) *Order {
 }
 
 func (o Order) String() string {
-	orderStr := ""
-
-	for i, o := range o.sequence {
-		if i > 0 {
-			orderStr = fmt.Sprintf(
-				"%s, %s %s",
-				orderStr,
-				ColumnName(o.By),
-				OrderDirectionStr(o.Direction),
-			)
-		} else {
-			orderStr = fmt.Sprintf(
-				"%s %s %s",
-				orderStr,
-				ColumnName(o.By),
-				OrderDirectionStr(o.Direction),
-			)
+	orderElements := lo.Map(o.sequence, func(eo entity.Order, _ int) string {
+		col := ColumnName(eo.By)
+		if o.counterPrefix != "" {
+			switch eo.By {
+			case entity.CriticalCount, entity.HighCount, entity.MediumCount, entity.LowCount, entity.NoneCount:
+				col = fmt.Sprintf("%s.%s", o.counterPrefix, col)
+			}
 		}
-	}
 
-	return orderStr
+		return col + " " + OrderDirectionStr(eo.Direction)
+	})
+
+	return strings.Join(orderElements, ", ")
+}
+
+// TODO: remove it when GetServicesWithAggregations will use DbObject
+func (o Order) StringWithPrefixAll(prefix string) string {
+	orderElements := lo.Map(o.sequence, func(eo entity.Order, _ int) string {
+		col := ColumnName(eo.By)
+		if prefix != "" {
+			col = fmt.Sprintf("%s.%s", prefix, col)
+		}
+
+		return col + " " + OrderDirectionStr(eo.Direction)
+	})
+
+	return strings.Join(orderElements, ", ")
 }
 
 func (o Order) Sequence() []entity.Order {

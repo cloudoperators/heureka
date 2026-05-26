@@ -184,7 +184,7 @@ func (s *SqlDatabase) buildComponentStatement(
 		L:                  l,
 		Obj:                &componentObject,
 		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}),
+		Order:              NewOrderWithCounterPrefix(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}, "CVR"),
 		WithCursor:         withCursor,
 		CheckCursorInWhere: true,
 		CheckCursor:        true,
@@ -409,7 +409,8 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			}).Error(msg)
+			},
+		).Error(msg)
 
 		return nil, fmt.Errorf("%s", msg)
 	}
