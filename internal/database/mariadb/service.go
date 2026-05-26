@@ -225,8 +225,7 @@ func (s *SqlDatabase) buildServiceStatement(
 		L:                  l,
 		Obj:                &serviceObject,
 		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}),
-		OrderPrefix:        "SIC",
+		Order:              NewOrderWithCounterPrefix(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}, "SIC"),
 		WithCursor:         withCursor,
 		CheckCursorInWhere: true,
 		CheckCursor:        true,
@@ -395,8 +394,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
 	}
 
-	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord.StringWithPrefix("SIC"))
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord.StringWithPrefix("SIC"))
+	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord)
+	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord)
 	query := fmt.Sprintf(baseQuery, imQuery, ciQuery, ord.StringWithPrefixAll("IMC"))
 
 	stmt, err := s.db.PreparexContext(ctx, query)
