@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/go-sql-driver/mysql"
 	"github.com/samber/lo"
 
@@ -316,39 +318,32 @@ var issueObject = DbObject[*entity.Issue]{
 	},
 }
 
-func getIssueColumns(order []entity.Order) string {
-	columns := ""
-
+func appendIssueColumns(s []string, order []entity.Order) []string {
 	for _, o := range order {
 		switch o.By {
 		case entity.IssueVariantRating:
-			columns = fmt.Sprintf(
-				"%s, MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num",
-				columns,
-			)
+			s = append(s, "MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num")
 		}
 	}
 
-	return columns
+	return s
 }
 
-func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery string, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
+func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery sq.SelectBuilder, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &issueObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: false,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         true,
+		Db:         s.db,
+		L:          l,
+		Obj:        &issueObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		Aggregated: true,
 	}
 
 	return BuildStatement(ctx, statement, filter)
 }
 
+// TODO: use DbObject
 func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
 	filter = EnsureFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
@@ -400,8 +395,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
         JOIN Aggs A ON CIC.issue_id = A.issue_id;
     `
 
-	filter = EnsureFilter(filter)
-	joins := issueObject.GetJoins(filter, NewOrder(order, entity.Order{})) // It seems that this join is redundant for baseAppQuery
+	joins := issueObject.GetJoins_tmp(filter, NewOrder(order, entity.Order{})) // It seems that this join is redundant for baseAppQuery
 	// We should improve testing and remove redundant joins from query
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -409,20 +403,20 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
 		return nil, err
 	}
 
-	columns := getIssueColumns(order)
+	columns := strings.Join(appendIssueColumns([]string{}, order), ",")
 	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 
-	whereClause := issueObject.GetFilterWhereClause(filter, false)
+	whereClause := issueObject.GetFilterWhereClause_tmp(filter, false)
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	filterStr := issueObject.GetFilterQuery(filter)
+	filterStr := issueObject.GetFilterQuery_tmp(filter)
 	if filterStr != "" && cursorQuery != "" {
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord)
-	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, ord)
+	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
+	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
 	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery)
 
 	stmt, err := s.db.PreparexContext(ctx, query)
@@ -440,9 +434,9 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
 	}
 
 	// parameters for component instance query
-	filterParameters := issueObject.GetFilterParameters(filter, true, cursorFields)
+	filterParameters := issueObject.GetFilterParameters_tmp(filter, true, cursorFields)
 	// parameters for agg query
-	filterParameters = append(filterParameters, issueObject.GetFilterParameters(filter, true, cursorFields)...)
+	filterParameters = append(filterParameters, issueObject.GetFilterParameters_tmp(filter, true, cursorFields)...)
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
@@ -487,12 +481,7 @@ func (s *SqlDatabase) CountIssues(ctx context.Context, filter *entity.IssueFilte
 		"event": "database.CountIssues",
 	})
 
-	baseQuery := `
-		SELECT COUNT(distinct I.issue_id) FROM Issue I
-		%s
-		%s
-		ORDER BY %s
-	`
+	baseQuery := sq.Select("count(distinct I.issue_id)").From("Issue I")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
 	if err != nil {
@@ -513,12 +502,7 @@ func (s *SqlDatabase) CountIssueTypes(ctx context.Context, filter *entity.IssueF
 		"event": "database.CountIssueTypes",
 	})
 
-	baseQuery := `
-		SELECT I.issue_type AS issue_value, COUNT(distinct I.issue_id) as issue_count FROM Issue I
-		%s
-		%s
-		GROUP BY I.issue_type ORDER BY %s
-	`
+	baseQuery := sq.Select("I.issue_type AS issue_value", "COUNT(distinct I.issue_id) as issue_count").From("Issue I").GroupBy("I.issue_type")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
 	if err != nil {
@@ -570,14 +554,7 @@ func (s *SqlDatabase) GetAllIssueCursors(
 		"event":  "database.GetAllIssueCursors",
 	})
 
-	baseQuery := `
-		SELECT I.* %s FROM Issue I 
-		%s
-	    %s GROUP BY I.issue_id ORDER BY %s
-    `
-
-	issueColumns := getIssueColumns(order)
-	baseQuery = fmt.Sprintf(baseQuery, issueColumns, "%s", "%s", "%s")
+	baseQuery := sq.Select(appendIssueColumns([]string{"I.*"}, order)...).From("Issue I").GroupBy("I.issue_id")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -591,7 +568,7 @@ func (s *SqlDatabase) GetAllIssueCursors(
 	}()
 
 	rows, err := performListScan(
-		context.Background(),
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -626,17 +603,7 @@ func (s *SqlDatabase) GetIssues(
 		"event": "database.GetIssues",
 	})
 
-	baseQuery := `
-		SELECT I.* %s FROM Issue I
-		%s
-		%s
-		GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
-    `
-
-	filter = EnsureFilter(filter)
-
-	issueColumns := getIssueColumns(order)
-	baseQuery = fmt.Sprintf(baseQuery, issueColumns, "%s", "%s", "%s", "%s")
+	baseQuery := sq.Select(appendIssueColumns([]string{"I.*"}, order)...).From("Issue I").GroupBy("I.issue_id")
 
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
@@ -665,10 +632,8 @@ func (s *SqlDatabase) GetIssues(
 			cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
 
 			sr := entity.IssueResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				Issue: &issue,
+				WithCursor: entity.WithCursor{Value: cursor},
+				Issue:      &issue,
 			}
 
 			return append(l, sr)
@@ -777,21 +742,12 @@ func (s *SqlDatabase) GetIssueNames(ctx context.Context, filter *entity.IssueFil
 		"event":  "database.GetIssueNames",
 	})
 
-	baseQuery := `
-    SELECT I.issue_primary_name FROM Issue I
-    %s
-    %s
-    ORDER BY %s
-    `
+	baseQuery := sq.Select("I.issue_primary_name").From("Issue I")
 
 	order := []entity.Order{
 		{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
 	}
 
-	// Ensure the filter is initialized
-	filter = EnsureFilter(filter)
-
-	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)

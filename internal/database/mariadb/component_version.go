@@ -5,8 +5,8 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -195,61 +195,41 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 	},
 }
 
-func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
-	columns := ""
-
+func appendComponentVersionColumns(s []string, order []entity.Order) []string {
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
-			columns = fmt.Sprintf(
-				"%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) as critical_count",
-				columns,
-			)
+			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) as critical_count")
 		case entity.HighCount:
-			columns = fmt.Sprintf(
-				"%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) as high_count",
-				columns,
-			)
+			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) as high_count")
 		case entity.MediumCount:
-			columns = fmt.Sprintf(
-				"%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) as medium_count",
-				columns,
-			)
+			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) as medium_count")
 		case entity.LowCount:
-			columns = fmt.Sprintf(
-				"%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) as low_count",
-				columns,
-			)
+			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) as low_count")
 		case entity.NoneCount:
-			columns = fmt.Sprintf(
-				"%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) as none_count",
-				columns,
-			)
+			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) as none_count")
 		}
 	}
 
-	return columns
+	return s
 }
 
 func (s *SqlDatabase) buildComponentVersionStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.ComponentVersionFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &componentVersionObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: false,
-		CheckCursor:        true,
-		CheckFilter:        false,
-		Aggregated:         true,
+		Db:         s.db,
+		L:          l,
+		Obj:        &componentVersionObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		Aggregated: true,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -265,20 +245,9 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
 		"event":  "database.GetAllComponentVersionCursors",
 	})
 
-	baseQuery := fmt.Sprintf(`
-		SELECT CV.* %s FROM ComponentVersion CV
-		%s
-	    %s GROUP BY CV.componentversion_id ORDER BY %s
-    `, s.getComponentVersionColumns(order), "%s", "%s", "%s")
+	baseQuery := sq.Select(appendComponentVersionColumns([]string{"CV.*"}, order)...).From("ComponentVersion CV").GroupBy("CV.componentversion_id")
 
-	stmt, filterParameters, err := s.buildComponentVersionStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		order,
-		l,
-	)
+	stmt, filterParameters, err := s.buildComponentVersionStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -319,23 +288,9 @@ func (s *SqlDatabase) GetComponentVersions(
 		"event": "database.GetComponentVersions",
 	})
 
-	baseQuery := fmt.Sprintf(`
-		SELECT CV.* %s FROM ComponentVersion CV
-		%s
-		%s
-		GROUP BY CV.componentversion_id %s ORDER BY %s LIMIT ?
-    `, s.getComponentVersionColumns(order), "%s", "%s", "%s", "%s")
+	baseQuery := sq.Select(appendComponentVersionColumns([]string{"CV.*"}, order)...).From("ComponentVersion CV").GroupBy("CV.componentversion_id")
 
-	filter = EnsureFilter(filter)
-
-	stmt, filterParameters, err := s.buildComponentVersionStatement(
-		ctx,
-		baseQuery,
-		filter,
-		true,
-		order,
-		l,
-	)
+	stmt, filterParameters, err := s.buildComponentVersionStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -362,9 +317,7 @@ func (s *SqlDatabase) GetComponentVersions(
 			cursor, _ := EncodeCursor(WithComponentVersion(order, cv, isc))
 
 			cvr := entity.ComponentVersionResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
+				WithCursor:       entity.WithCursor{Value: cursor},
 				ComponentVersion: &cv,
 			}
 
@@ -378,12 +331,7 @@ func (s *SqlDatabase) CountComponentVersions(ctx context.Context, filter *entity
 		"event": "database.CountComponentVersions",
 	})
 
-	baseQuery := `
-		SELECT count(distinct CV.componentversion_id) FROM ComponentVersion CV
-		%s
-		%s
-		ORDER BY %s
-	`
+	baseQuery := sq.Select("count(distinct CV.componentversion_id)").From("ComponentVersion CV")
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
 		ctx,
