@@ -137,18 +137,14 @@ var componentObject = DbObject[*entity.Component]{
 			On:        "S.service_id = CVR.service_id",
 			DependsOn: []string{"S"},
 			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, order *Order) bool {
-				return needAllComponentByServiceVulnerabilityCounts(f, order)
+				return false
 			}),
 		},
 	},
 }
 
 func needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order *Order) bool {
-	return order.ByCount() && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0))
-}
-
-func needAllComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order *Order) bool {
-	return order.ByCount() && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
+	return order.ByCount() && len(filter.ServiceCCRN) > 0
 }
 
 func appendComponentColumns(s []string, order []entity.Order) []string {
