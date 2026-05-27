@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/go-sql-driver/mysql"
@@ -111,23 +112,20 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 
 func (s *SqlDatabase) buildSupportGroupStatement(
 	ctx context.Context,
-	baseQuery string,
+	baseQuery sq.SelectBuilder,
 	filter *entity.SupportGroupFilter,
 	withCursor bool,
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
 	statement := Statement{
-		Db:                 s.db,
-		L:                  l,
-		Obj:                &supportGroupObject,
-		BaseQuery:          baseQuery,
-		Order:              NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc}),
-		WithCursor:         withCursor,
-		CheckCursorInWhere: true,
-		CheckCursor:        true,
-		CheckFilter:        true,
-		Aggregated:         false,
+		Db:         s.db,
+		L:          l,
+		Obj:        &supportGroupObject,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc}),
+		WithCursor: withCursor,
+		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -143,13 +141,7 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(
 		"event":  "database.GetAllSupportGroupCursors",
 	})
 
-	baseQuery := `
-		SELECT SG.* FROM SupportGroup SG 
-		%s
-	    %s GROUP BY SG.supportgroup_id ORDER BY %s
-    `
-
-	filter = EnsureFilter(filter)
+	baseQuery := sq.Select("SG.*").From("SupportGroup SG").GroupBy("SG.supportgroup_id")
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
@@ -184,16 +176,11 @@ func (s *SqlDatabase) GetSupportGroups(
 	order []entity.Order,
 ) ([]entity.SupportGroupResult, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetSupportGroups",
+		"filter": filter,
+		"event":  "database.GetSupportGroups",
 	})
 
-	baseQuery := `
-		SELECT SG.* FROM SupportGroup SG
-		%s
-		%s
-		%s
-		GROUP BY SG.supportgroup_id ORDER BY %s LIMIT ?
-    `
+	baseQuery := sq.Select("SG.*").From("SupportGroup SG").GroupBy("SG.supportgroup_id")
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
@@ -229,15 +216,11 @@ func (s *SqlDatabase) GetSupportGroups(
 
 func (s *SqlDatabase) CountSupportGroups(ctx context.Context, filter *entity.SupportGroupFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountSupportGroups",
+		"filter": filter,
+		"event":  "database.CountSupportGroups",
 	})
 
-	baseQuery := `
-		SELECT count(distinct SG.supportgroup_id) FROM SupportGroup SG
-		%s
-		%s
-		ORDER BY %s
-	`
+	baseQuery := sq.Select("count(distinct SG.supportgroup_id)").From("SupportGroup SG")
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(
 		ctx,
@@ -402,12 +385,7 @@ func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.S
 		"event":  "database.GetSupportGroupCcrns",
 	})
 
-	baseQuery := `
-    SELECT SG.supportgroup_ccrn FROM SupportGroup SG
-    %s
-    %s
-    ORDER BY %s
-    `
+	baseQuery := sq.Select("SG.supportgroup_ccrn").From("SupportGroup SG")
 
 	order := []entity.Order{
 		{
@@ -415,9 +393,6 @@ func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.S
 			Direction: entity.OrderDirectionAsc,
 		},
 	}
-
-	// Ensure the filter is initialized
-	filter = EnsureFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
