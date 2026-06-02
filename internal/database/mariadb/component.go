@@ -13,94 +13,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentObject = DbObject[*entity.Component]{
-	Prefix:    "component",
-	TableName: "Component",
-	Properties: []*Property{
-		NewProperty(
-			"component_ccrn",
-			WrapAccess(func(c *entity.Component) (string, bool) { return c.CCRN, c.CCRN != "" }),
-		),
-		NewProperty(
-			"component_repository",
-			WrapAccess(
-				func(c *entity.Component) (string, bool) { return c.Repository, c.Repository != "" },
-			),
-		),
-		NewProperty(
-			"component_organization",
-			WrapAccess(
-				func(c *entity.Component) (string, bool) { return c.Organization, c.Organization != "" },
-			),
-		),
-		NewProperty(
-			"component_url",
-			WrapAccess(func(c *entity.Component) (string, bool) { return c.Url, c.Url != "" }),
-		),
-		NewProperty(
-			"component_type",
-			WrapAccess(func(c *entity.Component) (string, bool) { return c.Type, c.Type != "" }),
-		),
-		NewProperty(
-			"component_created_by",
-			WrapAccess(func(c *entity.Component) (int64, bool) { return c.CreatedBy, NoUpdate }),
-		),
-		NewProperty(
-			"component_updated_by",
-			WrapAccess(
-				func(c *entity.Component) (int64, bool) { return c.UpdatedBy, c.UpdatedBy != 0 },
-			),
-		),
+var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entity.ComponentResult]{
+	Prefix:       "component",
+	TableName:    "Component",
+	TableKey:     "C",
+	DefaultOrder: entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc},
+	OrderPrefix:  "CVR",
+	Properties: []*Property[*entity.Component]{
+		NewProperty("component_ccrn", func(c *entity.Component) (any, bool) { return c.CCRN, c.CCRN != "" }),
+		NewProperty("component_repository", func(c *entity.Component) (any, bool) { return c.Repository, c.Repository != "" }),
+		NewProperty("component_organization", func(c *entity.Component) (any, bool) { return c.Organization, c.Organization != "" }),
+		NewProperty("component_url", func(c *entity.Component) (any, bool) { return c.Url, c.Url != "" }),
+		NewProperty("component_type", func(c *entity.Component) (any, bool) { return c.Type, c.Type != "" }),
+		NewProperty("component_created_by", func(c *entity.Component) (any, bool) { return c.CreatedBy, NoUpdate }),
+		NewProperty("component_updated_by", func(c *entity.Component) (any, bool) { return c.UpdatedBy, c.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"C.component_ccrn = ?",
-			WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.CCRN }),
-		),
-		NewFilterProperty(
-			"C.component_repository = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentFilter) []*string { return filter.Repository },
-			),
-		),
-		NewFilterProperty(
-			"C.component_organization = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentFilter) []*string { return filter.Organization },
-			),
-		),
-		NewFilterProperty(
-			"C.component_id = ?",
-			WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"CV.componentversion_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentFilter) []*int64 { return filter.ComponentVersionId },
-			),
-		),
-		NewFilterProperty(
-			"S.service_ccrn = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentFilter) []*string { return filter.ServiceCCRN },
-			),
-		),
-		NewStateFilterProperty(
-			"C.component",
-			WrapRetState(
-				func(filter *entity.ComponentFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.ComponentFilter]{
+		NewFilterProperty("C.component_ccrn = ?", func(filter *entity.ComponentFilter) any { return filter.CCRN }),
+		NewFilterProperty("C.component_repository = ?", func(filter *entity.ComponentFilter) any { return filter.Repository }),
+		NewFilterProperty("C.component_organization = ?", func(filter *entity.ComponentFilter) any { return filter.Organization }),
+		NewFilterProperty("C.component_id = ?", func(filter *entity.ComponentFilter) any { return filter.Id }),
+		NewFilterProperty("CV.componentversion_id = ?", func(filter *entity.ComponentFilter) any { return filter.ComponentVersionId }),
+		NewFilterProperty("S.service_ccrn = ?", func(filter *entity.ComponentFilter) any { return filter.ServiceCCRN }),
+		NewStateFilterProperty("C.component", func(filter *entity.ComponentFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.ComponentFilter]{
 		{
-			Name:  "CV",
-			Type:  LeftJoin,
-			Table: "ComponentVersion CV",
-			On:    "C.component_id = CV.componentversion_component_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, _ *Order) bool {
-				return len(f.ComponentVersionId) > 0
-			}),
+			Name:      "CV",
+			Type:      LeftJoin,
+			Table:     "ComponentVersion CV",
+			On:        "C.component_id = CV.componentversion_component_id",
+			Condition: func(f *entity.ComponentFilter, _ *Order) bool { return len(f.ComponentVersionId) > 0 },
 		},
 		{
 			Name:      "CI",
@@ -108,7 +51,7 @@ var componentObject = DbObject[*entity.Component]{
 			Table:     "ComponentInstance CI",
 			On:        "CV.componentversion_id = CI.componentinstance_component_version_id",
 			DependsOn: []string{"CV"},
-			Condition: DependentJoin,
+			Condition: DependentJoin[*entity.ComponentFilter],
 		},
 		{
 			Name:      "S",
@@ -116,9 +59,7 @@ var componentObject = DbObject[*entity.Component]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, _ *Order) bool {
-				return len(f.ServiceCCRN) > 0
-			}),
+			Condition: func(f *entity.ComponentFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
 		},
 		{
 			Name:      "mvSCBSVC",
@@ -126,9 +67,9 @@ var componentObject = DbObject[*entity.Component]{
 			Table:     "mvSingleComponentByServiceVulnerabilityCounts CVR",
 			On:        "C.component_id = CVR.component_id AND CVR.service_id = S.service_id",
 			DependsOn: []string{"S"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, order *Order) bool {
+			Condition: func(f *entity.ComponentFilter, order *Order) bool {
 				return needSingleComponentByServiceVulnerabilityCounts(f, order)
-			}),
+			},
 		},
 		{
 			Name:      "mvACBSVC",
@@ -136,10 +77,45 @@ var componentObject = DbObject[*entity.Component]{
 			Table:     "mvAllComponentsByServiceVulnerabilityCounts CVR",
 			On:        "S.service_id = CVR.service_id",
 			DependsOn: []string{"S"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, order *Order) bool {
+			Condition: func(f *entity.ComponentFilter, order *Order) bool {
 				return false
-			}),
+			},
 		},
+	},
+	ExtraColumnsSelector: func(_ *entity.ComponentFilter, order *Order) []string {
+		s := []string{}
+		for _, o := range order.Sequence() {
+			switch o.By {
+			case entity.CriticalCount:
+				s = append(s, "CVR.critical_count")
+			case entity.HighCount:
+				s = append(s, "CVR.high_count")
+			case entity.MediumCount:
+				s = append(s, "CVR.medium_count")
+			case entity.LowCount:
+				s = append(s, "CVR.low_count")
+			case entity.NoneCount:
+				s = append(s, "CVR.none_count")
+			}
+		}
+		return s
+	},
+	GetItemAppender: func(l []entity.ComponentResult, e RowComposite, order []entity.Order) []entity.ComponentResult {
+		c := e.AsComponent()
+
+		var isc entity.IssueSeverityCounts
+		if e.RatingCount != nil {
+			isc = e.AsIssueSeverityCounts()
+		}
+
+		cursor, _ := EncodeCursor(WithComponent(order, c, isc))
+
+		cr := entity.ComponentResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			Component:  &c,
+		}
+
+		return append(l, cr)
 	},
 }
 
@@ -174,14 +150,13 @@ func (s *SqlDatabase) buildComponentStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.ComponentFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &componentObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrderWithCounterPrefix(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc}, "CVR"),
+		Order:      NewOrderWithCounterPrefix(order, componentObject.DefaultOrder, "CVR"),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -242,76 +217,11 @@ func (s *SqlDatabase) GetComponents(
 	filter *entity.ComponentFilter,
 	order []entity.Order,
 ) ([]entity.ComponentResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetComponents",
-	})
-
-	baseQuery := sq.Select(appendComponentColumns([]string{"C.*"}, order)...).From("Component C").GroupBy("C.component_id")
-
-	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.ComponentResult, e RowComposite) []entity.ComponentResult {
-			c := e.AsComponent()
-
-			var isc entity.IssueSeverityCounts
-			if e.RatingCount != nil {
-				isc = e.AsIssueSeverityCounts()
-			}
-
-			cursor, _ := EncodeCursor(WithComponent(order, c, isc))
-
-			cr := entity.ComponentResult{
-				WithCursor: entity.WithCursor{Value: cursor},
-				Component:  &c,
-			}
-
-			return append(l, cr)
-		},
-	)
+	return componentObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountComponents(ctx context.Context, filter *entity.ComponentFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountComponents",
-	})
-
-	baseQuery := sq.Select("count(distinct C.component_id)").From("Component C")
-
-	stmt, filterParameters, err := s.buildComponentStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performCountScan(ctx, stmt, filterParameters, l)
+	return componentObject.Count(ctx, s.db, filter)
 }
 
 // TODO use DbObject
@@ -328,7 +238,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 		filterParameters []any
 	)
 
-	filter = EnsureFilter(filter)
+	filter = EnsureFilter_tmp(filter)
 
 	query := `
 		SELECT CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM %s AS CVR

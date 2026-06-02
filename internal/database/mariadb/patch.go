@@ -13,38 +13,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var patchObject = DbObject[*entity.Patch]{
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"P.patch_id = ?",
-			WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"P.patch_service_id = ?",
-			WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.ServiceId }),
-		),
-		NewFilterProperty(
-			"P.patch_service_name = ?",
-			WrapRetSlice(func(filter *entity.PatchFilter) []*string { return filter.ServiceName }),
-		),
-		NewFilterProperty(
-			"P.patch_component_version_id = ?",
-			WrapRetSlice(
-				func(filter *entity.PatchFilter) []*int64 { return filter.ComponentVersionId },
-			),
-		),
-		NewFilterProperty(
-			"P.patch_component_version_name = ?",
-			WrapRetSlice(
-				func(filter *entity.PatchFilter) []*string { return filter.ComponentVersionName },
-			),
-		),
-		NewStateFilterProperty(
-			"P.patch",
-			WrapRetState(
-				func(filter *entity.PatchFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+var patchObject = DbObject[*entity.Patch, *entity.PatchFilter, entity.PatchResult]{
+	Prefix:       "patch",
+	TableName:    "Patch",
+	TableKey:     "P",
+	DefaultOrder: entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc},
+	FilterProperties: []*FilterProperty[*entity.PatchFilter]{
+		NewFilterProperty("P.patch_id = ?", func(filter *entity.PatchFilter) any { return filter.Id }),
+		NewFilterProperty("P.patch_service_id = ?", func(filter *entity.PatchFilter) any { return filter.ServiceId }),
+		NewFilterProperty("P.patch_service_name = ?", func(filter *entity.PatchFilter) any { return filter.ServiceName }),
+		NewFilterProperty("P.patch_component_version_id = ?", func(filter *entity.PatchFilter) any { return filter.ComponentVersionId }),
+		NewFilterProperty("P.patch_component_version_name = ?", func(filter *entity.PatchFilter) any { return filter.ComponentVersionName }),
+		NewStateFilterProperty("P.patch", func(filter *entity.PatchFilter) any { return filter.State }),
+	},
+	GetItemAppender: func(l []entity.PatchResult, e RowComposite, order []entity.Order) []entity.PatchResult {
+		p := e.AsPatch()
+		cursor, _ := EncodeCursor(WithPatch(order, p))
+
+		pr := entity.PatchResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			Patch: &p,
+		}
+
+		return append(l, pr)
 	},
 }
 
@@ -56,14 +49,13 @@ func (s *SqlDatabase) buildPatchStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.PatchFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &patchObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, patchObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -74,83 +66,11 @@ func (s *SqlDatabase) GetPatches(
 	filter *entity.PatchFilter,
 	order []entity.Order,
 ) ([]entity.PatchResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"order":  order,
-		"event":  "database.GetPatches",
-	})
-
-	baseQuery := sq.Select("P.*").From("Patch P").GroupBy("P.patch_id")
-
-	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build Patch query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	results, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.PatchResult, e RowComposite) []entity.PatchResult {
-			p := e.AsPatch()
-			cursor, _ := EncodeCursor(WithPatch(order, p))
-
-			pr := entity.PatchResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				Patch: &p,
-			}
-
-			return append(l, pr)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Patches: %w", err)
-	}
-
-	return results, nil
+	return patchObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountPatches(ctx context.Context, filter *entity.PatchFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountPatches",
-	})
-
-	baseQuery := sq.Select("count(distinct P.patch_id)").From("Patch P")
-
-	stmt, filterParameters, err := s.buildPatchStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, fmt.Errorf("failed to build Patch count query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	count, err := performCountScan(ctx, stmt, filterParameters, l)
-	if err != nil {
-		return -1, fmt.Errorf("failed to count Patches: %w", err)
-	}
-
-	return count, nil
+	return patchObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) GetAllPatchCursors(

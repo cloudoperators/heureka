@@ -84,6 +84,18 @@ type RemediationFilter struct {
 	Search      []*string         `json:"search"`
 }
 
+func (f *RemediationFilter) Get() any {
+	return f
+}
+
+func (f *RemediationFilter) Ensure() Filter {
+	if f == nil {
+		return &RemediationFilter{}
+	}
+
+	return f
+}
+
 type RemediationResult struct {
 	WithCursor
 	*Remediation

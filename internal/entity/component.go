@@ -38,4 +38,16 @@ type ComponentFilter struct {
 	State              []StateFilterType `json:"state"`
 }
 
+func (f *ComponentFilter) Get() any {
+	return f
+}
+
+func (f *ComponentFilter) Ensure() Filter {
+	if f == nil {
+		return &ComponentFilter{}
+	}
+
+	return f
+}
+
 type ComponentAggregations struct{}

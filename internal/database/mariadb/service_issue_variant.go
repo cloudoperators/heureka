@@ -6,34 +6,18 @@ package mariadb
 import (
 	"context"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/sirupsen/logrus"
 )
 
-var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
-	Properties: []*Property{},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"CI.componentinstance_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.ComponentInstanceId },
-			),
-		),
-		NewFilterProperty(
-			"I.issue_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.IssueId },
-			),
-		),
-		NewStateFilterProperty(
-			"IV.issuevariant",
-			WrapRetState(
-				func(filter *entity.ServiceIssueVariantFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant, *entity.ServiceIssueVariantFilter, entity.ServiceIssueVariantResult]{
+	DefaultOrder: entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc},
+	Properties:   []*Property[*entity.ServiceIssueVariant]{},
+	FilterProperties: []*FilterProperty[*entity.ServiceIssueVariantFilter]{
+		NewFilterProperty("CI.componentinstance_id = ?", func(filter *entity.ServiceIssueVariantFilter) any { return filter.ComponentInstanceId }),
+		NewFilterProperty("I.issue_id = ?", func(filter *entity.ServiceIssueVariantFilter) any { return filter.IssueId }),
+		NewStateFilterProperty("IV.issuevariant", func(filter *entity.ServiceIssueVariantFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.ServiceIssueVariantFilter]{
 		{
 			Name:  "CV",
 			Type:  InnerJoin,
@@ -82,27 +66,29 @@ var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
 			DependsOn: []string{"I", "IR"},
 		}, // Join to from repo and issue to IssueVariant
 	},
-}
+	ExtraColumnsSelector: func(_ *entity.ServiceIssueVariantFilter, _ *Order) []string {
+		return []string{"IRS.issuerepositoryservice_priority", "IV.*"}
+	},
+	ForceFrom: "ComponentInstance CI",
+	GetItemAppender: func(l []entity.ServiceIssueVariantResult, e RowComposite, order []entity.Order) []entity.ServiceIssueVariantResult {
+		r := ServiceIssueVariantRow{
+			IssueVariantRow: *e.IssueVariantRow,
+			IssueRepositoryRow: IssueRepositoryRow{
+				IssueRepositoryServiceRow: *e.IssueRepositoryServiceRow,
+			},
+		}.AsServiceIssueVariantEntry()
 
-func (s *SqlDatabase) buildServiceIssueVariantStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.ServiceIssueVariantFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement{
-		Db:         s.db,
-		L:          l,
-		Obj:        &serviceIssueVariantObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc}),
-		WithCursor: withCursor,
-		Aggregated: false,
-	}
+		cursor, _ := EncodeCursor(WithServiceIssueVariant(order, r))
 
-	return BuildStatement(ctx, statement, filter)
+		rr := entity.ServiceIssueVariantResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			ServiceIssueVariant: &r,
+		}
+
+		return append(l, rr)
+	},
 }
 
 func (s *SqlDatabase) GetServiceIssueVariants(
@@ -110,47 +96,5 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 	filter *entity.ServiceIssueVariantFilter,
 	order []entity.Order,
 ) ([]entity.ServiceIssueVariantResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetIssueVariants",
-	})
-
-	baseQuery := sq.Select("IRS.issuerepositoryservice_priority", "IV.*").From("ComponentInstance CI")
-
-	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(
-		ctx,
-		baseQuery,
-		filter,
-		true,
-		order,
-		l,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.ServiceIssueVariantResult, e ServiceIssueVariantRow) []entity.ServiceIssueVariantResult {
-			r := e.AsServiceIssueVariantEntry()
-			cursor, _ := EncodeCursor(WithServiceIssueVariant(order, r))
-
-			rr := entity.ServiceIssueVariantResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				ServiceIssueVariant: &r,
-			}
-
-			return append(l, rr)
-		},
-	)
+	return serviceIssueVariantObject.Get(ctx, s.db, filter, order)
 }

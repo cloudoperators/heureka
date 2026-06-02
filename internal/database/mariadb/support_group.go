@@ -15,70 +15,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var supportGroupObject = DbObject[*entity.SupportGroup]{
-	Prefix:    "supportgroup",
-	TableName: "SupportGroup",
-	Properties: []*Property{
-		NewProperty(
-			"supportgroup_ccrn",
-			WrapAccess(
-				func(sg *entity.SupportGroup) (string, bool) { return sg.CCRN, sg.CCRN != "" },
-			),
-		),
-		NewProperty(
-			"supportgroup_created_by",
-			WrapAccess(
-				func(sg *entity.SupportGroup) (int64, bool) { return sg.CreatedBy, NoUpdate },
-			),
-		),
-		NewProperty(
-			"supportgroup_updated_by",
-			WrapAccess(
-				func(sg *entity.SupportGroup) (int64, bool) { return sg.UpdatedBy, sg.UpdatedBy != 0 },
-			),
-		),
+var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilter, entity.SupportGroupResult]{
+	Prefix:       "supportgroup",
+	TableName:    "SupportGroup",
+	TableKey:     "SG",
+	DefaultOrder: entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc},
+	Properties: []*Property[*entity.SupportGroup]{
+		NewProperty("supportgroup_ccrn", func(sg *entity.SupportGroup) (any, bool) { return sg.CCRN, sg.CCRN != "" }),
+		NewProperty("supportgroup_created_by", func(sg *entity.SupportGroup) (any, bool) { return sg.CreatedBy, NoUpdate }),
+		NewProperty("supportgroup_updated_by", func(sg *entity.SupportGroup) (any, bool) { return sg.UpdatedBy, sg.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"SG.supportgroup_id = ?",
-			WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"SGS.supportgroupservice_service_id = ?",
-			WrapRetSlice(
-				func(filter *entity.SupportGroupFilter) []*int64 { return filter.ServiceId },
-			),
-		),
-		NewFilterProperty(
-			"SG.supportgroup_ccrn = ?",
-			WrapRetSlice(func(filter *entity.SupportGroupFilter) []*string { return filter.CCRN }),
-		),
-		NewFilterProperty(
-			"SGU.supportgroupuser_user_id = ?",
-			WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.UserId }),
-		),
-		NewFilterProperty(
-			"IM.issuematch_issue_id = ?",
-			WrapRetSlice(
-				func(filter *entity.SupportGroupFilter) []*int64 { return filter.IssueId },
-			),
-		),
-		NewStateFilterProperty(
-			"SG.supportgroup",
-			WrapRetState(
-				func(filter *entity.SupportGroupFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.SupportGroupFilter]{
+		NewFilterProperty("SG.supportgroup_id = ?", func(filter *entity.SupportGroupFilter) any { return filter.Id }),
+		NewFilterProperty("SGS.supportgroupservice_service_id = ?", func(filter *entity.SupportGroupFilter) any { return filter.ServiceId }),
+		NewFilterProperty("SG.supportgroup_ccrn = ?", func(filter *entity.SupportGroupFilter) any { return filter.CCRN }),
+		NewFilterProperty("SGU.supportgroupuser_user_id = ?", func(filter *entity.SupportGroupFilter) any { return filter.UserId }),
+		NewFilterProperty("IM.issuematch_issue_id = ?", func(filter *entity.SupportGroupFilter) any { return filter.IssueId }),
+		NewStateFilterProperty("SG.supportgroup", func(filter *entity.SupportGroupFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.SupportGroupFilter]{
 		{
-			Name:  "SGS",
-			Type:  InnerJoin,
-			Table: "SupportGroupService SGS",
-			On:    "SG.supportgroup_id = SGS.supportgroupservice_support_group_id",
-			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ *Order) bool {
-				return len(f.ServiceId) > 0
-			}),
+			Name:      "SGS",
+			Type:      InnerJoin,
+			Table:     "SupportGroupService SGS",
+			On:        "SG.supportgroup_id = SGS.supportgroupservice_support_group_id",
+			Condition: func(f *entity.SupportGroupFilter, _ *Order) bool { return len(f.ServiceId) > 0 },
 		},
 		{
 			Name:      "CI",
@@ -86,7 +47,7 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 			Table:     "ComponentInstance CI",
 			On:        "SGS.supportgroupservice_service_id = CI.componentinstance_service_id",
 			DependsOn: []string{"SGS"},
-			Condition: DependentJoin,
+			Condition: DependentJoin[*entity.SupportGroupFilter],
 		},
 		{
 			Name:      "IM",
@@ -94,19 +55,28 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 			Table:     "IssueMatch IM",
 			On:        "CI.componentinstance_id = IM.issuematch_component_instance_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ *Order) bool {
-				return len(f.IssueId) > 0
-			}),
+			Condition: func(f *entity.SupportGroupFilter, _ *Order) bool { return len(f.IssueId) > 0 },
 		},
 		{
-			Name:  "SGU",
-			Type:  InnerJoin,
-			Table: "SupportGroupUser SGU",
-			On:    "SG.supportgroup_id = SGU.supportgroupuser_support_group_id",
-			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ *Order) bool {
-				return len(f.UserId) > 0
-			}),
+			Name:      "SGU",
+			Type:      InnerJoin,
+			Table:     "SupportGroupUser SGU",
+			On:        "SG.supportgroup_id = SGU.supportgroupuser_support_group_id",
+			Condition: func(f *entity.SupportGroupFilter, _ *Order) bool { return len(f.UserId) > 0 },
 		},
+	},
+	GetItemAppender: func(l []entity.SupportGroupResult, e RowComposite, order []entity.Order) []entity.SupportGroupResult {
+		sg := e.AsSupportGroup()
+		cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
+
+		sgr := entity.SupportGroupResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			SupportGroup: &sg,
+		}
+
+		return append(l, sgr)
 	},
 }
 
@@ -118,14 +88,13 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.SupportGroupFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &supportGroupObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, supportGroupObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -175,72 +144,11 @@ func (s *SqlDatabase) GetSupportGroups(
 	filter *entity.SupportGroupFilter,
 	order []entity.Order,
 ) ([]entity.SupportGroupResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetSupportGroups",
-	})
-
-	baseQuery := sq.Select("SG.*").From("SupportGroup SG").GroupBy("SG.supportgroup_id")
-
-	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.SupportGroupResult, e RowComposite) []entity.SupportGroupResult {
-			sg := e.AsSupportGroup()
-			cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
-
-			sgr := entity.SupportGroupResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				SupportGroup: &sg,
-			}
-
-			return append(l, sgr)
-		},
-	)
+	return supportGroupObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountSupportGroups(ctx context.Context, filter *entity.SupportGroupFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountSupportGroups",
-	})
-
-	baseQuery := sq.Select("count(distinct SG.supportgroup_id)").From("SupportGroup SG")
-
-	stmt, filterParameters, err := s.buildSupportGroupStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performCountScan(ctx, stmt, filterParameters, l)
+	return supportGroupObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) CreateSupportGroup(

@@ -14,257 +14,92 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentInstanceObject = DbObject[*entity.ComponentInstance]{
-	Prefix:    "componentinstance",
-	TableName: "ComponentInstance",
-	Properties: []*Property{
-		NewProperty(
-			"componentinstance_ccrn",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.CCRN, ci.CCRN != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_region",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.Region, ci.Region != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_cluster",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.Cluster, ci.Cluster != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_namespace",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.Namespace, ci.Namespace != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_domain",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.Domain, ci.Domain != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_project",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.Project, ci.Project != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_pod",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.Pod, ci.Pod != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_container",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (string, bool) { return ci.Container, ci.Container != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_type",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (entity.ComponentInstanceType, bool) { return ci.Type, ci.Type != "" },
-			),
-		),
-		NewProperty(
-			"componentinstance_parent_id",
-			WrapAccess(func(ci *entity.ComponentInstance) (sql.NullInt64, bool) {
-				return sql.NullInt64{
-					Int64: ci.ParentId,
-					Valid: IsValidId(ci.ParentId),
-				}, ci.ParentId != 0
+var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.ComponentInstanceFilter, entity.ComponentInstanceResult]{
+	Prefix:       "componentinstance",
+	TableName:    "ComponentInstance",
+	TableKey:     "CI",
+	DefaultOrder: entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc},
+	Properties: []*Property[*entity.ComponentInstance]{
+		NewProperty("componentinstance_ccrn", func(ci *entity.ComponentInstance) (any, bool) { return ci.CCRN, ci.CCRN != "" }),
+		NewProperty("componentinstance_region", func(ci *entity.ComponentInstance) (any, bool) { return ci.Region, ci.Region != "" }),
+		NewProperty("componentinstance_cluster", func(ci *entity.ComponentInstance) (any, bool) { return ci.Cluster, ci.Cluster != "" }),
+		NewProperty("componentinstance_namespace", func(ci *entity.ComponentInstance) (any, bool) { return ci.Namespace, ci.Namespace != "" }),
+		NewProperty("componentinstance_domain", func(ci *entity.ComponentInstance) (any, bool) { return ci.Domain, ci.Domain != "" }),
+		NewProperty("componentinstance_project", func(ci *entity.ComponentInstance) (any, bool) { return ci.Project, ci.Project != "" }),
+		NewProperty("componentinstance_pod", func(ci *entity.ComponentInstance) (any, bool) { return ci.Pod, ci.Pod != "" }),
+		NewProperty("componentinstance_container", func(ci *entity.ComponentInstance) (any, bool) { return ci.Container, ci.Container != "" }),
+		NewProperty("componentinstance_type", func(ci *entity.ComponentInstance) (any, bool) { return ci.Type, ci.Type != "" }),
+		NewProperty("componentinstance_parent_id",
+			func(ci *entity.ComponentInstance) (any, bool) {
+				return sql.NullInt64{Int64: ci.ParentId, Valid: IsValidId(ci.ParentId)}, ci.ParentId != 0
 			}),
-		),
-		NewProperty(
-			"componentinstance_context",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (*entity.Json, bool) { return ci.Context, ci.Context != nil },
-			),
-		),
-		NewProperty(
-			"componentinstance_count",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (int16, bool) { return ci.Count, ci.Count != 0 },
-			),
-		),
-		NewProperty(
-			"componentinstance_component_version_id",
-			WrapAccess(func(ci *entity.ComponentInstance) (sql.NullInt64, bool) {
-				return sql.NullInt64{
-					Int64: ci.ComponentVersionId,
-					Valid: IsValidId(ci.ComponentVersionId),
-				}, ci.ComponentVersionId != 0
+		NewProperty("componentinstance_context", func(ci *entity.ComponentInstance) (any, bool) { return ci.Context, ci.Context != nil }),
+		NewProperty("componentinstance_count", func(ci *entity.ComponentInstance) (any, bool) { return ci.Count, ci.Count != 0 }),
+		NewProperty("componentinstance_component_version_id",
+			func(ci *entity.ComponentInstance) (any, bool) {
+				return sql.NullInt64{Int64: ci.ComponentVersionId, Valid: IsValidId(ci.ComponentVersionId)}, ci.ComponentVersionId != 0
 			}),
-		),
-		NewProperty(
-			"componentinstance_service_id",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (int64, bool) { return ci.ServiceId, ci.ServiceId != 0 },
-			),
-		),
-		NewProperty(
-			"componentinstance_created_by",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (int64, bool) { return ci.CreatedBy, NoUpdate },
-			),
-		),
-		NewProperty(
-			"componentinstance_updated_by",
-			WrapAccess(
-				func(ci *entity.ComponentInstance) (int64, bool) { return ci.UpdatedBy, ci.UpdatedBy != 0 },
-			),
-		),
+		NewProperty("componentinstance_service_id", func(ci *entity.ComponentInstance) (any, bool) { return ci.ServiceId, ci.ServiceId != 0 }),
+		NewProperty("componentinstance_created_by", func(ci *entity.ComponentInstance) (any, bool) { return ci.CreatedBy, NoUpdate }),
+		NewProperty("componentinstance_updated_by", func(ci *entity.ComponentInstance) (any, bool) { return ci.UpdatedBy, ci.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"CI.componentinstance_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*int64 { return filter.Id },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_ccrn = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.CCRN },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_region = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Region },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_cluster = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Cluster },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_namespace = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Namespace },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_domain = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Domain },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_project = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Project },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_pod = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Pod },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_container = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Container },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_type = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Type },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_parent_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*int64 { return filter.ParentId },
-			),
-		),
-		NewJsonFilterProperty(
-			"CI.componentinstance_context",
-			WrapRetJson(
-				func(filter *entity.ComponentInstanceFilter) []*entity.Json { return filter.Context },
-			),
-		),
-		NewFilterProperty(
-			"IM.issuematch_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*int64 { return filter.IssueMatchId },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_service_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*int64 { return filter.ServiceId },
-			),
-		),
-		NewFilterProperty(
-			"S.service_ccrn = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.ServiceCcrn },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_component_version_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*int64 { return filter.ComponentVersionId },
-			),
-		),
-		NewFilterProperty(
-			"CV.componentversion_version = ?",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.ComponentVersionVersion },
-			),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_ccrn LIKE Concat('%',?,'%')",
-			WrapRetSlice(
-				func(filter *entity.ComponentInstanceFilter) []*string { return filter.Search },
-			),
-		),
-		NewStateFilterProperty(
-			"CI.componentinstance",
-			WrapRetState(
-				func(filter *entity.ComponentInstanceFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.ComponentInstanceFilter]{
+		NewFilterProperty("CI.componentinstance_id = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Id }),
+		NewFilterProperty("CI.componentinstance_ccrn = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.CCRN }),
+		NewFilterProperty("CI.componentinstance_region = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Region }),
+		NewFilterProperty("CI.componentinstance_cluster = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Cluster }),
+		NewFilterProperty("CI.componentinstance_namespace = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Namespace }),
+		NewFilterProperty("CI.componentinstance_domain = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Domain }),
+		NewFilterProperty("CI.componentinstance_project = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Project }),
+		NewFilterProperty("CI.componentinstance_pod = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Pod }),
+		NewFilterProperty("CI.componentinstance_container = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Container }),
+		NewFilterProperty("CI.componentinstance_type = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.Type }),
+		NewFilterProperty("CI.componentinstance_parent_id = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.ParentId }),
+		NewJsonFilterProperty("CI.componentinstance_context", func(filter *entity.ComponentInstanceFilter) any { return filter.Context }),
+		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.IssueMatchId }),
+		NewFilterProperty("CI.componentinstance_service_id = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.ServiceId }),
+		NewFilterProperty("S.service_ccrn = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.ServiceCcrn }),
+		NewFilterProperty("CI.componentinstance_component_version_id = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.ComponentVersionId }),
+		NewFilterProperty("CV.componentversion_version = ?", func(filter *entity.ComponentInstanceFilter) any { return filter.ComponentVersionVersion }),
+		NewFilterProperty("CI.componentinstance_ccrn LIKE Concat('%',?,'%')", func(filter *entity.ComponentInstanceFilter) any { return filter.Search }),
+		NewStateFilterProperty("CI.componentinstance", func(filter *entity.ComponentInstanceFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.ComponentInstanceFilter]{
 		{
-			Name:  "IM",
-			Type:  InnerJoin,
-			Table: "IssueMatch IM",
-			On:    "CI.componentinstance_id = IM.issuematch_component_instance_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ *Order) bool {
-				return len(f.IssueMatchId) > 0
-			}),
+			Name:      "IM",
+			Type:      InnerJoin,
+			Table:     "IssueMatch IM",
+			On:        "CI.componentinstance_id = IM.issuematch_component_instance_id",
+			Condition: func(f *entity.ComponentInstanceFilter, _ *Order) bool { return len(f.IssueMatchId) > 0 },
 		},
 		{
-			Name:  "S",
-			Type:  InnerJoin,
-			Table: "Service S",
-			On:    "CI.componentinstance_service_id = S.service_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ *Order) bool {
-				return len(f.ServiceCcrn) > 0
-			}),
+			Name:      "S",
+			Type:      InnerJoin,
+			Table:     "Service S",
+			On:        "CI.componentinstance_service_id = S.service_id",
+			Condition: func(f *entity.ComponentInstanceFilter, _ *Order) bool { return len(f.ServiceCcrn) > 0 },
 		},
 		{
-			Name:  "CV",
-			Type:  InnerJoin,
-			Table: "ComponentVersion CV",
-			On:    "CI.componentinstance_component_version_id = CV.componentversion_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ *Order) bool {
-				return len(f.ComponentVersionVersion) > 0
-			}),
+			Name:      "CV",
+			Type:      InnerJoin,
+			Table:     "ComponentVersion CV",
+			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
+			Condition: func(f *entity.ComponentInstanceFilter, _ *Order) bool { return len(f.ComponentVersionVersion) > 0 },
 		},
+	},
+	GetItemAppender: func(l []entity.ComponentInstanceResult, e RowComposite, order []entity.Order) []entity.ComponentInstanceResult {
+		ci := e.AsComponentInstance()
+
+		cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
+
+		cir := entity.ComponentInstanceResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			ComponentInstance: &ci,
+		}
+
+		return append(l, cir)
 	},
 }
 
@@ -276,14 +111,13 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.ComponentInstanceFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &componentInstanceObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, componentInstanceObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -294,48 +128,7 @@ func (s *SqlDatabase) GetComponentInstances(
 	filter *entity.ComponentInstanceFilter,
 	order []entity.Order,
 ) ([]entity.ComponentInstanceResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetComponentInstances",
-	})
-
-	baseQuery := sq.Select("CI.*").From("ComponentInstance CI").GroupBy("CI.componentinstance_id")
-
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build ComponentInstances query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	results, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.ComponentInstanceResult, e RowComposite) []entity.ComponentInstanceResult {
-			ci := e.AsComponentInstance()
-
-			cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
-
-			cir := entity.ComponentInstanceResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				ComponentInstance: &ci,
-			}
-
-			return append(l, cir)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstances: %w", err)
-	}
-
-	return results, nil
+	return componentInstanceObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetAllComponentInstanceCursors(
@@ -379,36 +172,7 @@ func (s *SqlDatabase) GetAllComponentInstanceCursors(
 }
 
 func (s *SqlDatabase) CountComponentInstances(ctx context.Context, filter *entity.ComponentInstanceFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountComponentInstances",
-	})
-
-	baseQuery := sq.Select("count(distinct CI.componentinstance_id)").From("ComponentInstance CI")
-
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, fmt.Errorf("failed to build ComponentInstance count query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	count, err := performCountScan(ctx, stmt, filterParameters, l)
-	if err != nil {
-		return -1, fmt.Errorf("failed to count ComponentInstances: %w", err)
-	}
-
-	return count, nil
+	return componentInstanceObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) CreateComponentInstance(

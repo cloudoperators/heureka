@@ -27,6 +27,18 @@ type SupportGroupFilter struct {
 	State     []StateFilterType `json:"state"`
 }
 
+func (f *SupportGroupFilter) Get() any {
+	return f
+}
+
+func (f *SupportGroupFilter) Ensure() Filter {
+	if f == nil {
+		return &SupportGroupFilter{}
+	}
+
+	return f
+}
+
 type SupportGroupAggregations struct{}
 
 type SupportGroupResult struct {

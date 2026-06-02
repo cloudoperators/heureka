@@ -35,6 +35,18 @@ type IssueVariantFilter struct {
 	State             []StateFilterType `json:"state"`
 }
 
+func (f *IssueVariantFilter) Get() any {
+	return f
+}
+
+func (f *IssueVariantFilter) Ensure() Filter {
+	if f == nil {
+		return &IssueVariantFilter{}
+	}
+
+	return f
+}
+
 func NewIssueVariantFilter() *IssueVariantFilter {
 	return &IssueVariantFilter{
 		Paginated: Paginated{
@@ -69,6 +81,18 @@ type ServiceIssueVariantFilter struct {
 	ComponentInstanceId []*int64          `json:"component_instance_id"`
 	IssueId             []*int64          `json:"issue_id"`
 	State               []StateFilterType `json:"state"`
+}
+
+func (f *ServiceIssueVariantFilter) Get() any {
+	return f
+}
+
+func (f *ServiceIssueVariantFilter) Ensure() Filter {
+	if f == nil {
+		return &ServiceIssueVariantFilter{}
+	}
+
+	return f
 }
 
 func NewServiceIssueVariantFilter() *ServiceIssueVariantFilter {

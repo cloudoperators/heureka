@@ -18,115 +18,39 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueObject = DbObject[*entity.Issue]{
-	Prefix:    "issue",
-	TableName: "Issue",
-	Properties: []*Property{
-		NewProperty(
-			"issue_primary_name",
-			WrapAccess(
-				func(i *entity.Issue) (string, bool) { return i.PrimaryName, i.PrimaryName != "" },
-			),
-		),
-		NewProperty(
-			"issue_type",
-			WrapAccess(
-				func(i *entity.Issue) (entity.IssueType, bool) { return i.Type, i.Type != "" },
-			),
-		),
-		NewProperty(
-			"issue_description",
-			WrapAccess(
-				func(i *entity.Issue) (string, bool) { return i.Description, i.Description != "" },
-			),
-		),
-		NewProperty(
-			"issue_created_by",
-			WrapAccess(func(i *entity.Issue) (int64, bool) { return i.CreatedBy, NoUpdate }),
-		),
-		NewProperty(
-			"issue_updated_by",
-			WrapAccess(
-				func(i *entity.Issue) (int64, bool) { return i.UpdatedBy, i.UpdatedBy != 0 },
-			),
-		),
+var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResult]{
+	Prefix:       "issue",
+	TableName:    "Issue",
+	TableKey:     "I",
+	DefaultOrder: entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc},
+	Aggregated:   true,
+	Properties: []*Property[*entity.Issue]{
+		NewProperty("issue_primary_name", func(i *entity.Issue) (any, bool) { return i.PrimaryName, i.PrimaryName != "" }),
+		NewProperty("issue_type", func(i *entity.Issue) (any, bool) { return i.Type, i.Type != "" }),
+		NewProperty("issue_description", func(i *entity.Issue) (any, bool) { return i.Description, i.Description != "" }),
+		NewProperty("issue_created_by", func(i *entity.Issue) (any, bool) { return i.CreatedBy, NoUpdate }),
+		NewProperty("issue_updated_by", func(i *entity.Issue) (any, bool) { return i.UpdatedBy, i.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"S.service_ccrn = ?",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.ServiceCCRN }),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_service_id = ?",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ServiceId }),
-		),
-		NewFilterProperty(
-			"I.issue_id = ?",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"IM.issuematch_status = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueFilter) []*string { return filter.IssueMatchStatus },
-			),
-		),
-		NewFilterProperty(
-			"IM.issuematch_rating = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueFilter) []*string { return filter.IssueMatchSeverity },
-			),
-		),
-		NewFilterProperty(
-			"IM.issuematch_id = ?",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueMatchId }),
-		),
-		NewFilterProperty(
-			"CVI.componentversionissue_component_version_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueFilter) []*int64 { return filter.ComponentVersionId },
-			),
-		),
-		NewFilterProperty(
-			"IV.issuevariant_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueFilter) []*int64 { return filter.IssueVariantId },
-			),
-		),
-		NewFilterProperty(
-			"I.issue_type = ?",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Type }),
-		),
-		NewFilterProperty(
-			"I.issue_primary_name = ?",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.PrimaryName }),
-		),
-		NewFilterProperty(
-			"IV.issuevariant_repository_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueFilter) []*int64 { return filter.IssueRepositoryId },
-			),
-		),
-		NewFilterProperty(
-			"SG.supportgroup_ccrn = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueFilter) []*string { return filter.SupportGroupCCRN },
-			),
-		),
-		NewFilterProperty(
-			"CV.componentversion_component_id = ?",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ComponentId }),
-		),
+	FilterProperties: []*FilterProperty[*entity.IssueFilter]{
+		NewFilterProperty("S.service_ccrn = ?", func(filter *entity.IssueFilter) any { return filter.ServiceCCRN }),
+		NewFilterProperty("CI.componentinstance_service_id = ?", func(filter *entity.IssueFilter) any { return filter.ServiceId }),
+		NewFilterProperty("I.issue_id = ?", func(filter *entity.IssueFilter) any { return filter.Id }),
+		NewFilterProperty("IM.issuematch_status = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchStatus }),
+		NewFilterProperty("IM.issuematch_rating = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchSeverity }),
+		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchId }),
+		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any { return filter.ComponentVersionId }),
+		NewFilterProperty("IV.issuevariant_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueVariantId }),
+		NewFilterProperty("I.issue_type = ?", func(filter *entity.IssueFilter) any { return filter.Type }),
+		NewFilterProperty("I.issue_primary_name = ?", func(filter *entity.IssueFilter) any { return filter.PrimaryName }),
+		NewFilterProperty("IV.issuevariant_repository_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueRepositoryId }),
+		NewFilterProperty("SG.supportgroup_ccrn = ?", func(filter *entity.IssueFilter) any { return filter.SupportGroupCCRN }),
+		NewFilterProperty("CV.componentversion_component_id = ?", func(filter *entity.IssueFilter) any { return filter.ComponentId }),
 		NewNFilterProperty(
 			"IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')",
-			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Search }),
+			func(filter *entity.IssueFilter) any { return filter.Search },
 			2,
 		),
-		NewStateFilterProperty(
-			"I.issue",
-			WrapRetState(
-				func(filter *entity.IssueFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+		NewStateFilterProperty("I.issue", func(filter *entity.IssueFilter) any { return filter.State }),
 		NewCustomFilterProperty(
 			WrapBuilder(func(is []entity.IssueStatus) string {
 				if len(is) != 1 {
@@ -140,29 +64,25 @@ var issueObject = DbObject[*entity.Issue]{
 				}
 				return ""
 			}),
-			WrapRetSlice(
-				func(filter *entity.IssueFilter) []entity.IssueStatus { return []entity.IssueStatus{filter.Status} },
-			),
+			func(filter *entity.IssueFilter) any { return []entity.IssueStatus{filter.Status} },
 		),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.IssueFilter]{
 		{
-			Name:  "IM_RJ",
-			Type:  RightJoin,
-			Table: "IssueMatch IM",
-			On:    "I.issue_id = IM.issuematch_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return f.HasIssueMatches
-			}),
+			Name:      "IM_RJ",
+			Type:      RightJoin,
+			Table:     "IssueMatch IM",
+			On:        "I.issue_id = IM.issuematch_issue_id",
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return f.HasIssueMatches },
 		},
 		{
 			Name:  "IM_LJ",
 			Type:  LeftJoin,
 			Table: "IssueMatch IM",
 			On:    "I.issue_id = IM.issuematch_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.IssueMatchStatus) > 0 || len(f.IssueMatchId) > 0 || len(f.IssueMatchSeverity) > 0
-			}),
+			},
 		},
 		{
 			Name:      "CI with IM_RJ",
@@ -170,7 +90,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
 			DependsOn: []string{"IM_RJ"},
-			Condition: DependentJoin,
+			Condition: DependentJoin[*entity.IssueFilter],
 		},
 		{
 			Name:      "CI with IM_LJ",
@@ -178,9 +98,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
 			DependsOn: []string{"IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.ServiceId) > 0
-			}),
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ServiceId) > 0 },
 		},
 		{
 			Name:      "CV with IM_RJ",
@@ -188,9 +106,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentVersion CV",
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CI with IM_RJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return f.AllServices
-			}),
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return f.AllServices },
 		}, // Looks like this case is not used because of mv_vulnerabilities
 		{
 			Name:      "CV with IM_LJ",
@@ -198,9 +114,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentVersion CV",
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.ServiceCCRN) > 0
-			}),
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
 		},
 		{
 			Name:      "S with IM_RJ",
@@ -208,9 +122,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI with IM_RJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return f.AllServices
-			}),
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return f.AllServices },
 		}, // Looks like this case is not used because of mv_vulnerabilities
 		{
 			Name:      "S with IM_LJ",
@@ -218,9 +130,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.ServiceCCRN) > 0
-			}),
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
 		},
 		{
 			Name:      "SGS",
@@ -228,7 +138,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "SupportGroupService SGS",
 			On:        "CI.componentinstance_service_id = SGS.supportgroupservice_service_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: DependentJoin,
+			Condition: DependentJoin[*entity.IssueFilter],
 		},
 		{
 			Name:      "SG",
@@ -236,27 +146,23 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "SupportGroup SG",
 			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
 			DependsOn: []string{"SGS"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.SupportGroupCCRN) > 0
-			}),
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.SupportGroupCCRN) > 0 },
 		},
 		{
 			Name:  "IV",
 			Type:  LeftJoin,
 			Table: "IssueVariant IV",
 			On:    "I.issue_id = IV.issuevariant_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, order *Order) bool {
+			Condition: func(f *entity.IssueFilter, order *Order) bool {
 				return len(f.IssueVariantId) > 0 || len(f.IssueRepositoryId) > 0 || len(f.Search) > 0 || order.ByRating()
-			}),
+			},
 		},
 		{
-			Name:  "CVI",
-			Type:  LeftJoin,
-			Table: "ComponentVersionIssue CVI",
-			On:    "I.issue_id = CVI.componentversionissue_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.ComponentVersionId) > 0
-			}),
+			Name:      "CVI",
+			Type:      LeftJoin,
+			Table:     "ComponentVersionIssue CVI",
+			On:        "I.issue_id = CVI.componentversionissue_issue_id",
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ComponentVersionId) > 0 },
 		},
 		{
 			Name:      "CV using CVI",
@@ -264,9 +170,9 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentVersion CV",
 			On:        "CVI.componentversionissue_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CVI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.ComponentId) > 0 && (len(f.ServiceId) == 0 && len(f.ServiceCCRN) == 0 && len(f.SupportGroupCCRN) == 0 && !f.AllServices)
-			}),
+			},
 		},
 		{
 			Name:      "R has S and C",
@@ -274,11 +180,11 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Remediation R",
 			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id AND CV.componentversion_component_id = R.remediation_component_id",
 			DependsOn: []string{"CI with IM_LJ", "CV using CVI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && hasComponent
-			}),
+			},
 		}, // Missing test
 		{
 			Name:      "R has S",
@@ -286,11 +192,11 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Remediation R",
 			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && !hasComponent
-			}),
+			},
 		}, // Missing test
 		{
 			Name:      "R has C",
@@ -298,23 +204,50 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Remediation R",
 			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CV.componentversion_component_id = R.remediation_component_id",
 			DependsOn: []string{"CV using CVI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && hasComponent
-			}),
+			},
 		}, // Missing test
 		{
 			Name:  "R",
 			Type:  LeftJoin,
 			Table: "Remediation R",
 			On:    "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && !hasComponent
-			}),
+			},
 		},
+	},
+	ExtraColumnsSelector: func(_ *entity.IssueFilter, order *Order) []string {
+		for _, o := range order.Sequence() {
+			switch o.By {
+			case entity.IssueVariantRating:
+				return []string{"MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num"}
+			}
+		}
+
+		return []string{}
+	},
+	GetItemAppender: func(l []entity.IssueResult, e RowComposite, order []entity.Order) []entity.IssueResult {
+		issue := e.IssueRow.AsIssue()
+
+		var ivRating int64
+		if e.IssueVariantRow != nil {
+			ivRating = e.RatingNumerical.Int64
+		}
+
+		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
+
+		sr := entity.IssueResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			Issue:      &issue,
+		}
+
+		return append(l, sr)
 	},
 }
 
@@ -330,14 +263,13 @@ func appendIssueColumns(s []string, order []entity.Order) []string {
 }
 
 func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery sq.SelectBuilder, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.IssueFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &issueObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, issueObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: true,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -345,7 +277,7 @@ func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery sq.Sele
 
 // TODO: use DbObject
 func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
-	filter = EnsureFilter(filter)
+	filter = EnsureFilter_tmp(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssuesWithAggregations",
@@ -477,24 +409,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
 }
 
 func (s *SqlDatabase) CountIssues(ctx context.Context, filter *entity.IssueFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountIssues",
-	})
-
-	baseQuery := sq.Select("count(distinct I.issue_id)").From("Issue I")
-
-	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return -1, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performCountScan(ctx, stmt, filterParameters, l)
+	return issueObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) CountIssueTypes(ctx context.Context, filter *entity.IssueFilter) (*entity.IssueTypeCounts, error) {
@@ -599,46 +514,7 @@ func (s *SqlDatabase) GetIssues(
 	filter *entity.IssueFilter,
 	order []entity.Order,
 ) ([]entity.IssueResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetIssues",
-	})
-
-	baseQuery := sq.Select(appendIssueColumns([]string{"I.*"}, order)...).From("Issue I").GroupBy("I.issue_id")
-
-	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.IssueResult, e RowComposite) []entity.IssueResult {
-			issue := e.IssueRow.AsIssue()
-
-			var ivRating int64
-			if e.IssueVariantRow != nil {
-				ivRating = e.RatingNumerical.Int64
-			}
-
-			cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
-
-			sr := entity.IssueResult{
-				WithCursor: entity.WithCursor{Value: cursor},
-				Issue:      &issue,
-			}
-
-			return append(l, sr)
-		},
-	)
+	return issueObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {

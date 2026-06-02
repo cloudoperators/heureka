@@ -81,6 +81,18 @@ type IssueMatchFilter struct {
 	ServiceOwnerUniqueUserId []*string         `json:"service_owner_unique_user_id"`
 }
 
+func (f *IssueMatchFilter) Get() any {
+	return f
+}
+
+func (f *IssueMatchFilter) Ensure() Filter {
+	if f == nil {
+		return &IssueMatchFilter{}
+	}
+
+	return f
+}
+
 type IssueMatchResult struct {
 	WithCursor
 	*IssueMatch

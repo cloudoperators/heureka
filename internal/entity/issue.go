@@ -83,6 +83,18 @@ type IssueFilter struct {
 	State                           []StateFilterType `json:"state"`
 }
 
+func (f *IssueFilter) Get() any {
+	return f
+}
+
+func (f *IssueFilter) Ensure() Filter {
+	if f == nil {
+		return &IssueFilter{}
+	}
+
+	return f
+}
+
 type IssueAggregations struct {
 	IssueMatches                  int64
 	AffectedServices              int64

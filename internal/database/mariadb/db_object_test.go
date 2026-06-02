@@ -33,6 +33,20 @@ type dummyEntityFilter struct {
 	B  []*int
 }
 
+func (f *dummyEntityFilter) Get() any {
+	return f
+}
+
+func (f *dummyEntityFilter) Ensure() entity.Filter {
+	if f == nil {
+		return &dummyEntityFilter{}
+	}
+
+	return f
+}
+
+type dummyResult = entity.ComponentResult
+
 var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 	const (
 		dummyId                      = 7
@@ -51,11 +65,11 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 
 	When("Insert query is called", func() {
 		Context("Two properties are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
 				TableName: "DummyTable",
-				Properties: []*mariadb.Property{
-					mariadb.NewProperty("id", mariadb.WrapAccess(func(de *dummyEntity) (int64, bool) { return de.Id, anyVal })),
-					mariadb.NewProperty("a", mariadb.WrapAccess(func(de *dummyEntity) (string, bool) { return de.A, anyVal })),
+				Properties: []*mariadb.Property[*dummyEntity]{
+					mariadb.NewProperty("id", func(de *dummyEntity) (any, bool) { return de.Id, anyVal }),
+					mariadb.NewProperty("a", func(de *dummyEntity) (any, bool) { return de.A, anyVal }),
 				},
 			}
 			It("can build insert query and query parameters", func() {
@@ -71,13 +85,16 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 	})
 	When("Filter query is called", func() {
 		Context("Two filters are there in the filter object", func() {
-			testObject := mariadb.DbObject[*dummyEntity]{
-				TableName: "DummyTable",
-				FilterProperties: []*mariadb.FilterProperty{
-					mariadb.NewFilterProperty("DT.dummytable_id = ?", mariadb.WrapRetSlice(func(filter *dummyEntityFilter) []*int64 { return filter.Id })),
-					mariadb.NewFilterProperty("DT.dummytable_a = ?", mariadb.WrapRetSlice(func(filter *dummyEntityFilter) []*string { return filter.A })),
-				},
-			}
+			var testObject mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]
+			BeforeEach(func() {
+				testObject = mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+					TableName: "DummyTable",
+					FilterProperties: []*mariadb.FilterProperty[*dummyEntityFilter]{
+						mariadb.NewFilterProperty("DT.dummytable_id = ?", func(filter *dummyEntityFilter) any { return filter.Id }),
+						mariadb.NewFilterProperty("DT.dummytable_a = ?", func(filter *dummyEntityFilter) any { return filter.A }),
+					},
+				}
+			})
 			It("builds filter for one filter item", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
 				By("returning correct filter in query", func() {
@@ -89,15 +106,16 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				})
 				By("returning correct parameter with cursor in non aggregated query", func() {
 					qb := testObject.AddFilter(dummySelectBuilder, &def)
-					qb = testObject.AddCursor(qb, &def, notAggregated, []mariadb.Field{dummyCursorField})
+					qb = testObject.AddCursor(qb, &def, []mariadb.Field{dummyCursorField})
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString), dummyCursorFieldVal}))
 					Expect(query).To(BeEquivalentTo(dummySelectQuery + " WHERE (   DT.dummytable_a = ? ) AND (  componentinstance_namespace < ?  ) LIMIT 1000"))
 				})
-				By("returning correct parameter with cursor in aggregated query", func() {
+				By("returning correct parameter with cursor in aggregated object", func() {
+					testObject.Aggregated = true
 					qb := testObject.AddFilter(dummySelectBuilder, &def)
-					qb = testObject.AddCursor(qb, &def, aggregated, []mariadb.Field{dummyCursorField})
+					qb = testObject.AddCursor(qb, &def, []mariadb.Field{dummyCursorField})
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString), dummyCursorFieldVal}))
@@ -129,7 +147,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 	})
 	When("Joins query is build", func() {
 		Context("no joins are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
 				TableName: "DummyTable",
 			}
 			It("gets no joins in query as there is no join defined", func() {
@@ -142,22 +160,22 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Two basic joins are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
 				TableName: "DummyTable",
-				JoinDefs: []*mariadb.JoinDef{
+				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
 						Name:      "X",
 						Type:      mariadb.LeftJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.A) > 0 }),
+						Condition: func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.A) > 0 },
 					},
 					{
 						Name:      "Y",
 						Type:      mariadb.RightJoin,
 						Table:     "Yabc Y",
 						On:        "DT.dummytable_id = Y.yabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
+						Condition: func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 },
 					},
 				},
 			}
@@ -199,15 +217,15 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Join when dependency is there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
 				TableName: "DummyTable",
-				JoinDefs: []*mariadb.JoinDef{
+				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
 						Name:      "X",
 						Type:      mariadb.LeftJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.DependentJoin,
+						Condition: mariadb.DependentJoin[*dummyEntityFilter],
 					},
 					{
 						Name:      "Y",
@@ -215,7 +233,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Table:     "Yabc Y",
 						On:        "X.xabc_yabc_id = Y.yabc_id",
 						DependsOn: []string{"X"},
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
+						Condition: func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 },
 					},
 				},
 			}
@@ -233,15 +251,15 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Two joins when the same dependency are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
 				TableName: "DummyTable",
-				JoinDefs: []*mariadb.JoinDef{
+				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
 						Name:      "X",
 						Type:      mariadb.LeftJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.DependentJoin,
+						Condition: mariadb.DependentJoin[*dummyEntityFilter],
 					},
 					{
 						Name:      "Y",
@@ -249,7 +267,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Table:     "Yabc Y",
 						On:        "X.xabc_yabc_id = Y.yabc_id",
 						DependsOn: []string{"X"},
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
+						Condition: func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 },
 					},
 					{
 						Name:      "Z",
@@ -257,7 +275,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 						Table:     "Zabc Z",
 						On:        "X.xabc_zabc_id = Z.zabc_id",
 						DependsOn: []string{"X"},
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.A) > 0 }),
+						Condition: func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.A) > 0 },
 					},
 				},
 			}
@@ -276,22 +294,22 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Two joins when the same table are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
 				TableName: "DummyTable",
-				JoinDefs: []*mariadb.JoinDef{
+				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
 						Name:      "X_left",
 						Type:      mariadb.LeftJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
+						Condition: func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 },
 					},
 					{
 						Name:      "X_right",
 						Type:      mariadb.RightJoin,
 						Table:     "Xabc X",
 						On:        "DT.dummytable_id = X.xabc_dummytable_id",
-						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 }),
+						Condition: func(f *dummyEntityFilter, _ *mariadb.Order) bool { return len(f.B) > 0 },
 					},
 				},
 			}

@@ -29,6 +29,18 @@ type IssueRepositoryFilter struct {
 	State       []StateFilterType `json:"state"`
 }
 
+func (f *IssueRepositoryFilter) Get() any {
+	return f
+}
+
+func (f *IssueRepositoryFilter) Ensure() Filter {
+	if f == nil {
+		return &IssueRepositoryFilter{}
+	}
+
+	return f
+}
+
 func NewIssueRepositoryFilter() *IssueRepositoryFilter {
 	return &IssueRepositoryFilter{
 		Paginated: Paginated{

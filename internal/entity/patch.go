@@ -30,6 +30,18 @@ type PatchFilter struct {
 	State                []StateFilterType `json:"state"`
 }
 
+func (f *PatchFilter) Get() any {
+	return f
+}
+
+func (f *PatchFilter) Ensure() Filter {
+	if f == nil {
+		return &PatchFilter{}
+	}
+
+	return f
+}
+
 type PatchResult struct {
 	WithCursor
 	*Patch
