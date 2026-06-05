@@ -10,6 +10,7 @@ import (
 )
 
 var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant, *entity.ServiceIssueVariantFilter, entity.ServiceIssueVariantResult]{
+	TableName:    "ServiceIssueVariant",
 	DefaultOrder: entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc},
 	Properties:   []*Property[*entity.ServiceIssueVariant]{},
 	FilterProperties: []*FilterProperty[*entity.ServiceIssueVariantFilter]{

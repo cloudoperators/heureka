@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"strings"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -76,7 +78,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				de := dummyEntity{Id: dummyId, A: dummyString}
 				query, params, err := testObject.InsertQuery(&de)
 				Expect(err).To(BeNil())
-				Expect(query).To(BeEquivalentTo("INSERT INTO DummyTable (id,a) VALUES (?,?)"))
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo("INSERT INTO DummyTable (id,a) VALUES (?,?)"))
 				Expect(params).To(HaveLen(2))
 				Expect(params[0]).To(BeEquivalentTo(dummyId))
 				Expect(params[1]).To(BeEquivalentTo(dummyString))
@@ -102,7 +105,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString)}))
-					Expect(query).To(BeEquivalentTo(dummySelectQuery + " WHERE (   DT.dummytable_a = ? )"))
+					normalizedQuery := strings.Join(strings.Fields(query), " ")
+					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_a = ? )"))
 				})
 				By("returning correct parameter with cursor in non aggregated query", func() {
 					qb := testObject.AddFilter(dummySelectBuilder, &def)
@@ -110,7 +114,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString), dummyCursorFieldVal}))
-					Expect(query).To(BeEquivalentTo(dummySelectQuery + " WHERE (   DT.dummytable_a = ? ) AND (  componentinstance_namespace < ?  ) LIMIT 1000"))
+					normalizedQuery := strings.Join(strings.Fields(query), " ")
+					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_a = ? ) AND ( componentinstance_namespace < ? ) LIMIT 1000"))
 				})
 				By("returning correct parameter with cursor in aggregated object", func() {
 					testObject.Aggregated = true
@@ -119,7 +124,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString), dummyCursorFieldVal}))
-					Expect(query).To(BeEquivalentTo(dummySelectQuery + " WHERE (   DT.dummytable_a = ? ) HAVING (  componentinstance_namespace < ?  ) LIMIT 1000"))
+					normalizedQuery := strings.Join(strings.Fields(query), " ")
+					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_a = ? ) HAVING ( componentinstance_namespace < ? ) LIMIT 1000"))
 				})
 			})
 
@@ -131,7 +137,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(int64(dummyId)), lo.ToPtr(dummyString)}))
-					Expect(query).To(BeEquivalentTo(dummySelectQuery + " WHERE (   DT.dummytable_id = ? ) AND (   DT.dummytable_a = ? )"))
+					normalizedQuery := strings.Join(strings.Fields(query), " ")
+					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_id = ? ) AND ( DT.dummytable_a = ? )"))
 				})
 			})
 
@@ -141,7 +148,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(dummySelectQuery))
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery))
 			})
 		})
 	})
@@ -156,7 +164,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(dummySelectQuery))
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery))
 			})
 		})
 		Context("Two basic joins are there in the object", func() {
@@ -185,7 +194,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(dummySelectQuery))
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery))
 			})
 			It("gets one join with X when A mapping condition is met (there is at least one element to filter)", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
@@ -193,7 +203,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(dummySelectQuery + " LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
 			})
 			It("gets one join with Y when B mapping condition is met (there is at least one element to filter)", func() {
 				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
@@ -201,7 +212,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(dummySelectQuery + " RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id"))
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id"))
 			})
 			It("gets two joins with X and Y when A and B mapping conditions are met (there are at least one element for each filter)", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}, B: []*int{lo.ToPtr(10)}}
@@ -209,7 +221,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
 						" LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id" +
 						" RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id",
@@ -243,7 +256,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
 						" LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id" +
 						" RIGHT JOIN Yabc Y ON X.xabc_yabc_id = Y.yabc_id",
@@ -285,7 +299,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
 						" LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id" +
 						" RIGHT JOIN Yabc Y ON X.xabc_yabc_id = Y.yabc_id" +
@@ -319,7 +334,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
-				Expect(query).To(BeEquivalentTo(
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
 						" LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id",
 				))

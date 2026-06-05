@@ -238,7 +238,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 		filterParameters []any
 	)
 
-	filter = EnsureFilter_tmp(filter)
+	filter = EnsureFilter(filter)
 
 	query := `
 		SELECT CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM %s AS CVR

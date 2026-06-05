@@ -277,7 +277,7 @@ func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery sq.Sele
 
 // TODO: use DbObject
 func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
-	filter = EnsureFilter_tmp(filter)
+	filter = EnsureFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssuesWithAggregations",

@@ -244,7 +244,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id
         ORDER BY %s;
     `
-	filter = EnsureFilter_tmp(filter)
+	filter = EnsureFilter(filter)
 	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
 	joins := serviceObject.GetJoins_tmp(filter, ord)
 

@@ -53,7 +53,7 @@ func (s *SqlDatabase) CountIssueRatings(
 		filterParameters []any
 	)
 
-	filter = EnsureFilter_tmp(filter)
+	filter = EnsureFilter(filter)
 
 	baseQuery := `
 		SELECT CIR.critical_count, CIR.high_count, CIR.medium_count, CIR.low_count, CIR.none_count FROM %s AS CIR

@@ -34,6 +34,7 @@ type DbObject[ET entity.Entity, ETFilter entity.Filter, ETResult entity.HeurekaE
 	ForceFrom            string
 }
 
+// private TODO: Fix testing and unexport
 func (do *DbObject[ET, ETFilter, ETResult]) InsertQuery(entityItem ET) (string, []any, error) {
 	columns := lo.Map(do.Properties, func(p *Property[ET], _ int) string {
 		return p.GetName()
@@ -52,6 +53,10 @@ func (do *DbObject[ET, ETFilter, ETResult]) InsertQuery(entityItem ET) (string, 
 }
 
 func (do *DbObject[ET, ETFilter, ETResult]) Create(db Db, entityItem ET) (ET, error) {
+	if do.TableName == "" || do.Prefix == "" {
+		panic("database.Create (" + do.TableName + ") - not allowed")
+	}
+
 	var zero ET
 
 	l := logrus.WithFields(logrus.Fields{
@@ -81,6 +86,10 @@ func (do *DbObject[ET, ETFilter, ETResult]) Create(db Db, entityItem ET) (ET, er
 }
 
 func (do *DbObject[ET, ETFilter, ETResult]) Update(db Db, entityItem ET) error {
+	if do.TableName == "" || do.Prefix == "" {
+		panic("database.Create (" + do.TableName + ") - not allowed")
+	}
+
 	l := logrus.WithFields(logrus.Fields{
 		do.Prefix: entityItem,
 		"event":   fmt.Sprintf("database.Update%s", do.TableName),
@@ -116,6 +125,10 @@ func (do *DbObject[ET, ETFilter, ETResult]) getUpdateMap(e ET) map[string]any {
 }
 
 func (do *DbObject[ET, ETFilter, ETResult]) Delete(db Db, id int64, userId int64) error {
+	if do.TableName == "" || do.Prefix == "" {
+		panic("database.Delete (" + do.TableName + ") - not allowed")
+	}
+
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": fmt.Sprintf("database.Delete%s", do.TableName),
@@ -142,12 +155,17 @@ func (do *DbObject[ET, ETFilter, ETResult]) Delete(db Db, id int64, userId int64
 }
 
 func (do *DbObject[ET, ETFilter, ETResult]) Count(ctx context.Context, db Db, filter ETFilter) (int64, error) {
+	if do.TableName == "" || do.TableKey == "" || do.Prefix == "" {
+		panic("database.Count (" + do.TableName + ") - not allowed")
+	}
+
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  fmt.Sprintf("database.Count (%s)", do.TableName),
 	})
 
-	baseQuery := sq.Select(fmt.Sprintf("count(distinct %s.%s_id)", do.TableKey, do.Prefix)).From(fmt.Sprintf("%s %s", do.TableName, do.TableKey))
+	baseQuery := do.countSelectBuilder()
+	baseQuery = do.fromBuilder(baseQuery)
 
 	statement := Statement[ETFilter]{
 		Db:        db,
@@ -164,7 +182,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) Count(ctx context.Context, db Db, fi
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
+			l.Warnf("error during close stmt: %s", err)
 		}
 	}()
 
@@ -176,9 +194,13 @@ func (do *DbObject[ET, ETFilter, ETResult]) Count(ctx context.Context, db Db, fi
 	return count, nil
 }
 
+func (do *DbObject[ET, ETFilter, ETResult]) countSelectBuilder() sq.SelectBuilder {
+	return sq.Select(fmt.Sprintf("count(distinct %s.%s_id)", do.TableKey, do.Prefix))
+}
+
 func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filter ETFilter, order []entity.Order) ([]ETResult, error) {
-	if do.GetItemAppender == nil {
-		return nil, fmt.Errorf("database.Get (%s) - not allowed", do.TableName)
+	if do.TableName == "" || (do.TableKey != "" && do.Prefix == "") {
+		panic("database.Get (" + do.TableName + ") - not allowed")
 	}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -188,22 +210,9 @@ func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filt
 
 	ord := NewOrderWithCounterPrefix(order, do.DefaultOrder, do.OrderPrefix)
 
-	select0 := []string{}
-	if do.TableKey != "" {
-		select0 = append(select0, fmt.Sprintf("%s.*", do.TableKey))
-	}
-
-	baseQuery := sq.Select(do.selectColumns(select0, filter, ord)...)
-
-	if do.ForceFrom != "" {
-		baseQuery = baseQuery.From(do.ForceFrom)
-	} else {
-		baseQuery = baseQuery.From(fmt.Sprintf("%s %s", do.TableName, do.TableKey))
-	}
-
-	if do.TableKey != "" {
-		baseQuery = baseQuery.GroupBy(fmt.Sprintf("%s.%s_id", do.TableKey, do.Prefix))
-	}
+	baseQuery := do.getSelectBuilder(filter, ord)
+	baseQuery = do.fromBuilder(baseQuery)
+	baseQuery = do.groupByBuilder(baseQuery)
 
 	statement := Statement[ETFilter]{
 		Db:         db,
@@ -221,7 +230,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filt
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
+			l.Warnf("error during close stmt: %s", err)
 		}
 	}()
 
@@ -236,6 +245,15 @@ func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filt
 	)
 }
 
+func (do *DbObject[ET, ETFilter, ETResult]) getSelectBuilder(filter ETFilter, ord *Order) sq.SelectBuilder {
+	select0 := []string{}
+	if do.TableKey != "" {
+		select0 = append(select0, fmt.Sprintf("%s.*", do.TableKey))
+	}
+
+	return sq.Select(do.selectColumns(select0, filter, ord)...)
+}
+
 func (do *DbObject[ET, ETFilter, ETResult]) selectColumns(s0 []string, filter ETFilter, order *Order) []string {
 	if do.ExtraColumnsSelector != nil {
 		return append(s0, do.ExtraColumnsSelector(filter, order)...)
@@ -244,6 +262,25 @@ func (do *DbObject[ET, ETFilter, ETResult]) selectColumns(s0 []string, filter ET
 	return s0
 }
 
+func (do *DbObject[ET, ETFilter, ETResult]) fromBuilder(baseQuery sq.SelectBuilder) sq.SelectBuilder {
+	if do.ForceFrom != "" {
+		return baseQuery.From(do.ForceFrom)
+	} else if do.TableKey != "" {
+		return baseQuery.From(do.TableName + " " + do.TableKey)
+	}
+
+	return baseQuery.From(do.TableName)
+}
+
+func (do *DbObject[ET, ETFilter, ETResult]) groupByBuilder(baseQuery sq.SelectBuilder) sq.SelectBuilder {
+	if do.TableKey != "" {
+		baseQuery = baseQuery.GroupBy(fmt.Sprintf("%s.%s_id", do.TableKey, do.Prefix))
+	}
+
+	return baseQuery
+}
+
+// private TODO: fix tests and unexport
 func (do *DbObject[ET, ETFilter, ETResult]) AddJoins(qb sq.SelectBuilder, filter ETFilter, order *Order) sq.SelectBuilder {
 	joins := NewJoinResolver(do.JoinDefs).Build(filter, order)
 	for _, join := range joins {
@@ -253,6 +290,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) AddJoins(qb sq.SelectBuilder, filter
 	return qb
 }
 
+// private TODO: fix tests and unexport
 func (do *DbObject[ET, ETFilter, ETResult]) AddFilter(qb sq.SelectBuilder, filter ETFilter) sq.SelectBuilder {
 	for _, v := range do.FilterProperties {
 		if q := v.GetQuery(filter); q != "" {
@@ -263,6 +301,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) AddFilter(qb sq.SelectBuilder, filte
 	return qb
 }
 
+// private TODO: fix tests and unexport
 func (do *DbObject[ET, ETFilter, ETResult]) AddCursor(qb sq.SelectBuilder, filter entity.Filter, cursorFields []Field) sq.SelectBuilder {
 	paginated := filter.GetPaginated()
 	cursorQuery := CreateCursorQuery("", cursorFields)
@@ -315,10 +354,8 @@ type Statement[T entity.Filter] struct {
 
 func BuildStatement[T entity.Filter](ctx context.Context, s Statement[T], filter T) (Stmt, []any, error) {
 	filter = EnsureFilter(filter)
-	s.L.WithFields(logrus.Fields{"filter": filter})
 
 	qb := s.Obj.AddJoins(s.BaseQuery, filter, s.Order)
-
 	qb = s.Obj.AddFilter(qb, filter)
 
 	if s.WithCursor {
@@ -801,55 +838,4 @@ func (do *DbObject[ET, ETFilter, ETResult]) GetFilterParameters_tmp(
 	}
 
 	return filterParameters
-}
-
-func EnsureFilter_tmp[
-	T any,
-	PT interface {
-		*T
-		entity.Filter
-	},
-](filter PT) PT {
-	if IsNil(filter) {
-		filter = PT(new(T))
-	}
-
-	return ensurePagination_tmp(filter)
-}
-
-func IsNil(v any) bool {
-	if v == nil {
-		return true
-	}
-
-	rv := reflect.ValueOf(v)
-
-	switch rv.Kind() {
-	case reflect.Ptr,
-		reflect.Interface,
-		reflect.Map,
-		reflect.Slice,
-		reflect.Func,
-		reflect.Chan:
-		return rv.IsNil()
-	}
-
-	return false
-}
-
-func ensurePagination_tmp[T entity.Filter](filter T) T {
-	first := 1000
-	after := ""
-
-	px := filter.GetPaginated()
-
-	if px.First == nil {
-		px.First = &first
-	}
-
-	if px.After == nil {
-		px.After = &after
-	}
-
-	return filter
 }

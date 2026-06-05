@@ -111,7 +111,7 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 }
 
 func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
-	filter = EnsureFilter_tmp(filter)
+	filter = EnsureFilter(filter)
 
 	baseQuery := `
 		SELECT * FROM ScannerRun
