@@ -330,17 +330,15 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 
 	filter = EnsureFilter(filter)
 
-	query := `
-		SELECT CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM %s AS CVR
-	`
-
 	joins := ""
 	groupBy := ""
 
+	var query string
+
 	if len(filter.Id) == 0 && len(filter.Repository) == 0 {
-		query = fmt.Sprintf(query, "mvAllComponentsByServiceVulnerabilityCounts")
+		query = `SELECT 0 AS component_id, CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM mvAllComponentsByServiceVulnerabilityCounts AS CVR`
 	} else {
-		query = fmt.Sprintf(query, "mvSingleComponentByServiceVulnerabilityCounts")
+		query = `SELECT CVR.component_id, CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM mvSingleComponentByServiceVulnerabilityCounts AS CVR`
 		groupBy = "GROUP BY CVR.component_id"
 	}
 

@@ -8,42 +8,46 @@ package resolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/dataloader"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/util"
-	"github.com/sirupsen/logrus"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 func (r *issueVariantResolver) IssueRepository(ctx context.Context, obj *model.IssueVariant) (*model.IssueRepository, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueRepositoryID})
+	id, err := baseResolver.ParseCursor(obj.IssueRepositoryID)
 	if err != nil {
-		logrus.WithField("obj", obj).Error("IssueVariantResolver: Error while parsing childIds'")
 		return nil, err
 	}
 
-	return baseResolver.SingleIssueRepositoryBaseResolver(r.App, ctx, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.IssueVariantNodeName,
-		ChildIds:   childIds,
-	})
+	ir, err := dataloader.FromContext(ctx).IssueRepositoryByID.Load(ctx, *id)
+	if err != nil || ir == nil {
+		return nil, err
+	}
+
+	result := model.NewIssueRepository(ir)
+
+	return &result, nil
 }
 
 func (r *issueVariantResolver) Issue(ctx context.Context, obj *model.IssueVariant) (*model.Issue, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueID})
+	id, err := baseResolver.ParseCursor(obj.IssueID)
 	if err != nil {
-		logrus.WithField("obj", obj).Error("IssueVariantResolver: Error while parsing childIds'")
 		return nil, err
 	}
 
-	return baseResolver.SingleIssueBaseResolver(r.App, ctx, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.IssueVariantNodeName,
-		ChildIds:   childIds,
-	})
+	iss, err := dataloader.FromContext(ctx).IssueByID.Load(ctx, *id)
+	if err != nil || iss == nil {
+		return nil, err
+	}
+
+	result := model.NewIssueWithAggregations(&entity.IssueResult{Issue: iss})
+
+	return &result, nil
 }
 
 func (r *Resolver) IssueVariant() graph.IssueVariantResolver { return &issueVariantResolver{r} }

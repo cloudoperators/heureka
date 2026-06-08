@@ -8,34 +8,29 @@ package resolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/dataloader"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/util"
-	"github.com/sirupsen/logrus"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 func (r *componentVersionResolver) Component(ctx context.Context, obj *model.ComponentVersion) (*model.Component, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentID})
+	id, err := baseResolver.ParseCursor(obj.ComponentID)
 	if err != nil {
-		logrus.WithField("obj", obj).
-			Error("ComponentVersionResolver: Error while parsing childIds'")
-
 		return nil, err
 	}
 
-	return baseResolver.SingleComponentBaseResolver(
-		r.App,
-		ctx,
-		&model.NodeParent{
-			Parent:     obj,
-			ParentName: model.IssueMatchNodeName,
-			ChildIds:   childIds,
-		},
-	)
+	c, err := dataloader.FromContext(ctx).ComponentByID.Load(ctx, *id)
+	if err != nil || c == nil {
+		return nil, err
+	}
+
+	result := model.NewComponent(c)
+
+	return &result, nil
 }
 
 func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {

@@ -7,6 +7,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
+	"github.com/cloudoperators/heureka/internal/api/graphql/dataloader"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
 	gqlmiddleware "github.com/cloudoperators/heureka/internal/api/graphql/middleware"
@@ -53,6 +54,7 @@ func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
 
 func (g *GraphQLAPI) graphqlHandler() gin.HandlerFunc {
 	g.Server.AroundOperations(g.batchLimiter.Middleware())
+	g.Server.AroundOperations(dataloader.Middleware(g.App))
 
 	return func(c *gin.Context) {
 		g.Server.ServeHTTP(c.Writer, c.Request.WithContext(c.Request.Context()))

@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/cloudoperators/heureka/internal/api/graphql/dataloader"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
@@ -44,17 +45,28 @@ func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *i
 }
 
 func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Image) (*model.SeverityCounts, error) {
-	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
-	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
-	filter := &model.ComponentFilter{
-		ServiceCcrn: imageFilter.Service,
-		Repository:  imageFilter.Repository,
+	id, err := baseResolver.ParseCursor(&obj.ID)
+	if err != nil {
+		return nil, err
 	}
 
-	return baseResolver.ComponentIssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ImageNodeName,
-	})
+	counts, err := dataloader.FromContext(ctx).VulnCountsByComponentID.Load(ctx, *id)
+	if err != nil {
+		return nil, err
+	}
+
+	if counts == nil {
+		return &model.SeverityCounts{}, nil
+	}
+
+	return &model.SeverityCounts{
+		Critical: int(counts.Critical),
+		High:     int(counts.High),
+		Medium:   int(counts.Medium),
+		Low:      int(counts.Low),
+		None:     int(counts.None),
+		Total:    int(counts.Total),
+	}, nil
 }
 
 func (r *imageResolver) Vulnerabilities(ctx context.Context, obj *model.Image, first *int, after *string, filter *model.VulnerabilityFilter) (*model.VulnerabilityConnection, error) {

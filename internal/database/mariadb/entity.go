@@ -233,20 +233,22 @@ type DatabaseRow interface {
 }
 
 type RatingCount struct {
-	Critical sql.NullInt64 `db:"critical_count"`
-	High     sql.NullInt64 `db:"high_count"`
-	Medium   sql.NullInt64 `db:"medium_count"`
-	Low      sql.NullInt64 `db:"low_count"`
-	None     sql.NullInt64 `db:"none_count"`
+	ComponentId sql.NullInt64 `db:"component_id"`
+	Critical    sql.NullInt64 `db:"critical_count"`
+	High        sql.NullInt64 `db:"high_count"`
+	Medium      sql.NullInt64 `db:"medium_count"`
+	Low         sql.NullInt64 `db:"low_count"`
+	None        sql.NullInt64 `db:"none_count"`
 }
 
 func (rc *RatingCount) AsIssueSeverityCounts() entity.IssueSeverityCounts {
 	isc := entity.IssueSeverityCounts{
-		Critical: GetInt64Value(rc.Critical),
-		High:     GetInt64Value(rc.High),
-		Medium:   GetInt64Value(rc.Medium),
-		Low:      GetInt64Value(rc.Low),
-		None:     GetInt64Value(rc.None),
+		ComponentId: GetInt64Value(rc.ComponentId),
+		Critical:    GetInt64Value(rc.Critical),
+		High:        GetInt64Value(rc.High),
+		Medium:      GetInt64Value(rc.Medium),
+		Low:         GetInt64Value(rc.Low),
+		None:        GetInt64Value(rc.None),
 	}
 	isc.Total = isc.Critical + isc.High + isc.Medium + isc.Low + isc.None
 

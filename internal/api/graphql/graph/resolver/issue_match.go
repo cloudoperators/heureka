@@ -8,11 +8,11 @@ package resolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/dataloader"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/util"
-	"github.com/sirupsen/logrus"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
@@ -33,39 +33,35 @@ func (r *issueMatchResolver) EffectiveIssueVariants(ctx context.Context, obj *mo
 }
 
 func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (*model.Issue, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueID})
+	id, err := baseResolver.ParseCursor(obj.IssueID)
 	if err != nil {
-		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while parsing childIds'")
 		return nil, err
 	}
 
-	return baseResolver.SingleIssueBaseResolver(
-		r.App,
-		ctx,
-		&model.NodeParent{
-			Parent:     obj,
-			ParentName: model.IssueMatchNodeName,
-			ChildIds:   childIds,
-		},
-	)
+	iss, err := dataloader.FromContext(ctx).IssueByID.Load(ctx, *id)
+	if err != nil || iss == nil {
+		return nil, err
+	}
+
+	result := model.NewIssueWithAggregations(&entity.IssueResult{Issue: iss})
+
+	return &result, nil
 }
 
 func (r *issueMatchResolver) ComponentInstance(ctx context.Context, obj *model.IssueMatch) (*model.ComponentInstance, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentInstanceID})
+	id, err := baseResolver.ParseCursor(obj.ComponentInstanceID)
 	if err != nil {
-		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while parsing childIds'")
 		return nil, err
 	}
 
-	return baseResolver.SingleComponentInstanceBaseResolver(
-		r.App,
-		ctx,
-		&model.NodeParent{
-			Parent:     obj,
-			ParentName: model.IssueMatchNodeName,
-			ChildIds:   childIds,
-		},
-	)
+	ci, err := dataloader.FromContext(ctx).ComponentInstanceByID.Load(ctx, *id)
+	if err != nil || ci == nil {
+		return nil, err
+	}
+
+	result := model.NewComponentInstance(ci)
+
+	return &result, nil
 }
 
 func (r *Resolver) IssueMatch() graph.IssueMatchResolver { return &issueMatchResolver{r} }

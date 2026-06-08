@@ -8,30 +8,29 @@ package resolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/dataloader"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/util"
-	"github.com/sirupsen/logrus"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 func (r *componentInstanceResolver) ComponentVersion(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentVersion, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentVersionID})
+	id, err := baseResolver.ParseCursor(obj.ComponentVersionID)
 	if err != nil {
-		logrus.WithField("obj", obj).
-			Error("ComponentInstanceResolver: Error while parsing childIds'")
-
 		return nil, err
 	}
 
-	return baseResolver.SingleComponentVersionBaseResolver(r.App, ctx, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ComponentInstanceNodeName,
-		ChildIds:   childIds,
-	})
+	cv, err := dataloader.FromContext(ctx).ComponentVersionByID.Load(ctx, *id)
+	if err != nil || cv == nil {
+		return nil, err
+	}
+
+	result := model.NewComponentVersion(cv)
+
+	return &result, nil
 }
 
 func (r *componentInstanceResolver) IssueMatches(ctx context.Context, obj *model.ComponentInstance, filter *model.IssueMatchFilter, first *int, after *string) (*model.IssueMatchConnection, error) {
@@ -50,35 +49,35 @@ func (r *componentInstanceResolver) IssueMatches(ctx context.Context, obj *model
 }
 
 func (r *componentInstanceResolver) Service(ctx context.Context, obj *model.ComponentInstance) (*model.Service, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ServiceID})
+	id, err := baseResolver.ParseCursor(obj.ServiceID)
 	if err != nil {
-		logrus.WithField("obj", obj).
-			Error("ComponentInstanceResolver: Error while parsing childIds'")
-
 		return nil, err
 	}
 
-	return baseResolver.SingleServiceBaseResolver(r.App, ctx, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ComponentInstanceNodeName,
-		ChildIds:   childIds,
-	})
+	svc, err := dataloader.FromContext(ctx).ServiceByID.Load(ctx, *id)
+	if err != nil || svc == nil {
+		return nil, err
+	}
+
+	result := model.NewService(svc)
+
+	return &result, nil
 }
 
 func (r *componentInstanceResolver) Parent(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentInstance, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ParentID})
+	id, err := baseResolver.ParseCursor(obj.ParentID)
 	if err != nil {
-		logrus.WithField("obj", obj).
-			Error("ComponentInstanceResolver: Error while parsing childIds'")
-
 		return nil, err
 	}
 
-	return baseResolver.SingleComponentInstanceBaseResolver(r.App, ctx, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ComponentInstanceNodeName,
-		ChildIds:   childIds,
-	})
+	ci, err := dataloader.FromContext(ctx).ComponentInstanceByID.Load(ctx, *id)
+	if err != nil || ci == nil {
+		return nil, err
+	}
+
+	result := model.NewComponentInstance(ci)
+
+	return &result, nil
 }
 
 func (r *Resolver) ComponentInstance() graph.ComponentInstanceResolver {

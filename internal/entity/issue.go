@@ -123,12 +123,13 @@ type IssueTypeCounts struct {
 }
 
 type IssueSeverityCounts struct {
-	Critical int64 `json:"critical"`
-	High     int64 `json:"high"`
-	Medium   int64 `json:"medium"`
-	Low      int64 `json:"low"`
-	None     int64 `json:"none"`
-	Total    int64 `json:"total"`
+	ComponentId int64 `json:"component_id"`
+	Critical    int64 `json:"critical"`
+	High        int64 `json:"high"`
+	Medium      int64 `json:"medium"`
+	Low         int64 `json:"low"`
+	None        int64 `json:"none"`
+	Total       int64 `json:"total"`
 }
 
 func (itc *IssueTypeCounts) TotalIssueCount() int64 {
