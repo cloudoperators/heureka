@@ -44,36 +44,6 @@ func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
 	return qb.ToSql()
 }
 
-func (do *DbObject[ET]) GetFilterQuery(filter any) string {
-	var fl []string
-	for _, v := range do.FilterProperties {
-		fl = append(fl, v.GetQuery(filter))
-	}
-
-	return combineFilterQueries(fl, OP_AND)
-}
-
-func (do *DbObject[ET]) GetFilterParameters(
-	filter entity.HasPagination,
-	withCursor bool,
-	cursorFields []Field,
-) []any {
-	var filterParameters []any
-	for _, v := range do.FilterProperties {
-		filterParameters = v.AppendParameters(filterParameters, filter)
-	}
-
-	if withCursor {
-		paginated := filter.GetPaginated()
-		filterParameters = append(
-			filterParameters,
-			GetCursorQueryParameters(paginated.First, cursorFields)...,
-		)
-	}
-
-	return filterParameters
-}
-
 func (do *DbObject[ET]) Create(db Db, entityItem ET) (ET, error) {
 	var zero ET
 
@@ -164,56 +134,72 @@ func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
 	return err
 }
 
-func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
-	return NewJoinResolver(do.JoinDefs).Build(filter, order)
-}
-
-func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) string {
-	if filterStr := do.GetFilterQuery(filter); filterStr != "" || withCursor {
-		return fmt.Sprintf("WHERE %s", filterStr)
+func (do *DbObject[ET]) AddJoins(qb sq.SelectBuilder, filter any, order *Order) sq.SelectBuilder {
+	joins := NewJoinResolver(do.JoinDefs).Build(filter, order)
+	for _, join := range joins {
+		qb = qb.JoinClause(join)
 	}
 
-	return ""
+	return qb
 }
 
-func (do *DbObject[ET]) GetCursorQuery(filter any, cursorFields []Field, withCursor bool, checkCursor bool, aggregated bool) string {
+func (do *DbObject[ET]) AddFilter(qb sq.SelectBuilder, filter any) sq.SelectBuilder {
+	for _, v := range do.FilterProperties {
+		if q := v.GetQuery(filter); q != "" {
+			qb = qb.Where(q, v.GetParameters(filter)...)
+		}
+	}
+
+	return qb
+}
+
+func (do *DbObject[ET]) AddCursor(qb sq.SelectBuilder, filter entity.HasPagination, aggregated bool, cursorFields []Field) sq.SelectBuilder {
+	paginated := filter.GetPaginated()
 	cursorQuery := CreateCursorQuery("", cursorFields)
+	cursorParams, limit := do.getCursorQueryParameters(paginated.First, cursorFields)
 
-	if aggregated {
-		if (!checkCursor || withCursor) && (IsNil(filter) || do.GetFilterQuery(filter) != "") && cursorQuery != "" {
-			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
-		}
-	} else {
-		if !IsNil(filter) {
-			if do.GetFilterQuery(filter) != "" && withCursor && cursorQuery != "" {
-				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-			}
+	if cursorQuery != "" {
+		if aggregated {
+			qb = qb.Having(cursorQuery, cursorParams...)
 		} else {
-			panic("hasFilter for not aggregated query has to be passed (has to be not nil).")
+			qb = qb.Where(cursorQuery, cursorParams...)
 		}
 	}
 
-	return cursorQuery
+	return qb.Limit(uint64(limit))
+}
+
+func (do *DbObject[ET]) getCursorQueryParameters(pagFirst *int, cursorFields []Field) ([]any, int) {
+	var cursorParameters []any
+
+	p := CreateCursorParameters([]any{}, cursorFields)
+
+	cursorParameters = append(cursorParameters, p...)
+
+	var limit int
+	if pagFirst == nil {
+		limit = 1000
+	} else {
+		limit = *pagFirst
+	}
+
+	return cursorParameters, limit
 }
 
 type Object interface {
-	GetJoins(any, *Order) string
-	GetFilterWhereClause(any, bool) string
-	GetCursorQuery(any, []Field, bool, bool, bool) string
-	GetFilterParameters(entity.HasPagination, bool, []Field) []any
+	AddJoins(sq.SelectBuilder, any, *Order) sq.SelectBuilder
+	AddFilter(sq.SelectBuilder, any) sq.SelectBuilder
+	AddCursor(sq.SelectBuilder, entity.HasPagination, bool, []Field) sq.SelectBuilder
 }
 
 type Statement struct {
-	Db                 Db
-	L                  *logrus.Entry
-	Obj                Object
-	BaseQuery          string
-	Order              *Order
-	WithCursor         bool
-	CheckCursorInWhere bool
-	CheckCursor        bool
-	CheckFilter        bool
-	Aggregated         bool
+	Db         Db
+	L          *logrus.Entry
+	Obj        Object
+	BaseQuery  sq.SelectBuilder
+	Order      *Order
+	WithCursor bool
+	Aggregated bool
 }
 
 func BuildStatement[
@@ -226,26 +212,24 @@ func BuildStatement[
 	filter = EnsureFilter(filter)
 	s.L.WithFields(logrus.Fields{"filter": filter})
 
-	joins := s.Obj.GetJoins(filter, s.Order)
-	whereClause := s.Obj.GetFilterWhereClause(filter, s.CheckCursorInWhere && s.WithCursor)
+	qb := s.Obj.AddJoins(s.BaseQuery, filter, s.Order)
 
-	var f PT
-	if s.CheckFilter {
-		f = filter
-	}
+	qb = s.Obj.AddFilter(qb, filter)
 
-	cursorFields, err := DecodeCursor(filter.GetPaginated().After)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
-	}
-
-	cursorQuery := s.Obj.GetCursorQuery(f, cursorFields, s.WithCursor, s.CheckCursor, s.Aggregated)
-
-	var query string
 	if s.WithCursor {
-		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, cursorQuery, s.Order)
-	} else {
-		query = fmt.Sprintf(s.BaseQuery, joins, whereClause, s.Order)
+		cursorFields, err := DecodeCursor(filter.GetPaginated().After)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
+		}
+
+		qb = s.Obj.AddCursor(qb, filter, s.Aggregated, cursorFields)
+	}
+
+	qb = qb.OrderBy(s.Order.ToSql())
+
+	query, parameters, err := qb.ToSql()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build sql: %w", err)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
@@ -263,9 +247,7 @@ func BuildStatement[
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	filterParameters := s.Obj.GetFilterParameters(filter, s.WithCursor, cursorFields)
-
-	return stmt, filterParameters, nil
+	return stmt, parameters, nil
 }
 
 // Property
@@ -295,21 +277,21 @@ func (p Property) GetUpdateData(f any) (any, bool) {
 
 // FilterProperty
 type FilterProperty struct {
-	QueryBuilder  func([]any) string
-	Param         func(any) []any
-	ParamAppender func([]any, any) []any
+	BuildQuery  func([]any) string
+	GetParam    func(any) []any
+	BuildParams func(any) []any
 }
 
-func (fp FilterProperty) AppendParameters(params []any, filter any) []any {
-	return fp.ParamAppender(params, filter)
+func (fp FilterProperty) GetParameters(filter any) []any {
+	return fp.BuildParams(filter)
 }
 
 func (fp FilterProperty) GetQuery(filter any) string {
-	return fp.QueryBuilder(fp.Param(filter))
+	return fp.BuildQuery(fp.GetParam(filter))
 }
 
-func doNotAppendParameters(params []any, _ any) []any {
-	return params
+func doNotUseParameters(_ any) []any {
+	return []any{}
 }
 
 func NewFilterProperty(query string, param func(any) []any) *FilterProperty {
@@ -318,10 +300,22 @@ func NewFilterProperty(query string, param func(any) []any) *FilterProperty {
 
 func NewNFilterProperty(query string, param func(any) []any, nparam int) *FilterProperty {
 	return &FilterProperty{
-		QueryBuilder:  func(filter []any) string { return buildFilterQuery(filter, query, OP_OR) },
-		Param:         param,
-		ParamAppender: func(params []any, filter any) []any { return buildQueryParametersCount(params, param(filter), nparam) },
+		BuildQuery:  func(filter []any) string { return buildFilterQuery(filter, query, OP_OR) },
+		GetParam:    param,
+		BuildParams: func(filter any) []any { return getNParameters(param(filter), nparam) },
 	}
+}
+
+func getNParameters(params []any, count int) []any {
+	var nparams []any
+
+	for _, p := range params {
+		for range count {
+			nparams = append(nparams, p)
+		}
+	}
+
+	return nparams
 }
 
 func NewStateFilterProperty(
@@ -329,28 +323,28 @@ func NewStateFilterProperty(
 	param func(any) []entity.StateFilterType,
 ) *FilterProperty {
 	return &FilterProperty{
-		QueryBuilder:  func(state []any) string { return buildStateFilterQuery(ToStateSlice(state), prefix) },
-		Param:         WrapRetSlice(param),
-		ParamAppender: doNotAppendParameters,
+		BuildQuery:  func(state []any) string { return buildStateFilterQuery(ToStateSlice(state), prefix) },
+		GetParam:    WrapRetSlice(param),
+		BuildParams: doNotUseParameters,
 	}
 }
 
 func NewJsonFilterProperty(query string, param func(any) []*entity.Json) *FilterProperty {
 	return &FilterProperty{
-		QueryBuilder:  func(json []any) string { return buildJsonFilterQuery(ToJsonSlice(json), query, OP_OR) },
-		Param:         WrapRetSlice(param),
-		ParamAppender: func(params []any, filter any) []any { return buildJsonQueryParameters(params, param(filter)) },
+		BuildQuery:  func(json []any) string { return buildJsonFilterQuery(ToJsonSlice(json), query, OP_OR) },
+		GetParam:    WrapRetSlice(param),
+		BuildParams: func(filter any) []any { return buildJsonQueryParameters([]any{}, param(filter)) },
 	}
 }
 
 func NewCustomFilterProperty(
-	queryBuilder func([]any) string,
-	param func(any) []any,
+	buildQuery func([]any) string,
+	getParam func(any) []any,
 ) *FilterProperty {
 	return &FilterProperty{
-		QueryBuilder:  queryBuilder,
-		Param:         param,
-		ParamAppender: doNotAppendParameters,
+		BuildQuery:  buildQuery,
+		GetParam:    getParam,
+		BuildParams: doNotUseParameters,
 	}
 }
 
@@ -410,9 +404,9 @@ func (jr *JoinResolver) require(name string) {
 	jr.order = append(jr.order, name)
 }
 
-func (jr *JoinResolver) Build(filter any, order *Order) string {
+func (jr *JoinResolver) Build(filter any, order *Order) []string {
 	for _, def := range jr.defs {
-		if def.Condition != nil && def.Condition(filter, order) {
+		if def.Condition == nil || (def.Condition != nil && def.Condition(filter, order)) {
 			jr.require(def.Name)
 		}
 	}
@@ -420,11 +414,11 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 	var result []string
 
 	// This is little tricky part, but we need to deal with that this way
-	// until we have stateful join pattern which is created for issue.go
-	// with non-uniq tablename 'IM IssueMatch' which join operation
-	// depends on filter pattern with precedence for some members (there
-	// is if...else if which cannot be replaced by if... and if... what
-	// is a mess and misconception
+	// until we have stateful join pattern which is present in issue.go
+	// using non-uniq tablename 'IM IssueMatch' which join operation
+	// depending on filter pattern with precedence for some members (there
+	// is 'if...else if' statement which cannot be replaced by consecutive
+	// 'if...' and 'if...' what is a mess and misconception
 	uniqTableName := make(map[string]struct{})
 
 	for _, name := range jr.order {
@@ -451,7 +445,7 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 		result = append(result, joinSQL)
 	}
 
-	return strings.Join(result, "\n")
+	return result
 }
 
 // DB helpers
@@ -686,4 +680,91 @@ func ValueOrDefault[T any](p *T, def T) T {
 	}
 
 	return *p
+}
+
+// DEPRECATED: TODO: remove
+func (do *DbObject[ET]) GetJoins_tmp(filter any, order *Order) string {
+	return NewJoinResolver(do.JoinDefs).Build_tmp(filter, order)
+}
+
+func (jr *JoinResolver) Build_tmp(filter any, order *Order) string {
+	for _, def := range jr.defs {
+		if def.Condition != nil && def.Condition(filter, order) {
+			jr.require(def.Name)
+		}
+	}
+
+	var result []string
+
+	// This is little tricky part, but we need to deal with that this way
+	// until we have stateful join pattern which is created for issue.go
+	// with non-uniq tablename 'IM IssueMatch' which join operation
+	// depends on filter pattern with precedence for some members (there
+	// is if...else if which cannot be replaced by if... and if... what
+	// is a mess and misconception
+	uniqTableName := make(map[string]struct{})
+
+	for _, name := range jr.order {
+		j, ok := lo.Find(jr.defs, func(jd *JoinDef) bool {
+			return jd.Name == name
+		})
+		if !ok {
+			panic("JoinResolver::Build(...) Unknown join: " + name)
+		}
+
+		if _, ok := uniqTableName[j.Table]; ok {
+			continue
+		}
+
+		uniqTableName[j.Table] = struct{}{}
+
+		joinSQL := fmt.Sprintf(
+			"%s %s ON %s",
+			j.Type,
+			j.Table,
+			j.On,
+		)
+
+		result = append(result, joinSQL)
+	}
+
+	return strings.Join(result, "\n")
+}
+
+func (do *DbObject[ET]) GetFilterWhereClause_tmp(filter any, withCursor bool) string {
+	if filterStr := do.GetFilterQuery_tmp(filter); filterStr != "" || withCursor {
+		return fmt.Sprintf("WHERE %s", filterStr)
+	}
+
+	return ""
+}
+
+func (do *DbObject[ET]) GetFilterQuery_tmp(filter any) string {
+	var fl []string
+	for _, v := range do.FilterProperties {
+		fl = append(fl, v.GetQuery(filter))
+	}
+
+	return combineFilterQueries(fl, OP_AND)
+}
+
+func (do *DbObject[ET]) GetFilterParameters_tmp(
+	filter entity.HasPagination,
+	withCursor bool,
+	cursorFields []Field,
+) []any {
+	var filterParameters []any
+	for _, v := range do.FilterProperties {
+		filterParameters = append(filterParameters, v.BuildParams(filter)...)
+	}
+
+	if withCursor {
+		paginated := filter.GetPaginated()
+		filterParameters = append(
+			filterParameters,
+			GetCursorQueryParameters(paginated.First, cursorFields)...,
+		)
+	}
+
+	return filterParameters
 }
