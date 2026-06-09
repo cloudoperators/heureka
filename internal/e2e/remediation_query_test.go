@@ -5,6 +5,7 @@ package e2e_test
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
@@ -321,6 +322,140 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 
 				Expect(err).ToNot(HaveOccurred())
 			})
+
+			It("rejects url exceeding 2048 characters", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]any{
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+							"url":             "https://example.com/" + strings.Repeat("a", 2029),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects description exceeding 4096 characters", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]any{
+							"description":     strings.Repeat("a", 4097),
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects remediatedBy exceeding 255 characters", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]any{
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+							"remediatedBy":    strings.Repeat("a", 256),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects service exceeding 255 characters", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]any{
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         strings.Repeat("a", 256),
+							"image":           remediation.Component,
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects image exceeding 255 characters", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]any{
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           strings.Repeat("a", 256),
+							"vulnerability":   remediation.Issue,
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects vulnerability exceeding 255 characters", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]any{
+							"description":     remediation.Description,
+							"type":            entity.RemediationTypeMitigation.String(),
+							"severity":        remediation.Severity.String(),
+							"service":         remediation.Service,
+							"image":           remediation.Component,
+							"vulnerability":   strings.Repeat("a", 256),
+							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
+							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 })
@@ -489,6 +624,96 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Remediation.Type.String()).To(Equal(entity.RemediationTypeRiskAccepted.String()))
 				Expect(lo.FromPtr(respData.Remediation.URL)).To(Equal("https://example.com/risk-acceptance"))
+			})
+
+			It("rejects url exceeding 2048 characters", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+				_, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]any{
+							"url": strings.Repeat("a", 2049),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects description exceeding 4096 characters", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+				_, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]any{
+							"description": strings.Repeat("a", 4097),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects remediatedBy exceeding 255 characters", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+				_, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]any{
+							"remediatedBy": strings.Repeat("a", 256),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects service exceeding 255 characters", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+				_, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]any{
+							"service": strings.Repeat("a", 256),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects image exceeding 255 characters", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+				_, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]any{
+							"image": strings.Repeat("a", 256),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("rejects vulnerability exceeding 255 characters", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+				_, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]any{
+							"vulnerability": strings.Repeat("a", 256),
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})

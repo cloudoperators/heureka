@@ -61,13 +61,13 @@ enum RemediationOrderByField {
 
 input RemediationInput {
     type: RemediationTypeValues
-    url: String
-    description: String
+    url: String @constraint(maxLength: 2048, format: "url")
+    description: String @constraint(maxLength: 4096)
     severity: SeverityValues
     remediationDate: DateTime
-    remediatedBy: String
-    service: String
-    image: String
-    vulnerability: String
+    remediatedBy: String @constraint(maxLength: 255)
+    service: String @constraint(maxLength: 255)
+    image: String @constraint(maxLength: 255)
+    vulnerability: String @constraint(maxLength: 255)
     expirationDate: DateTime
 }
