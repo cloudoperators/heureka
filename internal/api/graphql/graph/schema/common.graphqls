@@ -152,3 +152,9 @@ enum StateFilter {
     Active,
     Deleted
 }
+
+directive @constraint(
+    minLength: Int
+    maxLength: Int
+    format: String
+) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION

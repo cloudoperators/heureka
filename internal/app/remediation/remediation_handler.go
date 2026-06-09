@@ -166,15 +166,6 @@ func (rh *remediationHandler) CreateRemediation(
 
 			return nil, err
 		}
-
-		if parsedURL, err := url.Parse(remediation.URL); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "invalid external URL for risk accepted remediation")
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation": remediation,
-			})
-
-			return nil, err
-		}
 	}
 
 	// Get current user for audit fields
