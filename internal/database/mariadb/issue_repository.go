@@ -13,74 +13,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueRepositoryObject = DbObject[*entity.IssueRepository]{
-	Prefix:    "issuerepository",
-	TableName: "IssueRepository",
-	Properties: []*Property{
-		NewProperty(
-			"issuerepository_name",
-			WrapAccess(
-				func(ir *entity.IssueRepository) (string, bool) { return ir.Name, ir.Name != "" },
-			),
-		),
-		NewProperty(
-			"issuerepository_url",
-			WrapAccess(
-				func(ir *entity.IssueRepository) (string, bool) { return ir.Url, ir.Url != "" },
-			),
-		),
-		NewProperty(
-			"issuerepository_created_by",
-			WrapAccess(
-				func(ir *entity.IssueRepository) (int64, bool) { return ir.BaseIssueRepository.CreatedBy, NoUpdate },
-			),
-		),
-		NewProperty(
-			"issuerepository_updated_by",
-			WrapAccess(func(ir *entity.IssueRepository) (int64, bool) {
-				return ir.BaseIssueRepository.UpdatedBy, ir.BaseIssueRepository.UpdatedBy != 0
-			}),
-		),
+var issueRepositoryObject = DbObject[*entity.IssueRepository, *entity.IssueRepositoryFilter, entity.IssueRepositoryResult]{
+	Prefix:       "issuerepository",
+	TableName:    "IssueRepository",
+	TableKey:     "IR",
+	DefaultOrder: entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc},
+	Properties: []*Property[*entity.IssueRepository]{
+		NewProperty("issuerepository_name", func(ir *entity.IssueRepository) (any, bool) { return ir.Name, ir.Name != "" }),
+		NewProperty("issuerepository_url", func(ir *entity.IssueRepository) (any, bool) { return ir.Url, ir.Url != "" }),
+		NewProperty("issuerepository_created_by", func(ir *entity.IssueRepository) (any, bool) { return ir.BaseIssueRepository.CreatedBy, NoUpdate }),
+		NewProperty("issuerepository_updated_by", func(ir *entity.IssueRepository) (any, bool) {
+			return ir.BaseIssueRepository.UpdatedBy, ir.BaseIssueRepository.UpdatedBy != 0
+		}),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"IR.issuerepository_name = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueRepositoryFilter) []*string { return filter.Name },
-			),
-		),
-		NewFilterProperty(
-			"IR.issuerepository_id = ?",
-			WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"S.service_ccrn = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueRepositoryFilter) []*string { return filter.ServiceCCRN },
-			),
-		),
-		NewFilterProperty(
-			"IRS.issuerepositoryservice_service_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.ServiceId },
-			),
-		),
-		NewStateFilterProperty(
-			"IR.issuerepository",
-			WrapRetState(
-				func(filter *entity.IssueRepositoryFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.IssueRepositoryFilter]{
+		NewFilterProperty("IR.issuerepository_name = ?", func(filter *entity.IssueRepositoryFilter) any { return filter.Name }),
+		NewFilterProperty("IR.issuerepository_id = ?", func(filter *entity.IssueRepositoryFilter) any { return filter.Id }),
+		NewFilterProperty("S.service_ccrn = ?", func(filter *entity.IssueRepositoryFilter) any { return filter.ServiceCCRN }),
+		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", func(filter *entity.IssueRepositoryFilter) any { return filter.ServiceId }),
+		NewStateFilterProperty("IR.issuerepository", func(filter *entity.IssueRepositoryFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.IssueRepositoryFilter]{
 		{
-			Name:  "IRS",
-			Type:  LeftJoin,
-			Table: "IssueRepositoryService IRS",
-			On:    "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ *Order) bool {
-				return len(f.ServiceId) > 0
-			}),
+			Name:      "IRS",
+			Type:      LeftJoin,
+			Table:     "IssueRepositoryService IRS",
+			On:        "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
+			Condition: func(f *entity.IssueRepositoryFilter, _ *Order) bool { return len(f.ServiceId) > 0 },
 		},
 		{
 			Name:      "S",
@@ -88,11 +47,26 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 			Table:     "Service S",
 			On:        "IRS.issuerepositoryservice_service_id = S.service_id",
 			DependsOn: []string{"IRS"},
-			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ *Order) bool {
-				return len(f.ServiceCCRN) > 0
-			}),
+			Condition: func(f *entity.IssueRepositoryFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
 		},
 	},
+	GetItemAppender: func(l []entity.IssueRepositoryResult, e RowComposite, order []entity.Order) []entity.IssueRepositoryResult {
+		ir := e.BaseIssueRepositoryRow.AsIssueRepository()
+		cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
+
+		irr := entity.IssueRepositoryResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			IssueRepository: &ir,
+		}
+
+		return append(l, irr)
+	},
+}
+
+func (s *SqlDatabase) CountIssueRepositories(ctx context.Context, filter *entity.IssueRepositoryFilter) (int64, error) {
+	return issueRepositoryObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) buildIssueRepositoryStatement(
@@ -103,14 +77,13 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.IssueRepositoryFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &issueRepositoryObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, issueRepositoryObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -166,72 +139,7 @@ func (s *SqlDatabase) GetIssueRepositories(
 	filter *entity.IssueRepositoryFilter,
 	order []entity.Order,
 ) ([]entity.IssueRepositoryResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetIssueRepositories",
-	})
-
-	baseQuery := sq.Select("IR.*").From("IssueRepository IR").GroupBy("IR.issuerepository_id")
-
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error while close statement: %s", err.Error())
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.IssueRepositoryResult, e IssueRepositoryRow) []entity.IssueRepositoryResult {
-			ir := e.AsIssueRepository()
-			cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
-
-			irr := entity.IssueRepositoryResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				IssueRepository: &ir,
-			}
-
-			return append(l, irr)
-		},
-	)
-}
-
-func (s *SqlDatabase) CountIssueRepositories(ctx context.Context, filter *entity.IssueRepositoryFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountIssueRepositories",
-	})
-
-	baseQuery := sq.Select("count(distinct IR.issuerepository_id)").From("IssueRepository IR")
-
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performCountScan(ctx, stmt, filterParameters, l)
+	return issueRepositoryObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CreateIssueRepository(

@@ -26,6 +26,18 @@ type ScannerRunFilter struct {
 	Completed bool     `json:"is_completed"`
 }
 
+func (srf *ScannerRunFilter) Get() any {
+	return srf
+}
+
+func (srf *ScannerRunFilter) Ensure() Filter {
+	if srf == nil {
+		return &ScannerRunFilter{}
+	}
+
+	return srf
+}
+
 func (srf ScannerRunFilter) HasArgs() bool {
 	return len(srf.Tag) > 0 || srf.Completed
 }

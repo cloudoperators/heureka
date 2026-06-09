@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -15,172 +14,63 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var remediationObject = DbObject[*entity.Remediation]{
-	Prefix:    "remediation",
-	TableName: "Remediation",
-	Properties: []*Property{
-		NewProperty(
-			"remediation_description",
-			WrapAccess(
-				func(r *entity.Remediation) (string, bool) { return r.Description, r.Description != "" },
-			),
-		),
-		NewProperty(
-			"remediation_type",
-			WrapAccess(func(r *entity.Remediation) (entity.RemediationType, bool) {
-				return r.Type, r.Type != "" && r.Type != entity.RemediationTypeUnknown
-			}),
-		),
-		NewProperty(
-			"remediation_url",
-			WrapAccess(func(r *entity.Remediation) (string, bool) {
-				return r.URL, r.URL != ""
-			}),
-		),
-		NewProperty(
-			"remediation_severity",
-			WrapAccess(func(r *entity.Remediation) (entity.SeverityValues, bool) {
-				return r.Severity, r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
-			}),
-		),
-		NewProperty(
-			"remediation_remediation_date",
-			WrapAccess(
-				func(r *entity.Remediation) (time.Time, bool) { return r.RemediationDate, !r.RemediationDate.IsZero() },
-			),
-		),
-		NewProperty(
-			"remediation_expiration_date",
-			WrapAccess(
-				func(r *entity.Remediation) (time.Time, bool) { return r.ExpirationDate, !r.ExpirationDate.IsZero() },
-			),
-		),
-		NewProperty(
-			"remediation_service",
-			WrapAccess(
-				func(r *entity.Remediation) (string, bool) { return r.Service, r.Service != "" },
-			),
-		),
-		NewProperty(
-			"remediation_service_id",
-			WrapAccess(
-				func(r *entity.Remediation) (int64, bool) { return r.ServiceId, r.ServiceId != 0 },
-			),
-		),
-		NewProperty(
-			"remediation_component",
-			WrapAccess(
-				func(r *entity.Remediation) (string, bool) { return r.Component, r.Component != "" },
-			),
-		),
-		NewProperty(
-			"remediation_component_id",
-			WrapAccess(func(r *entity.Remediation) (sql.NullInt64, bool) {
-				return sql.NullInt64{
-					Int64: r.ComponentId,
-					Valid: IsValidId(r.ComponentId),
-				}, r.ComponentId != 0
-			}),
-		),
-		NewProperty(
-			"remediation_issue",
-			WrapAccess(
-				func(r *entity.Remediation) (string, bool) { return r.Issue, r.Issue != "" },
-			),
-		),
-		NewProperty(
-			"remediation_issue_id",
-			WrapAccess(
-				func(r *entity.Remediation) (int64, bool) { return r.IssueId, r.IssueId != 0 },
-			),
-		),
-		NewProperty(
-			"remediation_remediated_by",
-			WrapAccess(
-				func(r *entity.Remediation) (string, bool) { return r.RemediatedBy, NoUpdate },
-			),
-		),
-		NewProperty(
-			"remediation_remediated_by_id",
-			WrapAccess(func(r *entity.Remediation) (sql.NullInt64, bool) {
-				return sql.NullInt64{
-					Int64: r.RemediatedById,
-					Valid: IsValidId(r.RemediatedById),
-				}, NoUpdate
-			}),
-		),
-		NewProperty(
-			"remediation_created_by",
-			WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.CreatedBy, NoUpdate }),
-		),
-		NewProperty(
-			"remediation_updated_by",
-			WrapAccess(
-				func(r *entity.Remediation) (int64, bool) { return r.UpdatedBy, r.UpdatedBy != 0 },
-			),
-		),
+var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter, entity.RemediationResult]{
+	Prefix:       "remediation",
+	TableName:    "Remediation",
+	TableKey:     "R",
+	DefaultOrder: entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc},
+	Properties: []*Property[*entity.Remediation]{
+		NewProperty("remediation_description", func(r *entity.Remediation) (any, bool) { return r.Description, r.Description != "" }),
+		NewProperty("remediation_type", func(r *entity.Remediation) (any, bool) {
+			return r.Type, r.Type != "" && r.Type != entity.RemediationTypeUnknown
+		}),
+		NewProperty("remediation_url", func(r *entity.Remediation) (any, bool) { return r.URL, r.URL != "" }),
+		NewProperty("remediation_severity", func(r *entity.Remediation) (any, bool) {
+			return r.Severity, r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
+		}),
+		NewProperty("remediation_remediation_date", func(r *entity.Remediation) (any, bool) { return r.RemediationDate, !r.RemediationDate.IsZero() }),
+		NewProperty("remediation_expiration_date", func(r *entity.Remediation) (any, bool) { return r.ExpirationDate, !r.ExpirationDate.IsZero() }),
+		NewProperty("remediation_service", func(r *entity.Remediation) (any, bool) { return r.Service, r.Service != "" }),
+		NewProperty("remediation_service_id", func(r *entity.Remediation) (any, bool) { return r.ServiceId, r.ServiceId != 0 }),
+		NewProperty("remediation_component", func(r *entity.Remediation) (any, bool) { return r.Component, r.Component != "" }),
+		NewProperty("remediation_component_id", func(r *entity.Remediation) (any, bool) {
+			return sql.NullInt64{Int64: r.ComponentId, Valid: IsValidId(r.ComponentId)}, r.ComponentId != 0
+		}),
+		NewProperty("remediation_issue", func(r *entity.Remediation) (any, bool) { return r.Issue, r.Issue != "" }),
+		NewProperty("remediation_issue_id", func(r *entity.Remediation) (any, bool) { return r.IssueId, r.IssueId != 0 }),
+		NewProperty("remediation_remediated_by", func(r *entity.Remediation) (any, bool) { return r.RemediatedBy, NoUpdate }),
+		NewProperty("remediation_remediated_by_id", func(r *entity.Remediation) (any, bool) {
+			return sql.NullInt64{Int64: r.RemediatedById, Valid: IsValidId(r.RemediatedById)}, NoUpdate
+		}),
+		NewProperty("remediation_created_by", func(r *entity.Remediation) (any, bool) { return r.CreatedBy, NoUpdate }),
+		NewProperty("remediation_updated_by", func(r *entity.Remediation) (any, bool) { return r.UpdatedBy, r.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"R.remediation_id = ?",
-			WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"R.remediation_severity = ?",
-			WrapRetSlice(
-				func(filter *entity.RemediationFilter) []*string { return filter.Severity },
-			),
-		),
-		NewFilterProperty(
-			"R.remediation_type = ?",
-			WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Type }),
-		),
-		NewFilterProperty(
-			"R.remediation_url = ?",
-			WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.URL }),
-		),
-		NewFilterProperty(
-			"R.remediation_service = ?",
-			WrapRetSlice(
-				func(filter *entity.RemediationFilter) []*string { return filter.Service },
-			),
-		),
-		NewFilterProperty(
-			"R.remediation_service_id = ?",
-			WrapRetSlice(
-				func(filter *entity.RemediationFilter) []*int64 { return filter.ServiceId },
-			),
-		),
-		NewFilterProperty(
-			"R.remediation_component = ?",
-			WrapRetSlice(
-				func(filter *entity.RemediationFilter) []*string { return filter.Component },
-			),
-		),
-		NewFilterProperty(
-			"R.remediation_component_id = ?",
-			WrapRetSlice(
-				func(filter *entity.RemediationFilter) []*int64 { return filter.ComponentId },
-			),
-		),
-		NewFilterProperty(
-			"R.remediation_issue = ?",
-			WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Issue }),
-		),
-		NewFilterProperty(
-			"R.remediation_issue_id = ?",
-			WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.IssueId }),
-		),
-		NewFilterProperty(
-			"R.remediation_issue LIKE Concat('%',?,'%')",
-			WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Search }),
-		),
-		NewStateFilterProperty(
-			"R.remediation",
-			WrapRetState(
-				func(filter *entity.RemediationFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.RemediationFilter]{
+		NewFilterProperty("R.remediation_id = ?", func(filter *entity.RemediationFilter) any { return filter.Id }),
+		NewFilterProperty("R.remediation_severity = ?", func(filter *entity.RemediationFilter) any { return filter.Severity }),
+		NewFilterProperty("R.remediation_type = ?", func(filter *entity.RemediationFilter) any { return filter.Type }),
+		NewFilterProperty("R.remediation_url = ?", func(filter *entity.RemediationFilter) any { return filter.URL }),
+		NewFilterProperty("R.remediation_service = ?", func(filter *entity.RemediationFilter) any { return filter.Service }),
+		NewFilterProperty("R.remediation_service_id = ?", func(filter *entity.RemediationFilter) any { return filter.ServiceId }),
+		NewFilterProperty("R.remediation_component = ?", func(filter *entity.RemediationFilter) any { return filter.Component }),
+		NewFilterProperty("R.remediation_component_id = ?", func(filter *entity.RemediationFilter) any { return filter.ComponentId }),
+		NewFilterProperty("R.remediation_issue = ?", func(filter *entity.RemediationFilter) any { return filter.Issue }),
+		NewFilterProperty("R.remediation_issue_id = ?", func(filter *entity.RemediationFilter) any { return filter.IssueId }),
+		NewFilterProperty("R.remediation_issue LIKE Concat('%',?,'%')", func(filter *entity.RemediationFilter) any { return filter.Search }),
+		NewStateFilterProperty("R.remediation", func(filter *entity.RemediationFilter) any { return filter.State }),
+	},
+	GetItemAppender: func(l []entity.RemediationResult, e RowComposite, order []entity.Order) []entity.RemediationResult {
+		r := e.AsRemediation()
+		cursor, _ := EncodeCursor(WithRemediation(order, r))
+
+		rr := entity.RemediationResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			Remediation: &r,
+		}
+
+		return append(l, rr)
 	},
 }
 
@@ -192,14 +82,13 @@ func (s *SqlDatabase) buildRemediationStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.RemediationFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &remediationObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, remediationObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -210,83 +99,11 @@ func (s *SqlDatabase) GetRemediations(
 	filter *entity.RemediationFilter,
 	order []entity.Order,
 ) ([]entity.RemediationResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"order":  order,
-		"event":  "database.GetRemediations",
-	})
-
-	baseQuery := sq.Select("R.*").From("Remediation R").GroupBy("R.remediation_id")
-
-	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build Remediation query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	results, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.RemediationResult, e RowComposite) []entity.RemediationResult {
-			r := e.AsRemediation()
-			cursor, _ := EncodeCursor(WithRemediation(order, r))
-
-			rr := entity.RemediationResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				Remediation: &r,
-			}
-
-			return append(l, rr)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Remediations: %w", err)
-	}
-
-	return results, nil
+	return remediationObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountRemediations(ctx context.Context, filter *entity.RemediationFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountRemediations",
-	})
-
-	baseQuery := sq.Select("count(distinct R.remediation_id)").From("Remediation R")
-
-	stmt, filterParameters, err := s.buildRemediationStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, fmt.Errorf("failed to build Remediation count query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	count, err := performCountScan(ctx, stmt, filterParameters, l)
-	if err != nil {
-		return -1, fmt.Errorf("failed to count Remediations: %w", err)
-	}
-
-	return count, nil
+	return remediationObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) GetAllRemediationCursors(

@@ -17,108 +17,41 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var serviceObject = DbObject[*entity.Service]{
-	Prefix:    "service",
-	TableName: "Service",
-	Properties: []*Property{
-		NewProperty(
-			"service_ccrn",
-			WrapAccess(func(s *entity.Service) (string, bool) { return s.CCRN, s.CCRN != "" }),
-		),
-		NewProperty(
-			"service_domain",
-			WrapAccess(func(s *entity.Service) (string, bool) { return s.Domain, s.Domain != "" }),
-		),
-		NewProperty(
-			"service_region",
-			WrapAccess(func(s *entity.Service) (string, bool) { return s.Region, s.Region != "" }),
-		),
-		NewProperty(
-			"service_created_by",
-			WrapAccess(
-				func(s *entity.Service) (int64, bool) { return s.BaseService.CreatedBy, NoUpdate },
-			),
-		),
-		NewProperty(
-			"service_updated_by",
-			WrapAccess(
-				func(s *entity.Service) (int64, bool) { return s.BaseService.UpdatedBy, s.BaseService.UpdatedBy != 0 },
-			),
-		),
+var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.ServiceResult]{
+	Prefix:       "service",
+	TableName:    "Service",
+	TableKey:     "S",
+	DefaultOrder: entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc},
+	Aggregated:   true,
+	Properties: []*Property[*entity.Service]{
+		NewProperty("service_ccrn", func(s *entity.Service) (any, bool) { return s.CCRN, s.CCRN != "" }),
+		NewProperty("service_domain", func(s *entity.Service) (any, bool) { return s.Domain, s.Domain != "" }),
+		NewProperty("service_region", func(s *entity.Service) (any, bool) { return s.Region, s.Region != "" }),
+		NewProperty("service_created_by", func(s *entity.Service) (any, bool) { return s.BaseService.CreatedBy, NoUpdate }),
+		NewProperty("service_updated_by", func(s *entity.Service) (any, bool) { return s.BaseService.UpdatedBy, s.BaseService.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"S.service_ccrn = ?",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.CCRN }),
-		),
-		NewFilterProperty(
-			"S.service_domain = ?",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Domain }),
-		),
-		NewFilterProperty(
-			"S.service_region = ?",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Region }),
-		),
-		NewFilterProperty(
-			"S.service_id = ?",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"SG.supportgroup_ccrn = ?",
-			WrapRetSlice(
-				func(filter *entity.ServiceFilter) []*string { return filter.SupportGroupCCRN },
-			),
-		),
-		NewFilterProperty(
-			"U.user_name = ?",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.OwnerName }),
-		),
-		NewFilterProperty(
-			"IM.issuematch_issue_id = ?",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.IssueId }),
-		),
-		NewFilterProperty(
-			"CI.componentinstance_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ServiceFilter) []*int64 { return filter.ComponentInstanceId },
-			),
-		),
-		NewFilterProperty(
-			"IRS.issuerepositoryservice_issue_repository_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ServiceFilter) []*int64 { return filter.IssueRepositoryId },
-			),
-		),
-		NewFilterProperty(
-			"SGS.supportgroupservice_support_group_id = ?",
-			WrapRetSlice(
-				func(filter *entity.ServiceFilter) []*int64 { return filter.SupportGroupId },
-			),
-		),
-		NewFilterProperty(
-			"O.owner_user_id = ?",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.OwnerId }),
-		),
-		NewFilterProperty(
-			"S.service_ccrn LIKE Concat('%',?,'%')",
-			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Search }),
-		),
-		NewStateFilterProperty(
-			"S.service",
-			WrapRetState(
-				func(filter *entity.ServiceFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.ServiceFilter]{
+		NewFilterProperty("S.service_ccrn = ?", func(filter *entity.ServiceFilter) any { return filter.CCRN }),
+		NewFilterProperty("S.service_domain = ?", func(filter *entity.ServiceFilter) any { return filter.Domain }),
+		NewFilterProperty("S.service_region = ?", func(filter *entity.ServiceFilter) any { return filter.Region }),
+		NewFilterProperty("S.service_id = ?", func(filter *entity.ServiceFilter) any { return filter.Id }),
+		NewFilterProperty("SG.supportgroup_ccrn = ?", func(filter *entity.ServiceFilter) any { return filter.SupportGroupCCRN }),
+		NewFilterProperty("U.user_name = ?", func(filter *entity.ServiceFilter) any { return filter.OwnerName }),
+		NewFilterProperty("IM.issuematch_issue_id = ?", func(filter *entity.ServiceFilter) any { return filter.IssueId }),
+		NewFilterProperty("CI.componentinstance_id = ?", func(filter *entity.ServiceFilter) any { return filter.ComponentInstanceId }),
+		NewFilterProperty("IRS.issuerepositoryservice_issue_repository_id = ?", func(filter *entity.ServiceFilter) any { return filter.IssueRepositoryId }),
+		NewFilterProperty("SGS.supportgroupservice_support_group_id = ?", func(filter *entity.ServiceFilter) any { return filter.SupportGroupId }),
+		NewFilterProperty("O.owner_user_id = ?", func(filter *entity.ServiceFilter) any { return filter.OwnerId }),
+		NewFilterProperty("S.service_ccrn LIKE Concat('%',?,'%')", func(filter *entity.ServiceFilter) any { return filter.Search }),
+		NewStateFilterProperty("S.service", func(filter *entity.ServiceFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.ServiceFilter]{
 		{
-			Name:  "O",
-			Type:  LeftJoin,
-			Table: "Owner O",
-			On:    "S.service_id = O.owner_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
-				return len(f.OwnerId) > 0
-			}),
+			Name:      "O",
+			Type:      LeftJoin,
+			Table:     "Owner O",
+			On:        "S.service_id = O.owner_service_id",
+			Condition: func(f *entity.ServiceFilter, _ *Order) bool { return len(f.OwnerId) > 0 },
 		},
 		{
 			Name:      "U",
@@ -126,18 +59,14 @@ var serviceObject = DbObject[*entity.Service]{
 			Table:     "User U",
 			On:        "O.owner_user_id = U.user_id",
 			DependsOn: []string{"O"},
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
-				return len(f.OwnerName) > 0
-			}),
+			Condition: func(f *entity.ServiceFilter, _ *Order) bool { return len(f.OwnerName) > 0 },
 		},
 		{
-			Name:  "SGS",
-			Type:  LeftJoin,
-			Table: "SupportGroupService SGS",
-			On:    "S.service_id = SGS.supportgroupservice_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
-				return len(f.SupportGroupId) > 0
-			}),
+			Name:      "SGS",
+			Type:      LeftJoin,
+			Table:     "SupportGroupService SGS",
+			On:        "S.service_id = SGS.supportgroupservice_service_id",
+			Condition: func(f *entity.ServiceFilter, _ *Order) bool { return len(f.SupportGroupId) > 0 },
 		},
 		{
 			Name:      "SG",
@@ -145,18 +74,14 @@ var serviceObject = DbObject[*entity.Service]{
 			Table:     "SupportGroup SG",
 			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
 			DependsOn: []string{"SGS"},
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
-				return len(f.SupportGroupCCRN) > 0
-			}),
+			Condition: func(f *entity.ServiceFilter, _ *Order) bool { return len(f.SupportGroupCCRN) > 0 },
 		},
 		{
-			Name:  "CI",
-			Type:  LeftJoin,
-			Table: "ComponentInstance CI",
-			On:    "S.service_id = CI.componentinstance_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
-				return len(f.ComponentInstanceId) > 0
-			}),
+			Name:      "CI",
+			Type:      LeftJoin,
+			Table:     "ComponentInstance CI",
+			On:        "S.service_id = CI.componentinstance_service_id",
+			Condition: func(f *entity.ServiceFilter, _ *Order) bool { return len(f.ComponentInstanceId) > 0 },
 		},
 		{
 			Name:      "IM",
@@ -164,28 +89,66 @@ var serviceObject = DbObject[*entity.Service]{
 			Table:     "IssueMatch IM",
 			On:        "CI.componentinstance_id = IM.issuematch_component_instance_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
-				return len(f.IssueId) > 0
-			}),
+			Condition: func(f *entity.ServiceFilter, _ *Order) bool { return len(f.IssueId) > 0 },
 		},
 		{
-			Name:  "IRS",
-			Type:  LeftJoin,
-			Table: "IssueRepositoryService IRS",
-			On:    "S.service_id = IRS.issuerepositoryservice_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
-				return len(f.IssueRepositoryId) > 0
-			}),
+			Name:      "IRS",
+			Type:      LeftJoin,
+			Table:     "IssueRepositoryService IRS",
+			On:        "S.service_id = IRS.issuerepositoryservice_service_id",
+			Condition: func(f *entity.ServiceFilter, _ *Order) bool { return len(f.IssueRepositoryId) > 0 },
 		},
 		{
-			Name:  "SIC",
-			Type:  LeftJoin,
-			Table: "mvServiceIssueCounts SIC",
-			On:    "S.service_id = SIC.service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, order *Order) bool {
-				return order.ByCount()
-			}),
+			Name:      "SIC",
+			Type:      LeftJoin,
+			Table:     "mvServiceIssueCounts SIC",
+			On:        "S.service_id = SIC.service_id",
+			Condition: func(f *entity.ServiceFilter, order *Order) bool { return order.ByCount() },
 		},
+	},
+	ExtraColumnsSelector: func(filter *entity.ServiceFilter, order *Order) []string {
+		s := []string{}
+		if filter != nil && len(filter.IssueRepositoryId) > 0 {
+			s = append(s, "IRS.*")
+		}
+
+		for _, o := range order.Sequence() {
+			switch o.By {
+			case entity.CriticalCount:
+				s = append(s, "SIC.critical_count")
+			case entity.HighCount:
+				s = append(s, "SIC.high_count")
+			case entity.MediumCount:
+				s = append(s, "SIC.medium_count")
+			case entity.LowCount:
+				s = append(s, "SIC.low_count")
+			case entity.NoneCount:
+				s = append(s, "SIC.none_count")
+			}
+		}
+
+		return s
+	},
+	GetItemAppender: func(l []entity.ServiceResult, e RowComposite, order []entity.Order) []entity.ServiceResult {
+		s := entity.Service{
+			BaseService: e.AsBaseService(),
+		}
+
+		var isc entity.IssueSeverityCounts
+		if e.RatingCount != nil {
+			isc = e.AsIssueSeverityCounts()
+		}
+
+		cursor, _ := EncodeCursor(WithService(order, s, isc))
+
+		sr := entity.ServiceResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			Service: &s,
+		}
+
+		return append(l, sr)
 	},
 }
 
@@ -220,46 +183,20 @@ func (s *SqlDatabase) buildServiceStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.ServiceFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &serviceObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrderWithCounterPrefix(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc}, "SIC"),
+		Order:      NewOrderWithCounterPrefix(order, serviceObject.DefaultOrder, "SIC"),
 		WithCursor: withCursor,
-		Aggregated: true,
 	}
 
 	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountServices",
-	})
-
-	baseQuery := sq.Select("count(distinct S.service_id)").From("Service S")
-
-	stmt, filterParameters, err := s.buildServiceStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performCountScan(ctx, stmt, filterParameters, l)
+	return serviceObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) GetServices(
@@ -267,50 +204,7 @@ func (s *SqlDatabase) GetServices(
 	filter *entity.ServiceFilter,
 	order []entity.Order,
 ) ([]entity.ServiceResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetServices",
-	})
-
-	baseQuery := sq.Select(appendServiceColumns([]string{"S.*"}, filter, order)...).From("Service S").GroupBy("S.service_id")
-
-	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.ServiceResult, e RowComposite) []entity.ServiceResult {
-			s := entity.Service{
-				BaseService: e.AsBaseService(),
-			}
-
-			var isc entity.IssueSeverityCounts
-			if e.RatingCount != nil {
-				isc = e.AsIssueSeverityCounts()
-			}
-
-			cursor, _ := EncodeCursor(WithService(order, s, isc))
-
-			sr := entity.ServiceResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				Service: &s,
-			}
-
-			return append(l, sr)
-		},
-	)
+	return serviceObject.Get(ctx, s.db, filter, order)
 }
 
 // TODO use DbObject

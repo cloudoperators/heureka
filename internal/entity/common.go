@@ -156,8 +156,10 @@ func (p *Paginated) GetPaginated() *Paginated {
 	return p
 }
 
-type HasPagination interface {
+type Filter interface {
 	GetPaginated() *Paginated
+	Get() any
+	Ensure() Filter
 }
 
 type Severity struct {

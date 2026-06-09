@@ -13,90 +13,57 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var userObject = DbObject[*entity.User]{
-	Prefix:    "user",
-	TableName: "User",
-	Properties: []*Property{
-		NewProperty(
-			"user_name",
-			WrapAccess(func(u *entity.User) (string, bool) { return u.Name, u.Name != "" }),
-		),
-		NewProperty(
-			"user_unique_user_id",
-			WrapAccess(
-				func(u *entity.User) (string, bool) { return u.UniqueUserID, u.UniqueUserID != "" },
-			),
-		),
-		NewProperty(
-			"user_type",
-			WrapAccess(
-				func(u *entity.User) (entity.UserType, bool) { return u.Type, u.Type != entity.InvalidUserType },
-			),
-		),
-		NewProperty(
-			"user_email",
-			WrapAccess(func(u *entity.User) (string, bool) { return u.Email, u.Email != "" }),
-		),
-		NewProperty(
-			"user_created_by",
-			WrapAccess(func(u *entity.User) (int64, bool) { return u.CreatedBy, NoUpdate }),
-		),
-		NewProperty(
-			"user_updated_by",
-			WrapAccess(func(u *entity.User) (int64, bool) { return u.UpdatedBy, u.UpdatedBy != 0 }),
-		),
+var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
+	Prefix:       "user",
+	TableName:    "User",
+	TableKey:     "U",
+	DefaultOrder: entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc},
+	Properties: []*Property[*entity.User]{
+		NewProperty("user_name", func(u *entity.User) (any, bool) { return u.Name, u.Name != "" }),
+		NewProperty("user_unique_user_id", func(u *entity.User) (any, bool) { return u.UniqueUserID, u.UniqueUserID != "" }),
+		NewProperty("user_type", func(u *entity.User) (any, bool) { return u.Type, u.Type != entity.InvalidUserType }),
+		NewProperty("user_email", func(u *entity.User) (any, bool) { return u.Email, u.Email != "" }),
+		NewProperty("user_created_by", func(u *entity.User) (any, bool) { return u.CreatedBy, NoUpdate }),
+		NewProperty("user_updated_by", func(u *entity.User) (any, bool) { return u.UpdatedBy, u.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"U.user_id = ?",
-			WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"U.user_name = ?",
-			WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Name }),
-		),
-		NewFilterProperty(
-			"U.user_unique_user_id = ?",
-			WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.UniqueUserID }),
-		),
-		NewFilterProperty(
-			"U.user_type = ?",
-			WrapRetSlice(func(filter *entity.UserFilter) []entity.UserType { return filter.Type }),
-		),
-		NewFilterProperty(
-			"U.user_email = ?",
-			WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Email }),
-		),
-		NewFilterProperty(
-			"SGU.supportgroupuser_support_group_id = ?",
-			WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.SupportGroupId }),
-		),
-		NewFilterProperty(
-			"O.owner_service_id = ?",
-			WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.ServiceId }),
-		),
-		NewStateFilterProperty(
-			"U.user",
-			WrapRetState(
-				func(filter *entity.UserFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.UserFilter]{
+		NewFilterProperty("U.user_id = ?", func(filter *entity.UserFilter) any { return filter.Id }),
+		NewFilterProperty("U.user_name = ?", func(filter *entity.UserFilter) any { return filter.Name }),
+		NewFilterProperty("U.user_unique_user_id = ?", func(filter *entity.UserFilter) any { return filter.UniqueUserID }),
+		NewFilterProperty("U.user_type = ?", func(filter *entity.UserFilter) any { return filter.Type }),
+		NewFilterProperty("U.user_email = ?", func(filter *entity.UserFilter) any { return filter.Email }),
+		NewFilterProperty("SGU.supportgroupuser_support_group_id = ?", func(filter *entity.UserFilter) any { return filter.SupportGroupId }),
+		NewFilterProperty("O.owner_service_id = ?", func(filter *entity.UserFilter) any { return filter.ServiceId }),
+		NewStateFilterProperty("U.user", func(filter *entity.UserFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.UserFilter]{
 		{
 			Name:      "SGU",
 			Type:      LeftJoin,
 			Table:     "SupportGroupUser SGU",
 			On:        "U.user_id = SGU.supportgroupuser_user_id",
-			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ *Order) bool { return len(f.SupportGroupId) > 0 }),
+			Condition: func(f *entity.UserFilter, _ *Order) bool { return len(f.SupportGroupId) > 0 },
 		},
 		{
 			Name:      "O",
 			Type:      LeftJoin,
 			Table:     "Owner O",
 			On:        "U.user_id = O.owner_user_id",
-			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ *Order) bool { return len(f.ServiceId) > 0 }),
+			Condition: func(f *entity.UserFilter, _ *Order) bool { return len(f.ServiceId) > 0 },
 		},
+	},
+	GetItemAppender: func(l []entity.UserResult, e RowComposite, order []entity.Order) []entity.UserResult {
+		u := e.AsUser()
+		cursor, _ := EncodeCursor(WithUser([]entity.Order{}, u))
+
+		ur := entity.UserResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			User: &u,
+		}
+
+		return append(l, ur)
 	},
 }
 
@@ -108,14 +75,13 @@ func (s *SqlDatabase) buildUserStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.UserFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &userObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.UserID, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, userObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -196,79 +162,11 @@ func (s *SqlDatabase) GetAllUserCursors(
 }
 
 func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) ([]entity.UserResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetUsers",
-	})
-
-	baseQuery := sq.Select("U.*").From("User U").GroupBy("U.user_id")
-
-	stmt, filterParameters, err := s.buildUserStatement(
-		ctx,
-		baseQuery,
-		filter,
-		true,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.UserResult, e UserRow) []entity.UserResult {
-			u := e.AsUser()
-			cursor, _ := EncodeCursor(WithUser([]entity.Order{}, u))
-
-			ur := entity.UserResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				User: &u,
-			}
-
-			return append(l, ur)
-		},
-	)
+	return userObject.Get(ctx, s.db, filter, nil)
 }
 
 func (s *SqlDatabase) CountUsers(ctx context.Context, filter *entity.UserFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountUsers",
-	})
-
-	baseQuery := sq.Select("count(distinct U.user_id)").From("User U")
-
-	stmt, filterParameters, err := s.buildUserStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performCountScan(ctx, stmt, filterParameters, l)
+	return userObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {

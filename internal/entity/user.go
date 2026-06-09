@@ -41,6 +41,18 @@ type UserFilter struct {
 	Email          []*string         `json:"email"`
 }
 
+func (f *UserFilter) Get() any {
+	return f
+}
+
+func (f *UserFilter) Ensure() Filter {
+	if f == nil {
+		return &UserFilter{}
+	}
+
+	return f
+}
+
 type UserAggregations struct{}
 
 type UserResult struct {

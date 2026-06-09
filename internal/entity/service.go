@@ -42,6 +42,18 @@ type ServiceFilter struct {
 	State               []StateFilterType `json:"state"`
 }
 
+func (f *ServiceFilter) Get() any {
+	return f
+}
+
+func (f *ServiceFilter) Ensure() Filter {
+	if f == nil {
+		return &ServiceFilter{}
+	}
+
+	return f
+}
+
 type Service struct {
 	BaseService
 	IssueRepositoryService

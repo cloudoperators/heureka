@@ -13,114 +13,43 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueVariantObject = DbObject[*entity.IssueVariant]{
-	Prefix:    "issuevariant",
-	TableName: "IssueVariant",
-	Properties: []*Property{
-		NewProperty(
-			"issuevariant_issue_id",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (int64, bool) { return iv.IssueId, iv.IssueId != 0 },
-			),
-		),
-		NewProperty(
-			"issuevariant_repository_id",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (int64, bool) { return iv.IssueRepositoryId, iv.IssueRepositoryId != 0 },
-			),
-		),
+var issueVariantObject = DbObject[*entity.IssueVariant, *entity.IssueVariantFilter, entity.IssueVariantResult]{
+	Prefix:       "issuevariant",
+	TableName:    "IssueVariant",
+	TableKey:     "IV",
+	DefaultOrder: entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc},
+	Properties: []*Property[*entity.IssueVariant]{
+		NewProperty("issuevariant_issue_id", func(iv *entity.IssueVariant) (any, bool) { return iv.IssueId, iv.IssueId != 0 }),
+		NewProperty("issuevariant_repository_id", func(iv *entity.IssueVariant) (any, bool) { return iv.IssueRepositoryId, iv.IssueRepositoryId != 0 }),
 		// if rating but not vector is passed, we need to include the vector in the update in order
 		// to overwrite any existing vector
-		NewProperty("issuevariant_vector", WrapAccess(func(iv *entity.IssueVariant) (string, bool) {
+		NewProperty("issuevariant_vector", func(iv *entity.IssueVariant) (any, bool) {
 			return iv.Severity.Cvss.Vector, iv.Severity.Cvss.Vector != "" ||
 				(iv.Severity.Value != "" && iv.Severity.Cvss.Vector == "")
-		})),
-		NewProperty(
-			"issuevariant_rating",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (string, bool) { return iv.Severity.Value, iv.Severity.Value != "" },
-			),
-		),
-		NewProperty(
-			"issuevariant_secondary_name",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (string, bool) { return iv.SecondaryName, iv.SecondaryName != "" },
-			),
-		),
-		NewProperty(
-			"issuevariant_description",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (string, bool) { return iv.Description, iv.Description != "" },
-			),
-		),
-		NewProperty(
-			"issuevariant_external_url",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (string, bool) { return iv.ExternalUrl, iv.ExternalUrl != "" },
-			),
-		),
-		NewProperty(
-			"issuevariant_created_by",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (int64, bool) { return iv.CreatedBy, NoUpdate },
-			),
-		),
-		NewProperty(
-			"issuevariant_updated_by",
-			WrapAccess(
-				func(iv *entity.IssueVariant) (int64, bool) { return iv.UpdatedBy, iv.UpdatedBy != 0 },
-			),
-		),
+		}),
+		NewProperty("issuevariant_rating", func(iv *entity.IssueVariant) (any, bool) { return iv.Severity.Value, iv.Severity.Value != "" }),
+		NewProperty("issuevariant_secondary_name", func(iv *entity.IssueVariant) (any, bool) { return iv.SecondaryName, iv.SecondaryName != "" }),
+		NewProperty("issuevariant_description", func(iv *entity.IssueVariant) (any, bool) { return iv.Description, iv.Description != "" }),
+		NewProperty("issuevariant_external_url", func(iv *entity.IssueVariant) (any, bool) { return iv.ExternalUrl, iv.ExternalUrl != "" }),
+		NewProperty("issuevariant_created_by", func(iv *entity.IssueVariant) (any, bool) { return iv.CreatedBy, NoUpdate }),
+		NewProperty("issuevariant_updated_by", func(iv *entity.IssueVariant) (any, bool) { return iv.UpdatedBy, iv.UpdatedBy != 0 }),
 	},
-	FilterProperties: []*FilterProperty{
-		NewFilterProperty(
-			"IV.issuevariant_id = ?",
-			WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.Id }),
-		),
-		NewFilterProperty(
-			"IV.issuevariant_secondary_name = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueVariantFilter) []*string { return filter.SecondaryName },
-			),
-		),
-		NewFilterProperty(
-			"IV.issuevariant_issue_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueId },
-			),
-		),
-		NewFilterProperty(
-			"IV.issuevariant_repository_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueRepositoryId },
-			),
-		),
-		NewFilterProperty(
-			"IRS.issuerepositoryservice_service_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueVariantFilter) []*int64 { return filter.ServiceId },
-			),
-		),
-		NewFilterProperty(
-			"IM.issuematch_id = ?",
-			WrapRetSlice(
-				func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueMatchId },
-			),
-		),
-		NewStateFilterProperty(
-			"IV.issuevariant",
-			WrapRetState(
-				func(filter *entity.IssueVariantFilter) []entity.StateFilterType { return filter.State },
-			),
-		),
+	FilterProperties: []*FilterProperty[*entity.IssueVariantFilter]{
+		NewFilterProperty("IV.issuevariant_id = ?", func(filter *entity.IssueVariantFilter) any { return filter.Id }),
+		NewFilterProperty("IV.issuevariant_secondary_name = ?", func(filter *entity.IssueVariantFilter) any { return filter.SecondaryName }),
+		NewFilterProperty("IV.issuevariant_issue_id = ?", func(filter *entity.IssueVariantFilter) any { return filter.IssueId }),
+		NewFilterProperty("IV.issuevariant_repository_id = ?", func(filter *entity.IssueVariantFilter) any { return filter.IssueRepositoryId }),
+		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", func(filter *entity.IssueVariantFilter) any { return filter.ServiceId }),
+		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.IssueVariantFilter) any { return filter.IssueMatchId }),
+		NewStateFilterProperty("IV.issuevariant", func(filter *entity.IssueVariantFilter) any { return filter.State }),
 	},
-	JoinDefs: []*JoinDef{
+	JoinDefs: []*JoinDef[*entity.IssueVariantFilter]{
 		{
 			Name:      "IR",
 			Type:      InnerJoin,
 			Table:     "IssueRepository IR",
 			On:        "IV.issuevariant_repository_id = IR.issuerepository_id",
-			Condition: DependentJoin,
+			Condition: DependentJoin[*entity.IssueVariantFilter],
 		},
 		{
 			Name:      "IRS",
@@ -128,18 +57,14 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 			Table:     "IssueRepositoryService IRS",
 			On:        "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
 			DependsOn: []string{"IR"},
-			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ *Order) bool {
-				return len(f.ServiceId) > 0
-			}),
+			Condition: func(f *entity.IssueVariantFilter, _ *Order) bool { return len(f.ServiceId) > 0 },
 		},
 		{
-			Name:  "I",
-			Type:  InnerJoin,
-			Table: "Issue I",
-			On:    "IV.issuevariant_issue_id = I.issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ *Order) bool {
-				return len(f.IssueId) > 0
-			}),
+			Name:      "I",
+			Type:      InnerJoin,
+			Table:     "Issue I",
+			On:        "IV.issuevariant_issue_id = I.issue_id",
+			Condition: func(f *entity.IssueVariantFilter, _ *Order) bool { return len(f.IssueId) > 0 },
 		},
 		{
 			Name:      "IM",
@@ -147,10 +72,21 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 			Table:     "IssueMatch IM",
 			On:        "I.issue_id = IM.issuematch_issue_id",
 			DependsOn: []string{"I"},
-			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ *Order) bool {
-				return len(f.IssueMatchId) > 0
-			}),
+			Condition: func(f *entity.IssueVariantFilter, _ *Order) bool { return len(f.IssueMatchId) > 0 },
 		},
+	},
+	GetItemAppender: func(l []entity.IssueVariantResult, e RowComposite, order []entity.Order) []entity.IssueVariantResult {
+		iv := e.AsIssueVariant()
+		cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
+
+		ivr := entity.IssueVariantResult{
+			WithCursor: entity.WithCursor{
+				Value: cursor,
+			},
+			IssueVariant: &iv,
+		}
+
+		return append(l, ivr)
 	},
 }
 
@@ -162,14 +98,13 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 	order []entity.Order,
 	l *logrus.Entry,
 ) (Stmt, []any, error) {
-	statement := Statement{
+	statement := Statement[*entity.IssueVariantFilter]{
 		Db:         s.db,
 		L:          l,
 		Obj:        &issueVariantObject,
 		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc}),
+		Order:      NewOrder(order, issueVariantObject.DefaultOrder),
 		WithCursor: withCursor,
-		Aggregated: false,
 	}
 
 	return BuildStatement(ctx, statement, filter)
@@ -225,72 +160,11 @@ func (s *SqlDatabase) GetIssueVariants(
 	filter *entity.IssueVariantFilter,
 	order []entity.Order,
 ) ([]entity.IssueVariantResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetIssueVariants",
-	})
-
-	baseQuery := sq.Select("IV.*").From("IssueVariant IV").GroupBy("IV.issuevariant_id")
-
-	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, true, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error while close statement: %s", err.Error())
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.IssueVariantResult, e IssueVariantRow) []entity.IssueVariantResult {
-			iv := e.AsIssueVariant()
-			cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
-
-			ivr := entity.IssueVariantResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				IssueVariant: &iv,
-			}
-
-			return append(l, ivr)
-		},
-	)
+	return issueVariantObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountIssueVariants(ctx context.Context, filter *entity.IssueVariantFilter) (int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountIssueVariants",
-	})
-
-	baseQuery := sq.Select("count(distinct IV.issuevariant_id)").From("IssueVariant IV")
-
-	stmt, filterParameters, err := s.buildIssueVariantStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return -1, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performCountScan(ctx, stmt, filterParameters, l)
+	return issueVariantObject.Count(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) CreateIssueVariant(

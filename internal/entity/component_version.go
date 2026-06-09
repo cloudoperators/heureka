@@ -21,6 +21,18 @@ type ComponentVersionFilter struct {
 	EndOfLife         []*bool           `json:"end_of_life"`
 }
 
+func (f *ComponentVersionFilter) Get() any {
+	return f
+}
+
+func (f *ComponentVersionFilter) Ensure() Filter {
+	if f == nil {
+		return &ComponentVersionFilter{}
+	}
+
+	return f
+}
+
 type ComponentVersionAggregations struct{}
 
 type ComponentVersionResult struct {
