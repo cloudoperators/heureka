@@ -330,6 +330,17 @@ func (s *SeedCollection) FindLinkedRemediationData() (mariadb.BaseServiceRow, ma
 			continue
 		}
 
+		// Skip triples that already have a seeded remediation to avoid
+		// "already exists" conflicts in create-remediation tests.
+		hasExisting := lo.ContainsBy(s.RemediationRows, func(r mariadb.RemediationRow) bool {
+			return r.ServiceId.Int64 == service.Id.Int64 &&
+				r.IssueId.Int64 == issue.Id.Int64 &&
+				r.ComponentId.Int64 == component.Id.Int64
+		})
+		if hasExisting {
+			continue
+		}
+
 		return service, component, issue, true
 	}
 
