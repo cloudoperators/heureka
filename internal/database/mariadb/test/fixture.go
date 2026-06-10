@@ -2113,3 +2113,9 @@ func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
 
 	return err
 }
+
+func (s *DatabaseSeeder) RefreshMvVulnerabilityList() error {
+	_, err := s.db.Exec(`CALL refresh_mvVulnerabilityList_proc();`)
+
+	return err
+}
