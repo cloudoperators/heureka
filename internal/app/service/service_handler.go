@@ -20,11 +20,14 @@ import (
 )
 
 var (
-	CacheTtlGetServiceAttrs             = 12 * time.Hour
-	CacheTtlGetServicesWithAggregations = 12 * time.Hour
-	CacheTtlGetServices                 = 12 * time.Hour
-	CacheTtlGetAllSericeCursors         = 12 * time.Hour
-	CacheTtlCountServices               = 12 * time.Hour
+	CacheTtlGetServiceAttrs              = 12 * time.Hour
+	CacheTtlGetServicesWithAggregations  = 12 * time.Hour
+	CacheTtlGetServices                  = 12 * time.Hour
+	CacheTtlGetAllSericeCursors          = 12 * time.Hour
+	CacheTtlCountServices                = 12 * time.Hour
+	CacheTtlGetOwnersByServiceIDs        = 12 * time.Hour
+	CacheTtlGetSupportGroupsByServiceIDs = 12 * time.Hour
+	CacheTtlGetIssueCountsByServiceIDs   = 12 * time.Hour
 )
 
 type serviceHandler struct {
@@ -541,4 +544,76 @@ func (s *serviceHandler) ListServiceRegions(
 	)
 
 	return serviceRegions, nil
+}
+
+func (s *serviceHandler) ListOwnersByServiceIDs(
+	ctx context.Context,
+	serviceIDs []int64,
+) (map[int64][]entity.User, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":      "ListOwnersByServiceIDs",
+		"serviceIDs": serviceIDs,
+	})
+
+	owners, err := cache.CallCached[map[int64][]entity.User](
+		s.cache,
+		CacheTtlGetOwnersByServiceIDs,
+		"GetOwnersByServiceIDs",
+		cache.WrapContext1(ctx, s.database.GetOwnersByServiceIDs),
+		serviceIDs,
+	)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while retrieving owners by service IDs.")
+	}
+
+	return owners, nil
+}
+
+func (s *serviceHandler) ListSupportGroupsByServiceIDs(
+	ctx context.Context,
+	serviceIDs []int64,
+) (map[int64][]entity.SupportGroup, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":      "ListSupportGroupsByServiceIDs",
+		"serviceIDs": serviceIDs,
+	})
+
+	supportGroups, err := cache.CallCached[map[int64][]entity.SupportGroup](
+		s.cache,
+		CacheTtlGetSupportGroupsByServiceIDs,
+		"GetSupportGroupsByServiceIDs",
+		cache.WrapContext1(ctx, s.database.GetSupportGroupsByServiceIDs),
+		serviceIDs,
+	)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while retrieving support groups by service IDs.")
+	}
+
+	return supportGroups, nil
+}
+
+func (s *serviceHandler) ListIssueCountsByServiceIDs(
+	ctx context.Context,
+	serviceIDs []int64,
+) (map[int64]entity.IssueSeverityCounts, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":      "ListIssueCountsByServiceIDs",
+		"serviceIDs": serviceIDs,
+	})
+
+	issueCounts, err := cache.CallCached[map[int64]entity.IssueSeverityCounts](
+		s.cache,
+		CacheTtlGetIssueCountsByServiceIDs,
+		"GetIssueCountsByServiceIDs",
+		cache.WrapContext1(ctx, s.database.GetIssueCountsByServiceIDs),
+		serviceIDs,
+	)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while retrieving issue counts by service IDs.")
+	}
+
+	return issueCounts, nil
 }

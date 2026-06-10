@@ -26,4 +26,7 @@ type ServiceHandler interface {
 	ListServiceRegions(ctx context.Context, filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
 	AddIssueRepositoryToService(context.Context, int64, int64, int64) (*entity.Service, error)
 	RemoveIssueRepositoryFromService(context.Context, int64, int64) (*entity.Service, error)
+	ListOwnersByServiceIDs(ctx context.Context, serviceIDs []int64) (map[int64][]entity.User, error)
+	ListSupportGroupsByServiceIDs(ctx context.Context, serviceIDs []int64) (map[int64][]entity.SupportGroup, error)
+	ListIssueCountsByServiceIDs(ctx context.Context, serviceIDs []int64) (map[int64]entity.IssueSeverityCounts, error)
 }

@@ -221,6 +221,15 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && !hasComponent
 			},
 		},
+		{
+			Name:  "MVL",
+			Type:  InnerJoin,
+			Table: "(SELECT issue_id AS mvl_issue_id, max_severity, earliest_remediation_date, source_url FROM mvVulnerabilityList) MVL",
+			On:    "I.issue_id = MVL.mvl_issue_id",
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return f.UseMvVulnerabilityList
+			},
+		},
 	},
 	ExtraColumnsSelector: func(_ *entity.IssueFilter, order *Order) []string {
 		for _, o := range order.Sequence() {

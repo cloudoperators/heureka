@@ -5,6 +5,7 @@ package issue
 
 import (
 	"context"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 )
@@ -19,4 +20,12 @@ type IssueHandler interface {
 	RemoveComponentVersionFromIssue(context.Context, int64, int64) (*entity.Issue, error)
 	ListIssueNames(context.Context, *entity.IssueFilter, *entity.ListOptions) ([]string, error)
 	GetIssueSeverityCounts(context.Context, *entity.IssueFilter) (*entity.IssueSeverityCounts, error)
+
+	// Batch pre-load methods for GetVulnerabilities query optimization
+	GetMaxSeverityByIssueIDs(context.Context, []int64) (map[int64]string, error)
+	GetEarliestRemediationByIssueIDs(context.Context, []int64) (map[int64]time.Time, error)
+	GetSourceURLsByIssueIDs(context.Context, []int64) (map[int64]string, error)
+	GetServicesByIssueIDs(context.Context, []int64) (map[int64][]entity.ServiceResult, error)
+	GetSupportGroupsByIssueIDs(context.Context, []int64) (map[int64][]entity.SupportGroupResult, error)
+	GetVulnerabilityAggregatesByIssueIDs(context.Context, []int64) (map[int64]entity.VulnerabilityAggregate, error)
 }
