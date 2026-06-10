@@ -9,7 +9,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -117,29 +116,22 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 
 		return append(l, cr)
 	},
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		c := e.AsComponent()
+
+		var isc entity.IssueSeverityCounts
+		if e.RatingCount != nil {
+			isc = e.AsIssueSeverityCounts()
+		}
+
+		cursor, _ := EncodeCursor(WithComponent(order, c, isc))
+
+		return append(l, cursor)
+	},
 }
 
 func needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order *Order) bool {
 	return order.ByCount() && len(filter.ServiceCCRN) > 0
-}
-
-func appendComponentColumns(s []string, order []entity.Order) []string {
-	for _, o := range order {
-		switch o.By {
-		case entity.CriticalCount:
-			s = append(s, "CVR.critical_count")
-		case entity.HighCount:
-			s = append(s, "CVR.high_count")
-		case entity.MediumCount:
-			s = append(s, "CVR.medium_count")
-		case entity.LowCount:
-			s = append(s, "CVR.low_count")
-		case entity.NoneCount:
-			s = append(s, "CVR.none_count")
-		}
-	}
-
-	return s
 }
 
 func (s *SqlDatabase) buildComponentStatement(
@@ -167,49 +159,7 @@ func (s *SqlDatabase) GetAllComponentCursors(
 	filter *entity.ComponentFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllComponentCursors",
-	})
-
-	baseQuery := sq.Select(appendComponentColumns([]string{"C.*"}, order)...).From("Component C").GroupBy("C.component_id")
-
-	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		c := row.AsComponent()
-
-		var isc entity.IssueSeverityCounts
-		if row.RatingCount != nil {
-			isc = row.AsIssueSeverityCounts()
-		}
-
-		cursor, _ := EncodeCursor(WithComponent(order, c, isc))
-
-		return cursor
-	}), nil
+	return componentObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetComponents(
@@ -327,6 +277,7 @@ func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {
 	return componentObject.Delete(s.db, id, userId)
 }
 
+// TODO use DbObject
 func (s *SqlDatabase) GetComponentCcrns(ctx context.Context, filter *entity.ComponentFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,

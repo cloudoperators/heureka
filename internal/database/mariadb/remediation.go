@@ -6,12 +6,8 @@ package mariadb
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 )
 
 var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter, entity.RemediationResult]{
@@ -72,26 +68,13 @@ var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter,
 
 		return append(l, rr)
 	},
-}
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		r := e.AsRemediation()
 
-func (s *SqlDatabase) buildRemediationStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.RemediationFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.RemediationFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &remediationObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, remediationObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
+		cursor, _ := EncodeCursor(WithRemediation(order, r))
 
-	return BuildStatement(ctx, statement, filter)
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) GetRemediations(
@@ -111,44 +94,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(
 	filter *entity.RemediationFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllRemediationCursors",
-	})
-
-	baseQuery := sq.Select("R.*").From("Remediation R").GroupBy("R.remediation_id")
-
-	stmt, filterParameters, err := s.buildRemediationStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build Remediation cursor query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Remediation cursors: %w", err)
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		r := row.AsRemediation()
-
-		cursor, _ := EncodeCursor(WithRemediation(order, r))
-
-		return cursor
-	}), nil
+	return remediationObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CreateRemediation(

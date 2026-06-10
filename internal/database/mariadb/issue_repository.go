@@ -5,12 +5,8 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 )
 
 var issueRepositoryObject = DbObject[*entity.IssueRepository, *entity.IssueRepositoryFilter, entity.IssueRepositoryResult]{
@@ -63,30 +59,17 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository, *entity.IssueRepos
 
 		return append(l, irr)
 	},
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		ir := e.BaseIssueRepositoryRow.AsIssueRepository()
+
+		cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
+
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) CountIssueRepositories(ctx context.Context, filter *entity.IssueRepositoryFilter) (int64, error) {
 	return issueRepositoryObject.Count(ctx, s.db, filter)
-}
-
-func (s *SqlDatabase) buildIssueRepositoryStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.IssueRepositoryFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.IssueRepositoryFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &issueRepositoryObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, issueRepositoryObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
 }
 
 func (s *SqlDatabase) GetAllIssueRepositoryCursors(
@@ -94,44 +77,7 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(
 	filter *entity.IssueRepositoryFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllIssueRepositoryCursors",
-	})
-
-	baseQuery := sq.Select("IR.*").From("IssueRepository IR").GroupBy("IR.issuerepository_id")
-
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build IssueRepository cursor query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error while close statement: %s", err.Error())
-		}
-	}()
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []IssueRepositoryRow, e IssueRepositoryRow) []IssueRepositoryRow {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get IssueRepository cursors: %w", err)
-	}
-
-	return lo.Map(rows, func(row IssueRepositoryRow, _ int) string {
-		ir := row.AsIssueRepository()
-
-		cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
-
-		return cursor
-	}), nil
+	return issueRepositoryObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetIssueRepositories(

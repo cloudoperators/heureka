@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/go-sql-driver/mysql"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -149,6 +148,21 @@ var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.Serv
 		}
 
 		return append(l, sr)
+	},
+
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		s := entity.Service{
+			BaseService: e.AsBaseService(),
+		}
+
+		var isc entity.IssueSeverityCounts
+		if e.RatingCount != nil {
+			isc = e.AsIssueSeverityCounts()
+		}
+
+		cursor, _ := EncodeCursor(WithService(order, s, isc))
+
+		return append(l, cursor)
 	},
 }
 
@@ -341,51 +355,7 @@ func (s *SqlDatabase) GetAllServiceCursors(
 	filter *entity.ServiceFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllServiceCursors",
-	})
-
-	baseQuery := sq.Select(appendServiceColumns([]string{"S.*"}, filter, order)...).From("Service S").GroupBy("S.service_id")
-
-	stmt, filterParameters, err := s.buildServiceStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		s := entity.Service{
-			BaseService: row.AsBaseService(),
-		}
-
-		var isc entity.IssueSeverityCounts
-		if row.RatingCount != nil {
-			isc = row.AsIssueSeverityCounts()
-		}
-
-		cursor, _ := EncodeCursor(WithService(order, s, isc))
-
-		return cursor
-	}), nil
+	return serviceObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, error) {

@@ -208,7 +208,7 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 	return res, nil
 }
 
-func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
+func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow | string](
 	ctx context.Context,
 	stmt Stmt,
 	filterParameters []any,

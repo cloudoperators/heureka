@@ -5,11 +5,9 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,6 +63,13 @@ var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
 
 		return append(l, ur)
 	},
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		r := e.AsUser()
+
+		cursor, _ := EncodeCursor(WithUser(order, r))
+
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) buildUserStatement(
@@ -116,49 +121,8 @@ func (s *SqlDatabase) GetAllUserIds(ctx context.Context, filter *entity.UserFilt
 	return performIdScan(ctx, stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) GetAllUserCursors(
-	ctx context.Context,
-	filter *entity.UserFilter,
-	order []entity.Order,
-) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllUserCursors",
-	})
-
-	baseQuery := sq.Select("U.*").From("User U").GroupBy("U.user_id")
-
-	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build User cursor query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error while close statement: %s", err.Error())
-		}
-	}()
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get User cursors: %w", err)
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		r := row.AsUser()
-
-		cursor, _ := EncodeCursor(WithUser(order, r))
-
-		return cursor
-	}), nil
+func (s *SqlDatabase) GetAllUserCursors(ctx context.Context, filter *entity.UserFilter, order []entity.Order) ([]string, error) {
+	return userObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) ([]entity.UserResult, error) {

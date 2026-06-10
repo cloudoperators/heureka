@@ -11,7 +11,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/go-sql-driver/mysql"
-	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -249,6 +248,18 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 
 		return append(l, sr)
 	},
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		issue := e.IssueRow.AsIssue()
+
+		var ivRating int64
+		if e.IssueVariantRow != nil {
+			ivRating = e.RatingNumerical.Int64
+		}
+
+		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
+
+		return append(l, cursor)
+	},
 }
 
 func appendIssueColumns(s []string, order []entity.Order) []string {
@@ -464,49 +475,7 @@ func (s *SqlDatabase) GetAllIssueCursors(
 	filter *entity.IssueFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllIssueCursors",
-	})
-
-	baseQuery := sq.Select(appendIssueColumns([]string{"I.*"}, order)...).From("Issue I").GroupBy("I.issue_id")
-
-	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		issue := row.IssueRow.AsIssue()
-
-		var ivRating int64
-		if row.IssueVariantRow != nil {
-			ivRating = row.RatingNumerical.Int64
-		}
-
-		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
-
-		return cursor
-	}), nil
+	return issueObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetIssues(

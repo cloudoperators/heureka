@@ -20,18 +20,19 @@ import (
 
 // DbObject
 type DbObject[ET entity.Entity, ETFilter entity.Filter, ETResult entity.HeurekaEntity | DatabaseRow] struct {
-	Prefix               string
-	TableName            string
-	TableKey             string
-	DefaultOrder         entity.Order
-	OrderPrefix          string
-	Properties           []*Property[ET]
-	FilterProperties     []*FilterProperty[ETFilter]
-	JoinDefs             []*JoinDef[ETFilter]
-	Aggregated           bool
-	ExtraColumnsSelector func(ETFilter, *Order) []string
-	GetItemAppender      func([]ETResult, RowComposite, []entity.Order) []ETResult
-	ForceFrom            string
+	Prefix                   string
+	TableName                string
+	TableKey                 string
+	DefaultOrder             entity.Order
+	OrderPrefix              string
+	Properties               []*Property[ET]
+	FilterProperties         []*FilterProperty[ETFilter]
+	JoinDefs                 []*JoinDef[ETFilter]
+	Aggregated               bool
+	ExtraColumnsSelector     func(ETFilter, *Order) []string
+	GetItemAppender          func([]ETResult, RowComposite, []entity.Order) []ETResult
+	GetAllCursorItemAppender func([]string, RowComposite, []entity.Order) []string
+	ForceFrom                string
 }
 
 // private TODO: Fix testing and unexport
@@ -241,6 +242,54 @@ func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filt
 		l,
 		func(l []ETResult, e RowComposite) []ETResult {
 			return do.GetItemAppender(l, e, order)
+		},
+	)
+}
+
+// TODO: The only difference between Get/GetAllCursors is withCursor(false/true), logging and picked Appender (Extract Method)
+func (do *DbObject[ET, ETFilter, ETResult]) GetAllCursors(ctx context.Context, db Db, filter ETFilter, order []entity.Order) ([]string, error) {
+	if do.TableName == "" || do.TableKey == "" || do.Prefix == "" {
+		panic("database.GetAllCursors (" + do.TableName + ") - not allowed")
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  fmt.Sprintf("database.GetAllCursors (%s)", do.TableName),
+	})
+
+	ord := NewOrderWithCounterPrefix(order, do.DefaultOrder, do.OrderPrefix)
+
+	baseQuery := do.getSelectBuilder(filter, ord)
+	baseQuery = do.fromBuilder(baseQuery)
+	baseQuery = do.groupByBuilder(baseQuery)
+
+	statement := Statement[ETFilter]{
+		Db:         db,
+		L:          l,
+		Obj:        do,
+		BaseQuery:  baseQuery,
+		Order:      ord,
+		WithCursor: false,
+	}
+
+	stmt, filterParameters, err := BuildStatement(ctx, statement, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during close stmt: %s", err)
+		}
+	}()
+
+	return performListScan(
+		ctx,
+		stmt,
+		filterParameters,
+		l,
+		func(l []string, e RowComposite) []string {
+			return do.GetAllCursorItemAppender(l, e, order)
 		},
 	)
 }
