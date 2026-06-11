@@ -8,7 +8,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -171,19 +170,20 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 
 		return append(l, imr)
 	},
-}
-
-func appendIssueMatchColumns(s []string, order []entity.Order) []string {
-	for _, o := range order {
-		switch o.By {
-		case entity.IssuePrimaryName:
-			s = append(s, "I.issue_primary_name")
-		case entity.ComponentInstanceCcrn:
-			s = append(s, "CI.componentinstance_ccrn")
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		im := e.AsIssueMatch()
+		if e.IssueRow != nil {
+			im.Issue = new(e.IssueRow.AsIssue())
 		}
-	}
 
-	return s
+		if e.ComponentInstanceRow != nil {
+			im.ComponentInstance = new(e.AsComponentInstance())
+		}
+
+		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
+
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) buildIssueMatchStatement(
@@ -227,45 +227,7 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(
 	filter *entity.IssueMatchFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetIssueAllIssueMatchCursors",
-	})
-
-	baseQuery := sq.Select(appendIssueMatchColumns([]string{"IM.*"}, order)...).From("IssueMatch IM").GroupBy("IM.issuematch_id")
-
-	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		im := row.AsIssueMatch()
-		if row.IssueRow != nil {
-			im.Issue = new(row.IssueRow.AsIssue())
-		}
-
-		if row.ComponentInstanceRow != nil {
-			im.ComponentInstance = new(row.AsComponentInstance())
-		}
-
-		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
-
-		return cursor
-	}), nil
+	return issueMatchObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetIssueMatches(

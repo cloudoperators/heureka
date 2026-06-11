@@ -5,12 +5,8 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 )
 
 var issueVariantObject = DbObject[*entity.IssueVariant, *entity.IssueVariantFilter, entity.IssueVariantResult]{
@@ -88,26 +84,13 @@ var issueVariantObject = DbObject[*entity.IssueVariant, *entity.IssueVariantFilt
 
 		return append(l, ivr)
 	},
-}
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		iv := e.AsIssueVariant()
 
-func (s *SqlDatabase) buildIssueVariantStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.IssueVariantFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.IssueVariantFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &issueVariantObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, issueVariantObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
+		cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
 
-	return BuildStatement(ctx, statement, filter)
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) GetAllIssueVariantCursors(
@@ -115,44 +98,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(
 	filter *entity.IssueVariantFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllIssueVariantCursors",
-	})
-
-	baseQuery := sq.Select("IV.*").From("IssueVariant IV").GroupBy("IV.issuevariant_id")
-
-	stmt, filterParameters, err := s.buildIssueVariantStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build IssueVariant cursor query: %w", err)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			l.Warnf("error while close statement: %s", err.Error())
-		}
-	}()
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []IssueVariantRow, e IssueVariantRow) []IssueVariantRow {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get IssueVariant cursors: %w", err)
-	}
-
-	return lo.Map(rows, func(row IssueVariantRow, _ int) string {
-		iv := row.AsIssueVariant()
-
-		cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
-
-		return cursor
-	}), nil
+	return issueVariantObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetIssueVariants(

@@ -6,11 +6,7 @@ package mariadb
 import (
 	"context"
 
-	sq "github.com/Masterminds/squirrel"
-	"github.com/samber/lo"
-
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/sirupsen/logrus"
 )
 
 var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.ComponentVersionFilter, entity.ComponentVersionResult]{
@@ -122,45 +118,18 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 
 		return append(l, cvr)
 	},
-}
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		cv := e.AsComponentVersion()
 
-func appendComponentVersionColumns(s []string, order []entity.Order) []string {
-	for _, o := range order {
-		switch o.By {
-		case entity.CriticalCount:
-			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) as critical_count")
-		case entity.HighCount:
-			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) as high_count")
-		case entity.MediumCount:
-			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) as medium_count")
-		case entity.LowCount:
-			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) as low_count")
-		case entity.NoneCount:
-			s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) as none_count")
+		var isc entity.IssueSeverityCounts
+		if e.RatingCount != nil {
+			isc = e.AsIssueSeverityCounts()
 		}
-	}
 
-	return s
-}
+		cursor, _ := EncodeCursor(WithComponentVersion(order, cv, isc))
 
-func (s *SqlDatabase) buildComponentVersionStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.ComponentVersionFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.ComponentVersionFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &componentVersionObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, componentVersionObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) GetAllComponentVersionCursors(
@@ -168,43 +137,7 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
 	filter *entity.ComponentVersionFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllComponentVersionCursors",
-	})
-
-	baseQuery := sq.Select(appendComponentVersionColumns([]string{"CV.*"}, order)...).From("ComponentVersion CV").GroupBy("CV.componentversion_id")
-
-	stmt, filterParameters, err := s.buildComponentVersionStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		cv := row.AsComponentVersion()
-
-		var isc entity.IssueSeverityCounts
-		if row.RatingCount != nil {
-			isc = row.AsIssueSeverityCounts()
-		}
-
-		cursor, _ := EncodeCursor(WithComponentVersion(order, cv, isc))
-
-		return cursor
-	}), nil
+	return componentVersionObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetComponentVersions(

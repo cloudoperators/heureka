@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/go-sql-driver/mysql"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -78,6 +77,13 @@ var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilt
 
 		return append(l, sgr)
 	},
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		sg := e.AsSupportGroup()
+
+		cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
+
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) buildSupportGroupStatement(
@@ -105,38 +111,7 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(
 	filter *entity.SupportGroupFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllSupportGroupCursors",
-	})
-
-	baseQuery := sq.Select("SG.*").From("SupportGroup SG").GroupBy("SG.supportgroup_id")
-
-	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(rows, func(row RowComposite, _ int) string {
-		sg := row.AsSupportGroup()
-
-		cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
-
-		return cursor
-	}), nil
+	return supportGroupObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) GetSupportGroups(

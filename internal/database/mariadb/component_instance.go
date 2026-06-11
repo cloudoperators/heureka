@@ -10,7 +10,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,6 +100,13 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.Compon
 
 		return append(l, cir)
 	},
+	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
+		ci := e.AsComponentInstance()
+
+		cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
+
+		return append(l, cursor)
+	},
 }
 
 func (s *SqlDatabase) buildComponentInstanceStatement(
@@ -136,39 +142,7 @@ func (s *SqlDatabase) GetAllComponentInstanceCursors(
 	filter *entity.ComponentInstanceFilter,
 	order []entity.Order,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllComponentInstanceCursors",
-	})
-
-	baseQuery := sq.Select("CI.*").From("ComponentInstance CI").GroupBy("CI.componentinstance_id")
-
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build ComponentInstance cursors query: %w", err)
-	}
-
-	rows, err := performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []RowComposite, e RowComposite) []RowComposite {
-			return append(l, e)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance cursors: %w", err)
-	}
-
-	cursors := lo.Map(rows, func(row RowComposite, _ int) string {
-		ci := row.AsComponentInstance()
-		cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
-
-		return cursor
-	})
-
-	return cursors, nil
+	return componentInstanceObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountComponentInstances(ctx context.Context, filter *entity.ComponentInstanceFilter) (int64, error) {
