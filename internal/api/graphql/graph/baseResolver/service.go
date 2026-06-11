@@ -5,12 +5,15 @@ package baseResolver
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 func SingleServiceBaseResolver(
@@ -189,6 +192,129 @@ func ServiceBaseResolver(
 		}
 
 		edges = append(edges, &edge)
+	}
+
+	// Batch pre-load for nested fields
+	needOwners := lo.Contains(requestedFields, "edges.node.owners")
+	needSupportGroups := lo.Contains(requestedFields, "edges.node.supportGroups")
+	needIssueCounts := lo.Contains(requestedFields, "edges.node.issueCounts")
+
+	if (needOwners || needSupportGroups || needIssueCounts) && len(edges) > 0 {
+		serviceIDs := make([]int64, 0, len(edges))
+		for _, edge := range edges {
+			id, err := strconv.ParseInt(edge.Node.ID, 10, 64)
+			if err != nil {
+				logrus.WithField("id", edge.Node.ID).Warn("ServiceBaseResolver: failed to parse service ID for batch preload")
+				continue
+			}
+
+			serviceIDs = append(serviceIDs, id)
+		}
+
+		var (
+			ownersMap       map[int64][]entity.User
+			supportGroupMap map[int64][]entity.SupportGroup
+			issueCountsMap  map[int64]entity.IssueSeverityCounts
+		)
+
+		g, gCtx := errgroup.WithContext(ctx)
+
+		if needOwners {
+			g.Go(func() error {
+				var err error
+
+				ownersMap, err = app.ListOwnersByServiceIDs(gCtx, serviceIDs)
+				if err != nil {
+					logrus.WithField("error", err).Warn("ServiceBaseResolver: batch preload owners failed")
+				}
+
+				return nil // don't fail the whole request
+			})
+		}
+
+		if needSupportGroups {
+			g.Go(func() error {
+				var err error
+
+				supportGroupMap, err = app.ListSupportGroupsByServiceIDs(gCtx, serviceIDs)
+				if err != nil {
+					logrus.WithField("error", err).Warn("ServiceBaseResolver: batch preload support groups failed")
+				}
+
+				return nil
+			})
+		}
+
+		if needIssueCounts {
+			g.Go(func() error {
+				var err error
+
+				issueCountsMap, err = app.ListIssueCountsByServiceIDs(gCtx, serviceIDs)
+				if err != nil {
+					logrus.WithField("error", err).Warn("ServiceBaseResolver: batch preload issue counts failed")
+				}
+
+				return nil
+			})
+		}
+
+		_ = g.Wait()
+
+		// Attach pre-loaded data to service nodes
+		for _, edge := range edges {
+			id, err := strconv.ParseInt(edge.Node.ID, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			if needOwners && ownersMap != nil {
+				users := ownersMap[id]
+				userEdges := make([]*model.UserEdge, 0, len(users))
+
+				for i := range users {
+					u := model.NewUser(&users[i])
+					cursor := fmt.Sprintf("%d", users[i].Id)
+					userEdges = append(userEdges, &model.UserEdge{
+						Node:   &u,
+						Cursor: &cursor,
+					})
+				}
+
+				edge.Node.Owners = &model.UserConnection{
+					TotalCount: len(userEdges),
+					Edges:      userEdges,
+				}
+			}
+
+			if needSupportGroups && supportGroupMap != nil {
+				sgs := supportGroupMap[id]
+
+				sgEdges := make([]*model.SupportGroupEdge, 0, len(sgs))
+				for i := range sgs {
+					sg := model.NewSupportGroup(&sgs[i])
+					cursor := fmt.Sprintf("%d", sgs[i].Id)
+					sgEdges = append(sgEdges, &model.SupportGroupEdge{
+						Node:   &sg,
+						Cursor: &cursor,
+					})
+				}
+
+				edge.Node.SupportGroups = &model.SupportGroupConnection{
+					TotalCount: len(sgEdges),
+					Edges:      sgEdges,
+				}
+			}
+
+			if needIssueCounts && issueCountsMap != nil {
+				if counts, ok := issueCountsMap[id]; ok {
+					sc := model.NewSeverityCounts(&counts)
+					edge.Node.IssueCounts = &sc
+				} else {
+					sc := model.NewSeverityCounts(&entity.IssueSeverityCounts{})
+					edge.Node.IssueCounts = &sc
+				}
+			}
+		}
 	}
 
 	tc := 0

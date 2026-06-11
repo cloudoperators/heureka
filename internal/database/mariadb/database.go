@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/cloudoperators/heureka/internal/database/querycounter"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	_ "github.com/go-sql-driver/mysql"
@@ -215,6 +216,8 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 	l *logrus.Entry,
 	listBuilder func([]E, T) []E,
 ) ([]E, error) {
+	querycounter.Increment(ctx)
+
 	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		msg := "Error while performing Query from prepared Statement"
@@ -278,6 +281,8 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 }
 
 func performIdScan(ctx context.Context, stmt Stmt, filterParameters []any, l *logrus.Entry) ([]int64, error) {
+	querycounter.Increment(ctx)
+
 	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"
@@ -330,6 +335,8 @@ func performIdScan(ctx context.Context, stmt Stmt, filterParameters []any, l *lo
 }
 
 func performCountScan(ctx context.Context, stmt Stmt, filterParameters []any, l *logrus.Entry) (int64, error) {
+	querycounter.Increment(ctx)
+
 	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"

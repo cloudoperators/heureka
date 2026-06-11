@@ -19,6 +19,21 @@ import (
 // SPDX-License-Identifier: Apache-2.0
 
 func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *int, after *string) (*model.ComponentVersionConnection, error) {
+	// Return pre-loaded data if available AND no pagination cursor is provided
+	if obj.Versions != nil && after == nil {
+		// If first is specified, truncate the pre-loaded results
+		if first != nil && len(obj.Versions.Edges) > *first {
+			truncated := &model.ComponentVersionConnection{
+				TotalCount: obj.Versions.TotalCount,
+				Edges:      obj.Versions.Edges[:*first],
+			}
+
+			return truncated, nil
+		}
+
+		return obj.Versions, nil
+	}
+
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 	filter := &model.ComponentVersionFilter{
@@ -44,6 +59,11 @@ func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *i
 }
 
 func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Image) (*model.SeverityCounts, error) {
+	// Return pre-loaded data if available
+	if obj.VulnerabilityCounts != nil {
+		return obj.VulnerabilityCounts, nil
+	}
+
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 	filter := &model.ComponentFilter{
@@ -58,6 +78,23 @@ func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Imag
 }
 
 func (r *imageResolver) Vulnerabilities(ctx context.Context, obj *model.Image, first *int, after *string, filter *model.VulnerabilityFilter) (*model.VulnerabilityConnection, error) {
+	// Use pre-loaded data only when:
+	// 1. Data was pre-loaded (obj.Vulnerabilities != nil)
+	// 2. No pagination cursor (after == nil) — cursor means user is paginating
+	// 3. No user-supplied filter — filter would narrow results beyond what was pre-loaded
+	hasUserFilter := filter != nil && (len(filter.Severity) > 0 || len(filter.Name) > 0 || filter.Status != nil || len(filter.Search) > 0)
+	if obj.Vulnerabilities != nil && after == nil && !hasUserFilter {
+		if first != nil && len(obj.Vulnerabilities.Edges) > *first {
+			return &model.VulnerabilityConnection{
+				TotalCount: obj.Vulnerabilities.TotalCount,
+				Edges:      obj.Vulnerabilities.Edges[:*first],
+				PageInfo:   obj.Vulnerabilities.PageInfo,
+			}, nil
+		}
+
+		return obj.Vulnerabilities, nil
+	}
+
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 

@@ -37,6 +37,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 		NewFilterProperty("I.issue_id = ?", func(filter *entity.IssueFilter) any { return filter.Id }),
 		NewFilterProperty("IM.issuematch_status = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchStatus }),
 		NewFilterProperty("IM.issuematch_rating = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchSeverity }),
+		NewFilterProperty("MVL.max_severity = ?", func(filter *entity.IssueFilter) any { return filter.MvSeverity }),
 		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchId }),
 		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any { return filter.ComponentVersionId }),
 		NewFilterProperty("IV.issuevariant_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueVariantId }),
@@ -98,7 +99,9 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
 			DependsOn: []string{"IM_LJ"},
-			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ServiceId) > 0 },
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return len(f.ServiceId) > 0 && !f.UseMvVulnerabilityList
+			},
 		},
 		{
 			Name:      "CV with IM_RJ",
@@ -114,7 +117,9 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table:     "ComponentVersion CV",
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return len(f.ServiceCCRN) > 0 && !f.UseMvVulnerabilityList
+			},
 		},
 		{
 			Name:      "S with IM_RJ",
@@ -130,7 +135,9 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return len(f.ServiceCCRN) > 0 && !f.UseMvVulnerabilityList
+			},
 		},
 		{
 			Name:      "SGS",
@@ -146,7 +153,9 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table:     "SupportGroup SG",
 			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
 			DependsOn: []string{"SGS"},
-			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.SupportGroupCCRN) > 0 },
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return len(f.SupportGroupCCRN) > 0 && !f.UseMvVulnerabilityList
+			},
 		},
 		{
 			Name:  "IV",
@@ -219,6 +228,55 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && !hasComponent
+			},
+		},
+		{
+			Name:  "MVL",
+			Type:  InnerJoin,
+			Table: "(SELECT issue_id AS mvl_issue_id, max_severity, earliest_remediation_date, source_url FROM mvVulnerabilityList) MVL",
+			On:    "I.issue_id = MVL.mvl_issue_id",
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return f.UseMvVulnerabilityList
+			},
+		},
+		{
+			Name:      "MVS",
+			Type:      InnerJoin,
+			Table:     "(SELECT issue_id AS mvs_issue_id, service_id AS mvs_service_id FROM mvVulnerabilityService) MVS",
+			On:        "I.issue_id = MVS.mvs_issue_id",
+			DependsOn: []string{"MVL"},
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return f.UseMvVulnerabilityList && (len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0 || len(f.SupportGroupCCRN) > 0)
+			},
+		},
+		{
+			Name:      "S with MVS",
+			Type:      InnerJoin,
+			Table:     "Service S",
+			On:        "MVS.mvs_service_id = S.service_id",
+			DependsOn: []string{"MVS"},
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return f.UseMvVulnerabilityList && len(f.ServiceCCRN) > 0
+			},
+		},
+		{
+			Name:      "SGS with MVS",
+			Type:      InnerJoin,
+			Table:     "SupportGroupService SGS",
+			On:        "MVS.mvs_service_id = SGS.supportgroupservice_service_id",
+			DependsOn: []string{"MVS"},
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return f.UseMvVulnerabilityList && len(f.SupportGroupCCRN) > 0
+			},
+		},
+		{
+			Name:      "SG with MVS",
+			Type:      InnerJoin,
+			Table:     "SupportGroup SG",
+			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
+			DependsOn: []string{"SGS with MVS"},
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return f.UseMvVulnerabilityList && len(f.SupportGroupCCRN) > 0
 			},
 		},
 	},
