@@ -5,6 +5,7 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 )
@@ -78,6 +79,13 @@ type Database interface {
 	GetServiceCcrns(context.Context, *entity.ServiceFilter) ([]string, error)
 	GetServiceDomains(context.Context, *entity.ServiceFilter) ([]string, error)
 	GetServiceRegions(context.Context, *entity.ServiceFilter) ([]string, error)
+	GetOwnersByServiceIDs(context.Context, []int64) (map[int64][]entity.User, error)
+	GetSupportGroupsByServiceIDs(context.Context, []int64) (map[int64][]entity.SupportGroup, error)
+	GetIssueCountsByServiceIDs(context.Context, []int64) (map[int64]entity.IssueSeverityCounts, error)
+	GetVersionsByComponentIDs(context.Context, []int64, []*string) (map[int64][]entity.ComponentVersionResult, error)
+	GetIssueCountsByComponentIDs(context.Context, []int64, []*string) (map[int64]entity.IssueSeverityCounts, error)
+	GetVulnerabilitiesByComponentIDs(context.Context, []int64) (map[int64][]entity.VulnerabilityResult, error)
+	GetVulnerabilityCountsByComponentIDs(context.Context, []int64) (map[int64]int, error)
 
 	GetUsers(context.Context, *entity.UserFilter) ([]entity.UserResult, error)
 	GetAllUserIds(context.Context, *entity.UserFilter) ([]int64, error)
@@ -168,4 +176,12 @@ type Database interface {
 	Autopatch(context.Context) (bool, error)
 
 	WaitPostMigrations() error
+
+	// Batch pre-load methods for GetVulnerabilities query optimization
+	GetMaxSeverityByIssueIDs(context.Context, []int64) (map[int64]string, error)
+	GetEarliestRemediationByIssueIDs(context.Context, []int64) (map[int64]time.Time, error)
+	GetSourceURLsByIssueIDs(context.Context, []int64) (map[int64]string, error)
+	GetServicesByIssueIDs(context.Context, []int64) (map[int64][]entity.ServiceResult, error)
+	GetSupportGroupsByIssueIDs(context.Context, []int64) (map[int64][]entity.SupportGroupResult, error)
+	GetVulnerabilityAggregatesByIssueIDs(context.Context, []int64) (map[int64]entity.VulnerabilityAggregate, error)
 }

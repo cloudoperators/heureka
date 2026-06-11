@@ -76,9 +76,11 @@ type IssueFilter struct {
 	Search                          []*string         `json:"search"`
 	IssueMatchStatus                []*string         `json:"issue_match_status"`
 	IssueMatchSeverity              []*string         `json:"issue_match_severity"`
+	MvSeverity                      []*string         `json:"mv_severity"`
 	IssueMatchDiscoveryDate         *TimeFilter       `json:"issue_match_discovery_date"`
 	IssueMatchTargetRemediationDate *TimeFilter       `json:"issue_match_target_remediation_date"`
 	Unique                          bool              `json:"unique"`
+	UseMvVulnerabilityList          bool              `json:"use_mv_vulnerability_list"`
 	Status                          IssueStatus       `json:"status"`
 	State                           []StateFilterType `json:"state"`
 }
@@ -157,4 +159,22 @@ type IssueList struct {
 type IssueListOptions struct {
 	ListOptions
 	ShowIssueTypeCounts bool
+}
+
+// VulnerabilityAggregate holds pre-computed aggregate data from mvVulnerabilityList.
+type VulnerabilityAggregate struct {
+	MaxSeverity             string
+	EarliestRemediationDate *time.Time
+	SourceURL               string
+}
+
+// VulnerabilityResult is a lightweight struct for batch-loaded vulnerability data
+// from the mvVulnerabilityList materialized view joined with Issue.
+type VulnerabilityResult struct {
+	IssueID                 int64
+	PrimaryName             string
+	Description             string
+	MaxSeverity             string
+	EarliestRemediationDate *time.Time
+	SourceURL               string
 }

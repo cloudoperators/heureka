@@ -17,6 +17,12 @@ import (
 // SPDX-License-Identifier: Apache-2.0
 
 func (r *serviceResolver) Owners(ctx context.Context, obj *model.Service, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error) {
+	// Return pre-loaded data if available (batch pre-load from ServiceBaseResolver)
+	// Only use pre-loaded data when no filter/pagination is requested.
+	if obj.Owners != nil && filter == nil && first == nil && after == nil {
+		return obj.Owners, nil
+	}
+
 	return baseResolver.UserBaseResolver(r.App, ctx, filter, first, after,
 		&model.NodeParent{
 			Parent:     obj,
@@ -25,6 +31,12 @@ func (r *serviceResolver) Owners(ctx context.Context, obj *model.Service, filter
 }
 
 func (r *serviceResolver) SupportGroups(ctx context.Context, obj *model.Service, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy) (*model.SupportGroupConnection, error) {
+	// Return pre-loaded data if available (batch pre-load from ServiceBaseResolver)
+	// Only use pre-loaded data when no filter/pagination/ordering is requested.
+	if obj.SupportGroups != nil && filter == nil && first == nil && after == nil && len(orderBy) == 0 {
+		return obj.SupportGroups, nil
+	}
+
 	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,
@@ -79,6 +91,13 @@ func (r *serviceResolver) Remediations(ctx context.Context, obj *model.Service, 
 }
 
 func (r *serviceResolver) IssueCounts(ctx context.Context, obj *model.Service, filter *model.IssueFilter) (*model.SeverityCounts, error) {
+	// Return pre-loaded data if available (batch pre-load from ServiceBaseResolver)
+	// Only use pre-loaded data when no filter is provided, since the batch pre-load
+	// computes unfiltered counts per service.
+	if obj.IssueCounts != nil && filter == nil {
+		return obj.IssueCounts, nil
+	}
+
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ServiceNodeName,
