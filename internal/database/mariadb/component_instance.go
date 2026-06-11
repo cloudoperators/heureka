@@ -8,9 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/sirupsen/logrus"
 )
 
 var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.ComponentInstanceFilter, entity.ComponentInstanceResult]{
@@ -86,6 +84,19 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.Compon
 			Condition: func(f *entity.ComponentInstanceFilter, _ *Order) bool { return len(f.ComponentVersionVersion) > 0 },
 		},
 	},
+	Attributes: []Attr{
+		{Name: "ccrn", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "region", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "cluster", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "namespace", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "domain", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "project", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "pod", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "container", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "type", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "parent_id", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "context", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
+	},
 	GetItemAppender: func(l []entity.ComponentInstanceResult, e RowComposite, order []entity.Order) []entity.ComponentInstanceResult {
 		ci := e.AsComponentInstance()
 
@@ -109,39 +120,11 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.Compon
 	},
 }
 
-func (s *SqlDatabase) buildComponentInstanceStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.ComponentInstanceFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.ComponentInstanceFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &componentInstanceObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, componentInstanceObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
-}
-
-func (s *SqlDatabase) GetComponentInstances(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	order []entity.Order,
-) ([]entity.ComponentInstanceResult, error) {
+func (s *SqlDatabase) GetComponentInstances(ctx context.Context, filter *entity.ComponentInstanceFilter, order []entity.Order) ([]entity.ComponentInstanceResult, error) {
 	return componentInstanceObject.Get(ctx, s.db, filter, order)
 }
 
-func (s *SqlDatabase) GetAllComponentInstanceCursors(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	order []entity.Order,
-) ([]string, error) {
+func (s *SqlDatabase) GetAllComponentInstanceCursors(ctx context.Context, filter *entity.ComponentInstanceFilter, order []entity.Order) ([]string, error) {
 	return componentInstanceObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
@@ -149,9 +132,7 @@ func (s *SqlDatabase) CountComponentInstances(ctx context.Context, filter *entit
 	return componentInstanceObject.Count(ctx, s.db, filter)
 }
 
-func (s *SqlDatabase) CreateComponentInstance(
-	componentInstance *entity.ComponentInstance,
-) (*entity.ComponentInstance, error) {
+func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
 	return componentInstanceObject.Create(s.db, componentInstance)
 }
 
@@ -163,185 +144,48 @@ func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
 	return componentInstanceObject.Delete(s.db, id, userId)
 }
 
-func (s *SqlDatabase) getComponentInstanceAttr(
-	ctx context.Context,
-	attrName string,
-	filter *entity.ComponentInstanceFilter,
-) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.getComponentInstanceAttr",
-	})
-
-	baseQuery := sq.Select(fmt.Sprintf("CI.componentinstance_%s", attrName)).From("ComponentInstance CI")
-	order := []entity.Order{
-		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
-	}
-
-	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		order,
-		l,
-	)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"failed to build ComponentInstance attribute query for %s: %w",
-			attrName,
-			err,
-		)
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	// Execute the query
-	rows, err := stmt.QueryxContext(ctx, filterParameters...)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"failed to execute ComponentInstance attribute query for %s: %w",
-			attrName,
-			err,
-		)
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			logrus.Warnf("error during close rows: %s", err)
-		}
-	}()
-
-	// Collect the results
-	attrVal := []string{}
-
-	var name string
-
-	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
-			l.Error("Error scanning row: ", err)
-			continue
-		}
-
-		attrVal = append(attrVal, name)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf(
-			"error iterating ComponentInstance attribute rows for %s: %w",
-			attrName,
-			err,
-		)
-	}
-
-	return attrVal, nil
-}
-
 func (s *SqlDatabase) GetCcrn(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	ccrns, err := s.getComponentInstanceAttr(ctx, "ccrn", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance CCRNs: %w", err)
-	}
-
-	return ccrns, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "ccrn", filter)
 }
 
 func (s *SqlDatabase) GetRegion(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	regions, err := s.getComponentInstanceAttr(ctx, "region", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance regions: %w", err)
-	}
-
-	return regions, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "region", filter)
 }
 
 func (s *SqlDatabase) GetCluster(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	clusters, err := s.getComponentInstanceAttr(ctx, "cluster", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance clusters: %w", err)
-	}
-
-	return clusters, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "cluster", filter)
 }
 
 func (s *SqlDatabase) GetNamespace(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	namespaces, err := s.getComponentInstanceAttr(ctx, "namespace", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance namespaces: %w", err)
-	}
-
-	return namespaces, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "namespace", filter)
 }
 
 func (s *SqlDatabase) GetDomain(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	domains, err := s.getComponentInstanceAttr(ctx, "domain", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance domains: %w", err)
-	}
-
-	return domains, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "domain", filter)
 }
 
 func (s *SqlDatabase) GetProject(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	projects, err := s.getComponentInstanceAttr(ctx, "project", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance projects: %w", err)
-	}
-
-	return projects, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "project", filter)
 }
 
 func (s *SqlDatabase) GetPod(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	pods, err := s.getComponentInstanceAttr(ctx, "pod", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance pods: %w", err)
-	}
-
-	return pods, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "pod", filter)
 }
 
 func (s *SqlDatabase) GetContainer(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	containers, err := s.getComponentInstanceAttr(ctx, "container", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance containers: %w", err)
-	}
-
-	return containers, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "container", filter)
 }
 
 func (s *SqlDatabase) GetType(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	types, err := s.getComponentInstanceAttr(ctx, "type", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance types: %w", err)
-	}
-
-	return types, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "type", filter)
 }
 
-func (s *SqlDatabase) GetComponentInstanceParent(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-) ([]string, error) {
-	parents, err := s.getComponentInstanceAttr(ctx, "parent_id", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance parents: %w", err)
-	}
-
-	return parents, nil
+func (s *SqlDatabase) GetComponentInstanceParent(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return componentInstanceObject.GetAttr(ctx, s.db, "parent_id", filter)
 }
 
 func (s *SqlDatabase) GetContext(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
-	contexts, err := s.getComponentInstanceAttr(ctx, "context", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance contexts: %w", err)
-	}
-
-	return contexts, nil
+	return componentInstanceObject.GetAttr(ctx, s.db, "context", filter)
 }
 
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(

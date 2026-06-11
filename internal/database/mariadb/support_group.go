@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/go-sql-driver/mysql"
@@ -64,6 +63,7 @@ var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilt
 			Condition: func(f *entity.SupportGroupFilter, _ *Order) bool { return len(f.UserId) > 0 },
 		},
 	},
+	Attributes: []Attr{{Name: "ccrn", Order: entity.Order{By: entity.SupportGroupCcrn, Direction: entity.OrderDirectionAsc}}},
 	GetItemAppender: func(l []entity.SupportGroupResult, e RowComposite, order []entity.Order) []entity.SupportGroupResult {
 		sg := e.AsSupportGroup()
 		cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
@@ -86,39 +86,11 @@ var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilt
 	},
 }
 
-func (s *SqlDatabase) buildSupportGroupStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.SupportGroupFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.SupportGroupFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &supportGroupObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, supportGroupObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
-}
-
-func (s *SqlDatabase) GetAllSupportGroupCursors(
-	ctx context.Context,
-	filter *entity.SupportGroupFilter,
-	order []entity.Order,
-) ([]string, error) {
+func (s *SqlDatabase) GetAllSupportGroupCursors(ctx context.Context, filter *entity.SupportGroupFilter, order []entity.Order) ([]string, error) {
 	return supportGroupObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
-func (s *SqlDatabase) GetSupportGroups(
-	ctx context.Context,
-	filter *entity.SupportGroupFilter,
-	order []entity.Order,
-) ([]entity.SupportGroupResult, error) {
+func (s *SqlDatabase) GetSupportGroups(ctx context.Context, filter *entity.SupportGroupFilter, order []entity.Order) ([]entity.SupportGroupResult, error) {
 	return supportGroupObject.Get(ctx, s.db, filter, order)
 }
 
@@ -126,9 +98,7 @@ func (s *SqlDatabase) CountSupportGroups(ctx context.Context, filter *entity.Sup
 	return supportGroupObject.Count(ctx, s.db, filter)
 }
 
-func (s *SqlDatabase) CreateSupportGroup(
-	supportGroup *entity.SupportGroup,
-) (*entity.SupportGroup, error) {
+func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
 	return supportGroupObject.Create(s.db, supportGroup)
 }
 
@@ -263,63 +233,5 @@ func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId in
 }
 
 func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.SupportGroupFilter) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetSupportGroupCcrns",
-	})
-
-	baseQuery := sq.Select("SG.supportgroup_ccrn").From("SupportGroup SG")
-
-	order := []entity.Order{
-		{
-			By:        entity.SupportGroupCcrn,
-			Direction: entity.OrderDirectionAsc,
-		},
-	}
-
-	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		l.Error("Error preparing statement: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	// Execute the query
-	rows, err := stmt.QueryxContext(ctx, filterParameters...)
-	if err != nil {
-		l.Error("Error executing query: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			logrus.Warnf("error during close rows: %s", err)
-		}
-	}()
-
-	// Collect the results
-	supportGroupCcrns := []string{}
-
-	var ccrn string
-	for rows.Next() {
-		if err := rows.Scan(&ccrn); err != nil {
-			l.Error("Error scanning row: ", err)
-			continue
-		}
-
-		supportGroupCcrns = append(supportGroupCcrns, ccrn)
-	}
-
-	if err = rows.Err(); err != nil {
-		l.Error("Row iteration error: ", err)
-		return nil, err
-	}
-
-	return supportGroupCcrns, nil
+	return supportGroupObject.GetAttr(ctx, s.db, "ccrn", filter)
 }

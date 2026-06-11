@@ -552,13 +552,13 @@ var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e",
 		)
 	})
 
-	Describe("Check background update", func() {
+	Describe("Check background update", Label("e2e", "CacheBackgroundUpdate"), func() {
 		It("Should update resource in background on hit so next hit will show new data", func() {
 			backgroundUpdateTest(valkeyCacheTestConfig)
 		})
 	})
 
-	Describe("Check background update rate-based limit", func() {
+	Describe("Check background update rate-based limit", Label("e2e", "CacheBackgroundUpdate"), func() {
 		It(
 			"Should skip background updates above the rate limit AND execute new background updates after interval",
 			func() {
@@ -567,7 +567,7 @@ var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e",
 		)
 	})
 
-	Describe("Check background update concurrent-based limit", func() {
+	Describe("Check background update concurrent-based limit", Label("e2e", "CacheBackgroundUpdate"), func() {
 		It(
 			"Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over",
 			func() {

@@ -6,9 +6,7 @@ package mariadb
 import (
 	"context"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/sirupsen/logrus"
 )
 
 var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, entity.IssueMatchResult]{
@@ -186,55 +184,15 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 	},
 }
 
-func (s *SqlDatabase) buildIssueMatchStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.IssueMatchFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.IssueMatchFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &issueMatchObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, issueMatchObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
-}
-
 func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.IssueMatchFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllIssueMatchIds",
-	})
-
-	baseQuery := sq.Select("IM.issuematch_id").From("IssueMatch IM").GroupBy("IM.issuematch_id")
-
-	stmt, filterParameters, err := s.buildIssueMatchStatement(ctx, baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return nil, err
-	}
-
-	return performIdScan(ctx, stmt, filterParameters, l)
+	return issueMatchObject.GetAllIds(ctx, s.db, filter)
 }
 
-func (s *SqlDatabase) GetAllIssueMatchCursors(
-	ctx context.Context,
-	filter *entity.IssueMatchFilter,
-	order []entity.Order,
-) ([]string, error) {
+func (s *SqlDatabase) GetAllIssueMatchCursors(ctx context.Context, filter *entity.IssueMatchFilter, order []entity.Order) ([]string, error) {
 	return issueMatchObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
-func (s *SqlDatabase) GetIssueMatches(
-	ctx context.Context,
-	filter *entity.IssueMatchFilter,
-	order []entity.Order,
-) ([]entity.IssueMatchResult, error) {
+func (s *SqlDatabase) GetIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatchResult, error) {
 	return issueMatchObject.Get(ctx, s.db, filter, order)
 }
 
