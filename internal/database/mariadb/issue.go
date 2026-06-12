@@ -5,14 +5,11 @@ package mariadb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/go-sql-driver/mysql"
 
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
@@ -550,86 +547,15 @@ func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {
 }
 
 func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersionId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueId":            issueId,
-		"componentVersionId": componentVersionId,
-		"event":              "database.AddComponentVersionToIssue",
-	})
-
-	query := `
-		INSERT INTO ComponentVersionIssue (
-			componentversionissue_issue_id,
-			componentversionissue_component_version_id
-		) VALUES (
-			:issue_id,
-			:component_version_id
-		)
-	`
-
-	args := map[string]any{
-		"issue_id":             issueId,
-		"component_version_id": componentVersionId,
-	}
-
-	var mysqlErr *mysql.MySQLError
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		if errors.As(err, &mysqlErr) {
-			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
-				return nil
-			}
-		}
-
-		return err
-	}
-
-	return nil
+	return AssociateId(s.db, "ComponentVersionIssue", "componentversionissue", "issue", issueId, "component_version", componentVersionId)
 }
 
 func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVersionId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueId":            issueId,
-		"componentVersionId": componentVersionId,
-		"event":              "database.RemoveComponentVersionFromIssue",
-	})
-
-	query := `
-		DELETE FROM ComponentVersionIssue
-		WHERE
-			componentversionissue_issue_id = :issue_id
-			AND componentversionissue_component_version_id = :component_version_id
-	`
-
-	args := map[string]any{
-		"issue_id":             issueId,
-		"component_version_id": componentVersionId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return DissociateId(s.db, "ComponentVersionIssue", "componentversionissue", "issue", issueId, "component_version", componentVersionId)
 }
 
 func (s *SqlDatabase) RemoveAllIssuesFromComponentVersion(componentVersionId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"componentVersionId": componentVersionId,
-		"event":              "database.RemoveAllIssuesFromComponentVersion",
-	})
-
-	query := `
-		DELETE FROM ComponentVersionIssue
-		WHERE
-			componentversionissue_component_version_id = :component_version_id
-	`
-
-	args := map[string]any{
-		"component_version_id": componentVersionId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return DissociateAllIds(s.db, "ComponentVersionIssue", "componentversionissue", "component_version", componentVersionId)
 }
 
 func (s *SqlDatabase) GetIssueNames(ctx context.Context, filter *entity.IssueFilter) ([]string, error) {
