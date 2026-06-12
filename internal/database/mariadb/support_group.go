@@ -5,12 +5,8 @@ package mariadb
 
 import (
 	"context"
-	"errors"
 
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/go-sql-driver/mysql"
-	"github.com/sirupsen/logrus"
 )
 
 var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilter, entity.SupportGroupResult]{
@@ -111,125 +107,19 @@ func (s *SqlDatabase) DeleteSupportGroup(id int64, userId int64) error {
 }
 
 func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"serviceId":      serviceId,
-		"supportGroupId": supportGroupId,
-		"event":          "database.AddServiceToSupportGroup",
-	})
-
-	query := `
-		INSERT INTO SupportGroupService (
-			supportgroupservice_service_id,
-			supportgroupservice_support_group_id
-		) VALUES (
-			:service_id,
-			:support_group_id
-		)
-	`
-
-	args := map[string]any{
-		"service_id":       serviceId,
-		"support_group_id": supportGroupId,
-	}
-
-	var mysqlErr *mysql.MySQLError
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		if errors.As(err, &mysqlErr) {
-			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
-				return nil
-			}
-		}
-
-		return err
-	}
-
-	return nil
+	return AssociateId(s.db, "SupportGroupService", "supportgroupservice", "service", serviceId, "support_group", supportGroupId)
 }
 
 func (s *SqlDatabase) RemoveServiceFromSupportGroup(supportGroupId int64, serviceId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"serviceId":      serviceId,
-		"supportGroupId": supportGroupId,
-		"event":          "database.RemoveServiceFromSupportGroup",
-	})
-
-	query := `
-		DELETE FROM SupportGroupService
-		WHERE supportgroupservice_service_id = :service_id
-		AND supportgroupservice_support_group_id = :support_group_id
-	`
-
-	args := map[string]any{
-		"service_id":       serviceId,
-		"support_group_id": supportGroupId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return DissociateId(s.db, "SupportGroupService", "supportgroupservice", "service", serviceId, "support_group", supportGroupId)
 }
 
 func (s *SqlDatabase) AddUserToSupportGroup(supportGroupId int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"userId":         userId,
-		"supportGroupId": supportGroupId,
-		"event":          "database.AddUserToSupportGroup",
-	})
-
-	query := `
-		INSERT INTO SupportGroupUser (
-			supportgroupuser_user_id,
-			supportgroupuser_support_group_id
-		) VALUES (
-			:user_id,
-			:support_group_id
-		)
-	`
-
-	args := map[string]any{
-		"user_id":          userId,
-		"support_group_id": supportGroupId,
-	}
-
-	var mysqlErr *mysql.MySQLError
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		if errors.As(err, &mysqlErr) {
-			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
-				return nil
-			}
-		}
-
-		return err
-	}
-
-	return nil
+	return AssociateId(s.db, "SupportGroupUser", "supportgroupuser", "user", userId, "support_group", supportGroupId)
 }
 
 func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"userId":         userId,
-		"supportGroupId": supportGroupId,
-		"event":          "database.RemoveUserFromSupportGroup",
-	})
-
-	query := `
-		DELETE FROM SupportGroupUser
-		WHERE supportgroupuser_user_id = :user_id
-		AND supportgroupuser_support_group_id = :support_group_id
-	`
-
-	args := map[string]any{
-		"user_id":          userId,
-		"support_group_id": supportGroupId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return DissociateId(s.db, "SupportGroupUser", "supportgroupuser", "user", userId, "support_group", supportGroupId)
 }
 
 func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.SupportGroupFilter) ([]string, error) {

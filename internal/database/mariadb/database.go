@@ -149,7 +149,7 @@ func buildQueryParametersCount[T any](params []any, filter []T, count int) []any
 }
 
 func performInsert[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (int64, error) {
-	res, err := performExec(s, query, item, l)
+	res, err := performExec(s.db, query, item, l)
 	if err != nil {
 		return -1, err
 	}
@@ -175,8 +175,8 @@ func performInsert[T any](s *SqlDatabase, query string, item T, l *logrus.Entry)
 	return id, nil
 }
 
-func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (sql.Result, error) {
-	stmt, err := s.db.PrepareNamed(query)
+func performExec[T any](db Db, query string, item T, l *logrus.Entry) (sql.Result, error) {
+	stmt, err := db.PrepareNamed(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(

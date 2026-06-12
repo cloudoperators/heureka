@@ -5,13 +5,10 @@ package mariadb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 )
 
@@ -347,135 +344,19 @@ func (s *SqlDatabase) DeleteService(id int64, userId int64) error {
 }
 
 func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"serviceId": serviceId,
-		"userId":    userId,
-		"event":     "database.AddOwnerToService",
-	})
-
-	query := `
-		INSERT INTO Owner (
-			owner_service_id,
-			owner_user_id
-		) VALUES (
-			:service_id,
-			:user_id
-		)
-	`
-
-	args := map[string]any{
-		"service_id": serviceId,
-		"user_id":    userId,
-	}
-
-	var mysqlErr *mysql.MySQLError
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		if errors.As(err, &mysqlErr) {
-			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
-				return nil
-			}
-		}
-
-		return err
-	}
-
-	return nil
+	return AssociateId(s.db, "Owner", "owner", "service", serviceId, "user", userId)
 }
 
 func (s *SqlDatabase) RemoveOwnerFromService(serviceId int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"serviceId": serviceId,
-		"userId":    userId,
-		"event":     "database.RemoveOwnerFromService",
-	})
-
-	query := `
-		DELETE FROM Owner
-		WHERE owner_service_id = :service_id
-		AND owner_user_id = :user_id
-	`
-
-	args := map[string]any{
-		"service_id": serviceId,
-		"user_id":    userId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return DissociateId(s.db, "Owner", "owner", "service", serviceId, "user", userId)
 }
 
-func (s *SqlDatabase) AddIssueRepositoryToService(
-	serviceId int64,
-	issueRepositoryId int64,
-	priority int64,
-) error {
-	l := logrus.WithFields(logrus.Fields{
-		"serviceId":         serviceId,
-		"issueRepositoryId": issueRepositoryId,
-		"event":             "database.AddIssueRepositoryToService",
-	})
-
-	query := `
-		INSERT INTO IssueRepositoryService (
-			issuerepositoryservice_service_id,
-			issuerepositoryservice_issue_repository_id,
-			issuerepositoryservice_priority
-		) VALUES (
-		 :service_id,
-		 :issue_repository_id,
-		 :priority
-		)
-	`
-
-	args := map[string]any{
-		"service_id":          serviceId,
-		"issue_repository_id": issueRepositoryId,
-		"priority":            priority,
-	}
-
-	var mysqlErr *mysql.MySQLError
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		if errors.As(err, &mysqlErr) {
-			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
-				return nil
-			}
-		}
-
-		return err
-	}
-
-	return nil
+func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueRepositoryId int64, priority int64) error {
+	return AssociateIdWithVal(s.db, "IssueRepositoryService", "issuerepositoryservice", "service", serviceId, "issue_repository", issueRepositoryId, "priority", priority)
 }
 
-func (s *SqlDatabase) RemoveIssueRepositoryFromService(
-	serviceId int64,
-	issueRepositoryId int64,
-) error {
-	l := logrus.WithFields(logrus.Fields{
-		"serviceId":         serviceId,
-		"issueRepositoryId": issueRepositoryId,
-		"event":             "database.RemoveIssueRepositoryFromService",
-	})
-
-	query := `
-		DELETE FROM IssueRepositoryService
-		WHERE issuerepositoryservice_service_id = :service_id
-		AND issuerepositoryservice_issue_repository_id = :issue_repository_id
-	`
-
-	args := map[string]any{
-		"service_id":          serviceId,
-		"issue_repository_id": issueRepositoryId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRepositoryId int64) error {
+	return DissociateId(s.db, "IssueRepositoryService", "issuerepositoryservice", "service", serviceId, "issue_repository", issueRepositoryId)
 }
 
 func (s *SqlDatabase) GetServiceCcrns(ctx context.Context, filter *entity.ServiceFilter) ([]string, error) {

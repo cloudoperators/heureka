@@ -6,12 +6,14 @@ package mariadb
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/go-sql-driver/mysql"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 
@@ -838,6 +840,149 @@ func PerformInsertArgs(db Db, query string, args []any, l *logrus.Entry) (int64,
 	}).Debug("Successfully performed insert")
 
 	return id, nil
+}
+
+func AssociateId(db Db, tableName string, tablePrefix string, prefix1 string, id1 int64, prefix2 string, id2 int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		prefix1: id1,
+		prefix2: id2,
+		"event": "database.AssociateId (" + prefix1 + ", " + prefix2 + ")",
+	})
+
+	qb := sq.
+		Insert(tableName).
+		Columns(tablePrefix+"_"+prefix1+"_id", tablePrefix+"_"+prefix2+"_id").
+		Values(id1, id2)
+
+	query, params, err := qb.ToSql()
+	if err != nil {
+		l.Error(err)
+
+		return err
+	}
+
+	var mysqlErr *mysql.MySQLError
+
+	_, err = db.Exec(query, params...)
+	if err != nil {
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == database.ErrCodeDuplicateEntry {
+			return nil
+		}
+
+		l.WithFields(logrus.Fields{
+			"error": err,
+			"query": query,
+			"args":  params,
+		}).Error(err)
+
+		return err
+	}
+
+	return nil
+}
+
+func AssociateIdWithVal(db Db, tableName string, tablePrefix string, prefix1 string, id1 int64, prefix2 string, id2 int64, valName string, val int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		prefix1: id1,
+		prefix2: id2,
+		valName: val,
+		"event": "database.AssociateIdWithVal (" + prefix1 + ", " + prefix2 + ", " + valName + ")",
+	})
+
+	qb := sq.
+		Insert(tableName).
+		Columns(tablePrefix+"_"+prefix1+"_id", tablePrefix+"_"+prefix2+"_id", tablePrefix+"_"+valName).
+		Values(id1, id2, val)
+
+	query, params, err := qb.ToSql()
+	if err != nil {
+		l.Error(err)
+
+		return err
+	}
+
+	var mysqlErr *mysql.MySQLError
+
+	_, err = db.Exec(query, params...)
+	if err != nil {
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == database.ErrCodeDuplicateEntry {
+			return nil
+		}
+
+		l.WithFields(logrus.Fields{
+			"error": err,
+			"query": query,
+			"args":  params,
+		}).Error(err)
+
+		return err
+	}
+
+	return nil
+}
+
+func DissociateId(db Db, tableName string, tablePrefix string, prefix1 string, id1 int64, prefix2 string, id2 int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		prefix1: id1,
+		prefix2: id2,
+		"event": "database.DissociateId (" + prefix1 + ", " + prefix2 + ")",
+	})
+
+	qb := sq.
+		Delete(tableName).
+		Where(sq.Eq{
+			tablePrefix + "_" + prefix1 + "_id": id1,
+			tablePrefix + "_" + prefix2 + "_id": id2,
+		})
+
+	query, params, err := qb.ToSql()
+	if err != nil {
+		l.Error(err)
+
+		return err
+	}
+
+	_, err = db.Exec(query, params...)
+	if err != nil {
+		l.WithFields(logrus.Fields{
+			"error": err,
+			"query": query,
+			"args":  params,
+		}).Error(err)
+	}
+
+	return err
+}
+
+func DissociateAllIds(db Db, tableName string, tablePrefix string, prefix string, id int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		prefix:  id,
+		"event": "database.DissociateAllIds (" + prefix + ")",
+	})
+
+	qb := sq.
+		Delete(tableName).
+		Where(sq.Eq{
+			tablePrefix + "_" + prefix + "_id": id,
+		})
+
+	query, params, err := qb.ToSql()
+	if err != nil {
+		l.Error(err)
+
+		return err
+	}
+
+	_, err = db.Exec(query, params...)
+	if err != nil {
+		l.WithFields(logrus.Fields{
+			"error": err,
+			"query": query,
+			"args":  params,
+		}).Error(err)
+	}
+
+	return err
 }
 
 // Helpers
