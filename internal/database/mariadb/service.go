@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/go-sql-driver/mysql"
@@ -105,6 +104,11 @@ var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.Serv
 			Condition: func(f *entity.ServiceFilter, order *Order) bool { return order.ByCount() },
 		},
 	},
+	Attributes: []Attr{
+		{Name: "ccrn", Order: entity.Order{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "domain", Order: entity.Order{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc}},
+		{Name: "region", Order: entity.Order{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc}},
+	},
 	ExtraColumnsSelector: func(filter *entity.ServiceFilter, order *Order) []string {
 		s := []string{}
 		if filter != nil && len(filter.IssueRepositoryId) > 0 {
@@ -189,35 +193,11 @@ func appendServiceColumns(s []string, filter *entity.ServiceFilter, order []enti
 	return s
 }
 
-func (s *SqlDatabase) buildServiceStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.ServiceFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.ServiceFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &serviceObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrderWithCounterPrefix(order, serviceObject.DefaultOrder, "SIC"),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
-}
-
 func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceFilter) (int64, error) {
 	return serviceObject.Count(ctx, s.db, filter)
 }
 
-func (s *SqlDatabase) GetServices(
-	ctx context.Context,
-	filter *entity.ServiceFilter,
-	order []entity.Order,
-) ([]entity.ServiceResult, error) {
+func (s *SqlDatabase) GetServices(ctx context.Context, filter *entity.ServiceFilter, order []entity.Order) ([]entity.ServiceResult, error) {
 	return serviceObject.Get(ctx, s.db, filter, order)
 }
 
@@ -350,11 +330,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	)
 }
 
-func (s *SqlDatabase) GetAllServiceCursors(
-	ctx context.Context,
-	filter *entity.ServiceFilter,
-	order []entity.Order,
-) ([]string, error) {
+func (s *SqlDatabase) GetAllServiceCursors(ctx context.Context, filter *entity.ServiceFilter, order []entity.Order) ([]string, error) {
 	return serviceObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
@@ -502,92 +478,14 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(
 	return err
 }
 
-func (s *SqlDatabase) getServiceAttr(
-	ctx context.Context,
-	attrName string,
-	filter *entity.ServiceFilter,
-) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.getServiceAttr",
-	})
-
-	baseQuery := sq.Select(fmt.Sprintf("service_%s", attrName)).From("Service S")
-
-	order := []entity.Order{
-		{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc},
-	}
-
-	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildServiceStatement(context.Background(), baseQuery, filter, false, order, l)
-	if err != nil {
-		l.Error("Error preparing statement: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	// Execute the query
-	rows, err := stmt.QueryxContext(context.Background(), filterParameters...)
-	if err != nil {
-		l.Error("Error executing query: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			logrus.Warnf("error during close rows: %s", err)
-		}
-	}()
-
-	// Collect the results
-	serviceAttrs := []string{}
-
-	var attrVal string
-	for rows.Next() {
-		if err := rows.Scan(&attrVal); err != nil {
-			l.Error("Error scanning row: ", err)
-			continue
-		}
-
-		serviceAttrs = append(serviceAttrs, attrVal)
-	}
-
-	if err = rows.Err(); err != nil {
-		l.Error("Row iteration error: ", err)
-		return nil, err
-	}
-
-	return serviceAttrs, nil
-}
-
 func (s *SqlDatabase) GetServiceCcrns(ctx context.Context, filter *entity.ServiceFilter) ([]string, error) {
-	ccrns, err := s.getServiceAttr(ctx, "ccrn", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Service ccrns: %w", err)
-	}
-
-	return ccrns, nil
+	return serviceObject.GetAttr(ctx, s.db, "ccrn", filter)
 }
 
 func (s *SqlDatabase) GetServiceDomains(ctx context.Context, filter *entity.ServiceFilter) ([]string, error) {
-	domains, err := s.getServiceAttr(ctx, "domain", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Service domains: %w", err)
-	}
-
-	return domains, nil
+	return serviceObject.GetAttr(ctx, s.db, "domain", filter)
 }
 
 func (s *SqlDatabase) GetServiceRegions(ctx context.Context, filter *entity.ServiceFilter) ([]string, error) {
-	regions, err := s.getServiceAttr(ctx, "region", filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Service regions: %w", err)
-	}
-
-	return regions, nil
+	return serviceObject.GetAttr(ctx, s.db, "region", filter)
 }

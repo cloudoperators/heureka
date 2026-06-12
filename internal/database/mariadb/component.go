@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
@@ -81,6 +80,7 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 			},
 		},
 	},
+	Attributes: []Attr{{Name: "ccrn", Order: entity.Order{By: entity.ComponentCcrn, Direction: entity.OrderDirectionAsc}}},
 	ExtraColumnsSelector: func(_ *entity.ComponentFilter, order *Order) []string {
 		s := []string{}
 		for _, o := range order.Sequence() {
@@ -134,39 +134,11 @@ func needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFil
 	return order.ByCount() && len(filter.ServiceCCRN) > 0
 }
 
-func (s *SqlDatabase) buildComponentStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.ComponentFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.ComponentFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &componentObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrderWithCounterPrefix(order, componentObject.DefaultOrder, "CVR"),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
-}
-
-func (s *SqlDatabase) GetAllComponentCursors(
-	ctx context.Context,
-	filter *entity.ComponentFilter,
-	order []entity.Order,
-) ([]string, error) {
+func (s *SqlDatabase) GetAllComponentCursors(ctx context.Context, filter *entity.ComponentFilter, order []entity.Order) ([]string, error) {
 	return componentObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
-func (s *SqlDatabase) GetComponents(
-	ctx context.Context,
-	filter *entity.ComponentFilter,
-	order []entity.Order,
-) ([]entity.ComponentResult, error) {
+func (s *SqlDatabase) GetComponents(ctx context.Context, filter *entity.ComponentFilter, order []entity.Order) ([]entity.ComponentResult, error) {
 	return componentObject.Get(ctx, s.db, filter, order)
 }
 
@@ -277,66 +249,6 @@ func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {
 	return componentObject.Delete(s.db, id, userId)
 }
 
-// TODO use DbObject
 func (s *SqlDatabase) GetComponentCcrns(ctx context.Context, filter *entity.ComponentFilter) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetComponentCcrns",
-	})
-
-	baseQuery := sq.Select("C.component_ccrn").From("Component C")
-
-	order := []entity.Order{
-		{
-			By:        entity.ComponentCcrn,
-			Direction: entity.OrderDirectionAsc,
-		},
-	}
-
-	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		l.Error("Error preparing statement: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	// Execute the query
-	rows, err := stmt.QueryxContext(ctx, filterParameters...)
-	if err != nil {
-		l.Error("Error executing query: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			logrus.Warnf("error during close rows: %s", err)
-		}
-	}()
-
-	// Collect the results
-	componentCcrns := []string{}
-
-	var name string
-
-	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
-			l.Error("Error scanning row: ", err)
-			continue
-		}
-
-		componentCcrns = append(componentCcrns, name)
-	}
-
-	if err = rows.Err(); err != nil {
-		l.Error("Row iteration error: ", err)
-		return nil, err
-	}
-
-	return componentCcrns, nil
+	return componentObject.GetAttr(ctx, s.db, "ccrn", filter)
 }

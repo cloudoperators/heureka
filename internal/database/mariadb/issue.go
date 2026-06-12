@@ -279,6 +279,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			},
 		},
 	},
+	Attributes: []Attr{{Name: "primary_name", Order: entity.Order{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc}}},
 	ExtraColumnsSelector: func(_ *entity.IssueFilter, order *Order) []string {
 		for _, o := range order.Sequence() {
 			switch o.By {
@@ -528,19 +529,11 @@ func (s *SqlDatabase) CountIssueTypes(ctx context.Context, filter *entity.IssueF
 	return &issueTypeCounts, nil
 }
 
-func (s *SqlDatabase) GetAllIssueCursors(
-	ctx context.Context,
-	filter *entity.IssueFilter,
-	order []entity.Order,
-) ([]string, error) {
+func (s *SqlDatabase) GetAllIssueCursors(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]string, error) {
 	return issueObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
-func (s *SqlDatabase) GetIssues(
-	ctx context.Context,
-	filter *entity.IssueFilter,
-	order []entity.Order,
-) ([]entity.IssueResult, error) {
+func (s *SqlDatabase) GetIssues(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
 	return issueObject.Get(ctx, s.db, filter, order)
 }
 
@@ -640,59 +633,5 @@ func (s *SqlDatabase) RemoveAllIssuesFromComponentVersion(componentVersionId int
 }
 
 func (s *SqlDatabase) GetIssueNames(ctx context.Context, filter *entity.IssueFilter) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetIssueNames",
-	})
-
-	baseQuery := sq.Select("I.issue_primary_name").From("Issue I")
-
-	order := []entity.Order{
-		{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
-	}
-
-	stmt, filterParameters, err := s.buildIssueStatement(ctx, baseQuery, filter, false, order, l)
-	if err != nil {
-		l.Error("Error preparing statement: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	// Execute the query
-	rows, err := stmt.QueryxContext(ctx, filterParameters...)
-	if err != nil {
-		l.Error("Error executing query: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			logrus.Warnf("error during close rows: %s", err)
-		}
-	}()
-
-	// Collect the results
-	issueNames := []string{}
-
-	var name string
-	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
-			l.Error("Error scanning row: ", err)
-			continue
-		}
-
-		issueNames = append(issueNames, name)
-	}
-
-	if err = rows.Err(); err != nil {
-		l.Error("Row iteration error: ", err)
-		return nil, err
-	}
-
-	return issueNames, nil
+	return issueObject.GetAttr(ctx, s.db, "primary_name", filter)
 }

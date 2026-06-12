@@ -28,11 +28,17 @@ type DbObject[ET entity.Entity, ETFilter entity.Filter, ETResult entity.HeurekaE
 	Properties               []*Property[ET]
 	FilterProperties         []*FilterProperty[ETFilter]
 	JoinDefs                 []*JoinDef[ETFilter]
+	Attributes               []Attr
 	Aggregated               bool
 	ExtraColumnsSelector     func(ETFilter, *Order) []string
 	GetItemAppender          func([]ETResult, RowComposite, []entity.Order) []ETResult
 	GetAllCursorItemAppender func([]string, RowComposite, []entity.Order) []string
 	ForceFrom                string
+}
+
+type Attr struct {
+	Name  string
+	Order entity.Order
 }
 
 // private TODO: Fix testing and unexport
@@ -196,7 +202,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) Count(ctx context.Context, db Db, fi
 }
 
 func (do *DbObject[ET, ETFilter, ETResult]) countSelectBuilder() sq.SelectBuilder {
-	return sq.Select(fmt.Sprintf("count(distinct %s.%s_id)", do.TableKey, do.Prefix))
+	return sq.Select(fmt.Sprintf("count(distinct %s)", do.getAttrStr("id")))
 }
 
 func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filter ETFilter, order []entity.Order) ([]ETResult, error) {
@@ -224,7 +230,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filt
 		WithCursor: true,
 	}
 
-	stmt, filterParameters, err := BuildStatement(ctx, statement, filter)
+	stmt, filterParameters, err := BuildStatement(context.Background(), statement, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +300,134 @@ func (do *DbObject[ET, ETFilter, ETResult]) GetAllCursors(ctx context.Context, d
 	)
 }
 
+func (do *DbObject[ET, ETFilter, ETResult]) GetAttr(ctx context.Context, db Db, attrName string, filter ETFilter) ([]string, error) {
+	if do.TableName == "" || do.TableKey == "" || do.Prefix == "" {
+		panic("database.GetAttr (" + do.TableName + ") - not allowed")
+	}
+
+	attr, ok := lo.Find(do.Attributes, func(x Attr) bool {
+		return x.Name == attrName
+	})
+	if !ok {
+		panic("database.GetAttr (" + do.TableName + ") - not allowed for: '" + attrName + "'")
+	}
+
+	return do.queryAttr(ctx, db, attr, filter)
+}
+
+func (do *DbObject[ET, ETFilter, ETResult]) queryAttr(ctx context.Context, db Db, attr Attr, filter ETFilter) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  fmt.Sprintf("database.GetAttr (%s) -> %s", do.TableName, attr.Name),
+	})
+
+	baseQuery := sq.Select(do.getAttrStr(attr.Name))
+	baseQuery = do.fromBuilder(baseQuery)
+
+	statement := Statement[ETFilter]{
+		Db:         db,
+		L:          l,
+		Obj:        do,
+		BaseQuery:  baseQuery,
+		Order:      NewOrder([]entity.Order{}, attr.Order),
+		WithCursor: false,
+	}
+
+	stmt, filterParameters, err := BuildStatement(context.Background(), statement, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during close stmt: %s", err)
+		}
+	}()
+
+	// Execute the query
+	rows, err := stmt.QueryxContext(context.Background(), filterParameters...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute %s attribute query for %s: %w", do.TableName, attr.Name, err)
+	}
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
+
+	// Collect the results
+	lVal := []string{}
+
+	for rows.Next() {
+		var raw any
+		if err := rows.Scan(&raw); err != nil {
+			l.Error("Error scanning row: ", err)
+			continue
+		}
+
+		if raw == nil {
+			continue
+		}
+
+		switch v := raw.(type) {
+		case string:
+			lVal = append(lVal, v)
+		case []byte:
+			lVal = append(lVal, string(v))
+		default:
+			lVal = append(lVal, fmt.Sprint(v))
+		}
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf(
+			"error iterating %s attribute rows for %s: %w",
+			do.TableName,
+			attr.Name,
+			err,
+		)
+	}
+
+	return lVal, nil
+}
+
+func (do *DbObject[ET, ETFilter, ETResult]) GetAllIds(ctx context.Context, db Db, filter ETFilter) ([]int64, error) {
+	if do.TableName == "" || do.TableKey == "" || do.Prefix == "" {
+		panic("database.GetAllIds (" + do.TableName + ") - not allowed")
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  fmt.Sprintf("database.GetAllIds (%s)", do.TableName),
+	})
+
+	baseQuery := sq.Select(do.getAttrStr("id"))
+	baseQuery = do.fromBuilder(baseQuery)
+	baseQuery = do.groupByBuilder(baseQuery)
+
+	statement := Statement[ETFilter]{
+		Db:        db,
+		L:         l,
+		Obj:       do,
+		BaseQuery: baseQuery,
+		Order:     NewOrder([]entity.Order{}, do.DefaultOrder),
+	}
+
+	stmt, filterParameters, err := BuildStatement(ctx, statement, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build %s GetAllIds query: %w", do.TableName, err)
+	}
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during close stmt: %s", err)
+		}
+	}()
+
+	return performIdScan(ctx, stmt, filterParameters, l)
+}
+
 func (do *DbObject[ET, ETFilter, ETResult]) getSelectBuilder(filter ETFilter, ord *Order) sq.SelectBuilder {
 	select0 := []string{}
 	if do.TableKey != "" {
@@ -301,6 +435,10 @@ func (do *DbObject[ET, ETFilter, ETResult]) getSelectBuilder(filter ETFilter, or
 	}
 
 	return sq.Select(do.selectColumns(select0, filter, ord)...)
+}
+
+func (do *DbObject[ET, ETFilter, ETResult]) getAttrStr(attrName string) string {
+	return fmt.Sprintf("%s.%s_%s", do.TableKey, do.Prefix, attrName)
 }
 
 func (do *DbObject[ET, ETFilter, ETResult]) selectColumns(s0 []string, filter ETFilter, order *Order) []string {
@@ -323,7 +461,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) fromBuilder(baseQuery sq.SelectBuild
 
 func (do *DbObject[ET, ETFilter, ETResult]) groupByBuilder(baseQuery sq.SelectBuilder) sq.SelectBuilder {
 	if do.TableKey != "" {
-		baseQuery = baseQuery.GroupBy(fmt.Sprintf("%s.%s_id", do.TableKey, do.Prefix))
+		baseQuery = baseQuery.GroupBy(do.getAttrStr("id"))
 	}
 
 	return baseQuery

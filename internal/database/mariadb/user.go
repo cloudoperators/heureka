@@ -6,9 +6,7 @@ package mariadb
 import (
 	"context"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/sirupsen/logrus"
 )
 
 var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
@@ -50,6 +48,10 @@ var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
 			Condition: func(f *entity.UserFilter, _ *Order) bool { return len(f.ServiceId) > 0 },
 		},
 	},
+	Attributes: []Attr{
+		{Name: "unique_user_id", Order: entity.Order{By: entity.UserUniqueUserID, Direction: entity.OrderDirectionAsc}},
+		{Name: "name", Order: entity.Order{By: entity.UserName, Direction: entity.OrderDirectionAsc}},
+	},
 	GetItemAppender: func(l []entity.UserResult, e RowComposite, order []entity.Order) []entity.UserResult {
 		u := e.AsUser()
 		cursor, _ := EncodeCursor(WithUser([]entity.Order{}, u))
@@ -72,53 +74,8 @@ var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
 	},
 }
 
-func (s *SqlDatabase) buildUserStatement(
-	ctx context.Context,
-	baseQuery sq.SelectBuilder,
-	filter *entity.UserFilter,
-	withCursor bool,
-	order []entity.Order,
-	l *logrus.Entry,
-) (Stmt, []any, error) {
-	statement := Statement[*entity.UserFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &userObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, userObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
-}
-
 func (s *SqlDatabase) GetAllUserIds(ctx context.Context, filter *entity.UserFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetUserIds",
-	})
-
-	baseQuery := sq.Select("U.user_id").From("User U").GroupBy("U.user_id")
-
-	stmt, filterParameters, err := s.buildUserStatement(
-		ctx,
-		baseQuery,
-		filter,
-		false,
-		[]entity.Order{},
-		l,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performIdScan(ctx, stmt, filterParameters, l)
+	return userObject.GetAllIds(ctx, s.db, filter)
 }
 
 func (s *SqlDatabase) GetAllUserCursors(ctx context.Context, filter *entity.UserFilter, order []entity.Order) ([]string, error) {
@@ -146,117 +103,9 @@ func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {
 }
 
 func (s *SqlDatabase) GetUserNames(ctx context.Context, filter *entity.UserFilter) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetUserNames",
-	})
-
-	baseQuery := sq.Select("U.user_name").From("User U")
-
-	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
-		{
-			By: entity.UserName,
-		},
-	}, l)
-	if err != nil {
-		l.Error("Error preparing statement: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	// Execute the query
-	rows, err := stmt.QueryxContext(ctx, filterParameters...)
-	if err != nil {
-		l.Error("Error executing query: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			logrus.Warnf("error during close rows: %s", err)
-		}
-	}()
-
-	// Collect the results
-	userNames := []string{}
-
-	var name string
-	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
-			l.Error("Error scanning row: ", err)
-			continue
-		}
-
-		userNames = append(userNames, name)
-	}
-
-	if err = rows.Err(); err != nil {
-		l.Error("Row iteration error: ", err)
-		return nil, err
-	}
-
-	return userNames, nil
+	return userObject.GetAttr(ctx, s.db, "name", filter)
 }
 
 func (s *SqlDatabase) GetUniqueUserIDs(ctx context.Context, filter *entity.UserFilter) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetUniqueUserIDs",
-	})
-
-	baseQuery := sq.Select("U.user_unique_user_id").From("User U")
-
-	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
-		{
-			By: entity.UserUniqueUserID,
-		},
-	}, l)
-	if err != nil {
-		l.Error("Error preparing statement: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	// Execute the query
-	rows, err := stmt.QueryxContext(ctx, filterParameters...)
-	if err != nil {
-		l.Error("Error executing query: ", err)
-		return nil, err
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			logrus.Warnf("error during close rows: %s", err)
-		}
-	}()
-
-	// Collect the results
-	uniqueUserID := []string{}
-
-	var name string
-	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
-			l.Error("Error scanning row: ", err)
-			continue
-		}
-
-		uniqueUserID = append(uniqueUserID, name)
-	}
-
-	if err = rows.Err(); err != nil {
-		l.Error("Row iteration error: ", err)
-		return nil, err
-	}
-
-	return uniqueUserID, nil
+	return userObject.GetAttr(ctx, s.db, "unique_user_id", filter)
 }
