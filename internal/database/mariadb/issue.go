@@ -171,7 +171,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Type:      LeftJoin,
 			Table:     "ComponentVersionIssue CVI",
 			On:        "I.issue_id = CVI.componentversionissue_issue_id",
-			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ComponentVersionId) > 0 },
+			Condition: func(f *entity.IssueFilter, _ *Order) bool { return len(f.ComponentVersionId) > 0 || len(f.ComponentId) > 0 },
 		},
 		{
 			Name:      "CV using CVI",
