@@ -226,6 +226,9 @@ func (it *imageTest) seed10Entries() {
 
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvComponentService()
+	Expect(err).To(BeNil())
 }
 
 func (it *imageTest) seedTieBreakerData() {
@@ -276,6 +279,9 @@ func (it *imageTest) seedTieBreakerData() {
 	}
 
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
+	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvComponentService()
 	Expect(err).To(BeNil())
 }
 
