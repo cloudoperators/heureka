@@ -199,11 +199,7 @@ func (s *SqlDatabase) GetServices(ctx context.Context, filter *entity.ServiceFil
 }
 
 // TODO use DbObject
-func (s *SqlDatabase) GetServicesWithAggregations(
-	ctx context.Context,
-	filter *entity.ServiceFilter,
-	order []entity.Order,
-) ([]entity.ServiceResult, error) {
+func (s *SqlDatabase) GetServicesWithAggregations(ctx context.Context, filter *entity.ServiceFilter, order []entity.Order) ([]entity.ServiceResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetServicesWithAggregations",
 	})

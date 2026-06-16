@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
@@ -188,24 +189,19 @@ func (s *SqlDatabase) GetContext(ctx context.Context, filter *entity.ComponentIn
 	return componentInstanceObject.GetAttr(ctx, s.db, "context", filter)
 }
 
-func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(
-	componentInstanceId int64,
-	scannerRunUUID string,
-) error {
-	query := `
-        INSERT INTO ScannerRunComponentInstanceTracker (
-			scannerruncomponentinstancetracker_component_instance_id, 
-			scannerruncomponentinstancetracker_scannerrun_run_id
-		)
-        VALUES (?, ?)
-    `
-
+func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {
 	sr, err := s.ScannerRunByUUID(scannerRunUUID)
 	if err != nil {
 		return fmt.Errorf("failed to get scanner run by UUID '%s': %w", scannerRunUUID, err)
 	}
 
-	_, err = s.db.Exec(query, componentInstanceId, sr.RunID)
+	qb := sq.Insert("ScannerRunComponentInstanceTracker").
+		Columns("scannerruncomponentinstancetracker_component_instance_id", "scannerruncomponentinstancetracker_scannerrun_run_id").
+		Values(componentInstanceId, sr.RunID)
+
+	query, params, err := qb.ToSql()
+
+	_, err = s.db.Exec(query, params...)
 	if err != nil {
 		return fmt.Errorf(
 			"failed to create scanner run component instance tracker for ComponentInstance %d and ScannerRun '%s': %w",
