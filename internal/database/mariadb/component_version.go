@@ -101,7 +101,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 		}
 		return s
 	},
-	GetItemAppender: func(l []entity.ComponentVersionResult, e RowComposite, order []entity.Order) []entity.ComponentVersionResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.ComponentVersion, string) {
 		cv := e.AsComponentVersion()
 
 		var isc entity.IssueSeverityCounts
@@ -111,24 +111,13 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 
 		cursor, _ := EncodeCursor(WithComponentVersion(order, cv, isc))
 
-		cvr := entity.ComponentVersionResult{
-			WithCursor:       entity.WithCursor{Value: cursor},
-			ComponentVersion: &cv,
-		}
-
-		return append(l, cvr)
+		return &cv, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		cv := e.AsComponentVersion()
-
-		var isc entity.IssueSeverityCounts
-		if e.RatingCount != nil {
-			isc = e.AsIssueSeverityCounts()
+	NewResult: func(cv *entity.ComponentVersion, cursor string) entity.ComponentVersionResult {
+		return entity.ComponentVersionResult{
+			WithCursor:       entity.WithCursor{Value: cursor},
+			ComponentVersion: cv,
 		}
-
-		cursor, _ := EncodeCursor(WithComponentVersion(order, cv, isc))
-
-		return append(l, cursor)
 	},
 }
 

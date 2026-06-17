@@ -98,26 +98,18 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.Compon
 		{Name: "parent_id", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
 		{Name: "context", Order: entity.Order{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc}},
 	},
-	GetItemAppender: func(l []entity.ComponentInstanceResult, e RowComposite, order []entity.Order) []entity.ComponentInstanceResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.ComponentInstance, string) {
 		ci := e.AsComponentInstance()
 
 		cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
 
-		cir := entity.ComponentInstanceResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			ComponentInstance: &ci,
-		}
-
-		return append(l, cir)
+		return &ci, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		ci := e.AsComponentInstance()
-
-		cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
-
-		return append(l, cursor)
+	NewResult: func(ci *entity.ComponentInstance, cursor string) entity.ComponentInstanceResult {
+		return entity.ComponentInstanceResult{
+			WithCursor:        entity.WithCursor{Value: cursor},
+			ComponentInstance: ci,
+		}
 	},
 }
 
@@ -200,6 +192,14 @@ func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstance
 		Values(componentInstanceId, sr.RunID)
 
 	query, params, err := qb.ToSql()
+	if err != nil {
+		return fmt.Errorf(
+			"failed to create scanner run component instance tracker for ComponentInstance %d and ScannerRun '%s': %w",
+			componentInstanceId,
+			scannerRunUUID,
+			err,
+		)
+	}
 
 	_, err = s.db.Exec(query, params...)
 	if err != nil {

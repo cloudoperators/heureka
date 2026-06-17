@@ -129,10 +129,8 @@ var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.Serv
 
 		return s
 	},
-	GetItemAppender: func(l []entity.ServiceResult, e RowComposite, order []entity.Order) []entity.ServiceResult {
-		s := entity.Service{
-			BaseService: e.AsBaseService(),
-		}
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.Service, string) {
+		s := entity.Service{BaseService: e.AsBaseService()}
 
 		var isc entity.IssueSeverityCounts
 		if e.RatingCount != nil {
@@ -141,29 +139,13 @@ var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.Serv
 
 		cursor, _ := EncodeCursor(WithService(order, s, isc))
 
-		sr := entity.ServiceResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			Service: &s,
-		}
-
-		return append(l, sr)
+		return &s, cursor
 	},
-
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		s := entity.Service{
-			BaseService: e.AsBaseService(),
+	NewResult: func(s *entity.Service, cursor string) entity.ServiceResult {
+		return entity.ServiceResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			Service:    s,
 		}
-
-		var isc entity.IssueSeverityCounts
-		if e.RatingCount != nil {
-			isc = e.AsIssueSeverityCounts()
-		}
-
-		cursor, _ := EncodeCursor(WithService(order, s, isc))
-
-		return append(l, cursor)
 	},
 }
 
