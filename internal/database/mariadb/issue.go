@@ -55,9 +55,9 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				}
 				switch is[0] {
 				case entity.IssueStatusOpen:
-					return "( R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE() )"
+					return "R.remediation_id IS NULL"
 				case entity.IssueStatusRemediated:
-					return "( R.remediation_id IS NOT NULL AND R.remediation_expiration_date > CURDATE() )"
+					return "R.remediation_id IS NOT NULL"
 				}
 				return ""
 			}),
@@ -185,7 +185,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Name:      "R has S and C",
 			Type:      LeftJoin,
 			Table:     "Remediation R",
-			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id AND CV.componentversion_component_id = R.remediation_component_id",
+			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND (R.remediation_expiration_date IS NULL OR R.remediation_expiration_date >= CURDATE()) AND CI.componentinstance_service_id = R.remediation_service_id AND CV.componentversion_component_id = R.remediation_component_id",
 			DependsOn: []string{"CI with IM_LJ", "CV using CVI"},
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
@@ -197,7 +197,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Name:      "R has S",
 			Type:      LeftJoin,
 			Table:     "Remediation R",
-			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id",
+			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND (R.remediation_expiration_date IS NULL OR R.remediation_expiration_date >= CURDATE()) AND CI.componentinstance_service_id = R.remediation_service_id",
 			DependsOn: []string{"CI with IM_LJ"},
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
@@ -209,7 +209,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Name:      "R has C",
 			Type:      LeftJoin,
 			Table:     "Remediation R",
-			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CV.componentversion_component_id = R.remediation_component_id",
+			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND (R.remediation_expiration_date IS NULL OR R.remediation_expiration_date >= CURDATE()) AND CV.componentversion_component_id = R.remediation_component_id",
 			DependsOn: []string{"CV using CVI"},
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
@@ -221,7 +221,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Name:  "R",
 			Type:  LeftJoin,
 			Table: "Remediation R",
-			On:    "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL",
+			On:    "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND (R.remediation_expiration_date IS NULL OR R.remediation_expiration_date >= CURDATE())",
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
