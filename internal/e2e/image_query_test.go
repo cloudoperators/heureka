@@ -293,6 +293,9 @@ func (it *imageTest) seed10Entries() {
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
 
+	err = it.seeder.RefreshMvComponentService()
+	Expect(err).To(BeNil())
+
 	err = it.seeder.RefreshMvVulnerabilityList()
 	Expect(err).To(BeNil())
 }
@@ -346,6 +349,9 @@ func (it *imageTest) seedTieBreakerData() {
 
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvComponentService()
+	Expect(err).To(BeNil())
 }
 
 func (it *imageTest) testImageSortingWithTieBreaker() {
@@ -356,7 +362,7 @@ func (it *imageTest) testImageSortingWithTieBreaker() {
 	}](
 		it.port,
 		"../api/graphql/graph/queryCollection/image/query.graphql",
-		map[string]interface{}{
+		map[string]any{
 			"filter": map[string]any{
 				"service": lo.Map(
 					it.services,
