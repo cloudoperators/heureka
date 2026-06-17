@@ -40,6 +40,10 @@ func ImageBaseResolver(
 		Paginated:   entity.Paginated{First: first, After: after},
 		ServiceCCRN: filter.Service,
 		Repository:  filter.Repository,
+		// Use mvComponentService to avoid the expensive CV→CI→S join chain
+		// when filtering by service. The MV pre-computes which components are
+		// deployed to which services, reducing query time from seconds to <100ms.
+		UseMvComponentService: true,
 	}
 
 	opt := GetListOptions(requestedFields)

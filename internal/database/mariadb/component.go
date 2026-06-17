@@ -36,6 +36,7 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 		NewStateFilterProperty("C.component", func(filter *entity.ComponentFilter) any { return filter.State }),
 	},
 	JoinDefs: []*JoinDef[*entity.ComponentFilter]{
+		// --- Legacy path: CV→CI→S join chain (used when UseMvComponentService is false) ---
 		{
 			Name:      "CV",
 			Type:      LeftJoin,
@@ -52,12 +53,16 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 			Condition: DependentJoin[*entity.ComponentFilter],
 		},
 		{
+			// Legacy service join via ComponentInstance — expensive on large tables.
+			// Guarded: only activates when the MV path is not in use.
 			Name:      "S",
 			Type:      LeftJoin,
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI"},
-			Condition: func(f *entity.ComponentFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
+			Condition: func(f *entity.ComponentFilter, _ *Order) bool {
+				return !f.UseMvComponentService && len(f.ServiceCCRN) > 0
+			},
 		},
 		{
 			Name:      "mvSCBSVC",
@@ -66,7 +71,7 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 			On:        "C.component_id = CVR.component_id AND CVR.service_id = S.service_id",
 			DependsOn: []string{"S"},
 			Condition: func(f *entity.ComponentFilter, order *Order) bool {
-				return needSingleComponentByServiceVulnerabilityCounts(f, order)
+				return !f.UseMvComponentService && needSingleComponentByServiceVulnerabilityCounts(f, order)
 			},
 		},
 		{
@@ -77,6 +82,41 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 			DependsOn: []string{"S"},
 			Condition: func(f *entity.ComponentFilter, order *Order) bool {
 				return false
+			},
+		},
+
+		// --- Optimized MV path: mvComponentService replaces the CV→CI→S chain ---
+		// Uses a pre-computed junction table of (service_id, component_id) to avoid
+		// scanning millions of ComponentInstance rows at query time.
+		{
+			Name:  "MCS",
+			Type:  InnerJoin,
+			Table: "mvComponentService MCS",
+			On:    "C.component_id = MCS.component_id",
+			Condition: func(f *entity.ComponentFilter, _ *Order) bool {
+				return f.UseMvComponentService && len(f.ServiceCCRN) > 0
+			},
+		},
+		{
+			// Service join via mvComponentService — activates when MV path is used
+			// with a service filter. This replaces the expensive CV→CI→S chain.
+			Name:      "S via MCS",
+			Type:      InnerJoin,
+			Table:     "Service S",
+			On:        "MCS.service_id = S.service_id",
+			DependsOn: []string{"MCS"},
+			Condition: func(f *entity.ComponentFilter, _ *Order) bool {
+				return f.UseMvComponentService && len(f.ServiceCCRN) > 0
+			},
+		},
+		{
+			Name:      "mvSCBSVC via MCS",
+			Type:      LeftJoin,
+			Table:     "mvSingleComponentByServiceVulnerabilityCounts CVR",
+			On:        "C.component_id = CVR.component_id AND MCS.service_id = CVR.service_id",
+			DependsOn: []string{"MCS"},
+			Condition: func(f *entity.ComponentFilter, order *Order) bool {
+				return f.UseMvComponentService && needSingleComponentByServiceVulnerabilityCounts(f, order)
 			},
 		},
 	},

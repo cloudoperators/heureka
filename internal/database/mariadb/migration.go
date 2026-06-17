@@ -160,6 +160,7 @@ func registerEvents(cfg util.Config) error {
 		"refresh_mvCountIssueRatingsOther",
 		"refresh_mvVulnerabilityList",
 		"refresh_mvVulnerabilityService",
+		"refresh_mvComponentService",
 	}
 
 	db, err := GetSqlxConnection(cfg)

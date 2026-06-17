@@ -118,6 +118,72 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 				Expect(*respData.Images.Counts).To(Equal(counts))
 			},
 		)
+		It(
+			"returns vulnerabilities for an image when using service filter and vulnerability severity filter",
+			func() {
+				// This test exercises the VulnerabilityBaseResolver fallthrough path
+				// (not the batch preload) by passing a vulnerability filter, which sets
+				// hasUserFilter=true in the image resolver and bypasses pre-loaded data.
+				// Regression test: service filter must not break the CVI→CV join chain
+				// needed for ComponentId-scoped vulnerability queries.
+				service := imgTest.services[0]
+
+				query := `query ($imgFilter: ImageFilter, $vulFilter: VulnerabilityFilter, $first: Int) {
+					Images(first: $first, filter: $imgFilter) {
+						edges {
+							node {
+								id
+								vulnerabilities(filter: $vulFilter) {
+									totalCount
+									edges {
+										node {
+											id
+											severity
+											name
+										}
+									}
+								}
+							}
+						}
+					}
+				}`
+
+				respData, err := e2e_common.ExecuteGqlQuery[struct {
+					Images model.ImageConnection `json:"Images"`
+				}](
+					imgTest.port,
+					query,
+					map[string]any{
+						"imgFilter": map[string]any{
+							"service": []string{service.CCRN.String},
+						},
+						"vulFilter": map[string]any{
+							"severity": []string{"Critical"},
+						},
+						"first": 5,
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(respData.Images.Edges)).To(BeNumerically(">", 0), "should return at least one image")
+
+				// At least one image should have vulnerabilities with Critical severity
+				hasVulns := false
+
+				for _, edge := range respData.Images.Edges {
+					if edge.Node.Vulnerabilities != nil && len(edge.Node.Vulnerabilities.Edges) > 0 {
+						hasVulns = true
+
+						for _, vuln := range edge.Node.Vulnerabilities.Edges {
+							Expect(vuln.Node.Severity).ToNot(BeNil())
+							Expect(vuln.Node.Severity.String()).To(Equal("Critical"))
+						}
+					}
+				}
+
+				Expect(hasVulns).To(BeTrue(), "at least one image should have Critical vulnerabilities")
+			},
+		)
 	})
 })
 
@@ -226,6 +292,12 @@ func (it *imageTest) seed10Entries() {
 
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvComponentService()
+	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvVulnerabilityList()
+	Expect(err).To(BeNil())
 }
 
 func (it *imageTest) seedTieBreakerData() {
@@ -277,6 +349,9 @@ func (it *imageTest) seedTieBreakerData() {
 
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvComponentService()
+	Expect(err).To(BeNil())
 }
 
 func (it *imageTest) testImageSortingWithTieBreaker() {
@@ -287,7 +362,7 @@ func (it *imageTest) testImageSortingWithTieBreaker() {
 	}](
 		it.port,
 		"../api/graphql/graph/queryCollection/image/query.graphql",
-		map[string]interface{}{
+		map[string]any{
 			"filter": map[string]any{
 				"service": lo.Map(
 					it.services,
