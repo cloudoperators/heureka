@@ -668,9 +668,11 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 
 			seeder.SeedComponents(5)
 
-			var serviceCcrns []*string
-			for _, s := range seeder.SeedServices(5) {
-				serviceCcrns = append(serviceCcrns, &s.CCRN.String)
+			services := seeder.SeedServices(5)
+
+			serviceCcrns := make([]*string, 0, len(services))
+			for i := range services {
+				serviceCcrns = append(serviceCcrns, &services[i].CCRN.String)
 			}
 
 			componentFilter = &entity.ComponentFilter{
