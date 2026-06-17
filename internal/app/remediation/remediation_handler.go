@@ -229,22 +229,37 @@ func (rh *remediationHandler) CreateRemediation(
 	for _, er := range existingRemediations {
 		sameComponent := (remediation.ComponentId <= 0 && er.ComponentId <= 0) ||
 			(remediation.ComponentId == er.ComponentId)
-		if sameComponent {
-			isExpired := !er.ExpirationDate.IsZero() && er.ExpirationDate.Before(time.Now())
-			if !isExpired {
-				err := appErrors.E(
-					op,
-					"Remediation",
-					appErrors.AlreadyExists,
-					"A remediation for this vulnerability is already in progress.",
-				)
-				applog.LogError(rh.logger, err, logrus.Fields{
-					"remediation":          remediation,
-					"existing_remediation": er,
-				})
+		if !sameComponent {
+			continue
+		}
 
-				return nil, err
-			}
+		isExpired := !er.ExpirationDate.IsZero() && er.ExpirationDate.Before(time.Now())
+		if isExpired {
+			continue
+		}
+
+		if er.Type != remediation.Type {
+			continue
+		}
+
+		// Reject if the existing one has no expiration (permanent) or if the new
+		// expiration date is not strictly later than the existing one.
+		existingIsOpen := er.ExpirationDate.IsZero()
+		newIsLater := !remediation.ExpirationDate.IsZero() && remediation.ExpirationDate.After(er.ExpirationDate)
+
+		if existingIsOpen || !newIsLater {
+			err := appErrors.E(
+				op,
+				"Remediation",
+				appErrors.InvalidArgument,
+				"A remediation of this type is already in progress; the new expiration date must be later than the existing one.",
+			)
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation":          remediation,
+				"existing_remediation": er,
+			})
+
+			return nil, err
 		}
 	}
 
