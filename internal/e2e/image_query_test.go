@@ -68,6 +68,22 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 		It("returns images sorted by vulnerability severity counts then by repository name", func() {
 			imgTest.testImageSortingWithTieBreaker()
 		})
+		It("returns images even when no service filter is provided", func() {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+				Images model.ImageConnection `json:"Images"`
+			}](
+				imgTest.port,
+				"../api/graphql/graph/queryCollection/image/query.graphql",
+				map[string]any{
+					"filter": map[string]any{},
+					"first":  3,
+					"after":  "",
+				},
+			)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(respData.Images.TotalCount).To(BeNumerically(">=", 0))
+		})
 		It(
 			"returns the expected content and the expected PageInfo when filtered using repository",
 			func() {
@@ -266,8 +282,9 @@ func (it *imageTest) seed10Entries() {
 		it.counts.Total++
 	}
 
-	for i, cv := range it.componentVersions {
-		id, err := it.seeder.InsertFakeComponentVersion(cv)
+	for i := range it.componentVersions {
+		it.componentVersions[i].ComponentId.Int64 = int64(len(it.components)) - it.componentVersions[i].ComponentId.Int64 + 1
+		id, err := it.seeder.InsertFakeComponentVersion(it.componentVersions[i])
 		it.componentVersions[i].Id.Int64 = id
 
 		Expect(err).To(BeNil())
