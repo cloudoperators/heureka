@@ -277,11 +277,36 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 		})
 	})
 
-	Context("when a duplicate remediation exists", func() {
-		It("returns AlreadyExists error if the existing one is not expired", func() {
+	Context("when a remediation of the same type exists and is active", func() {
+		It("returns InvalidArgument error if the new expiration date is not later", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			existing := remediation
-			existing.ExpirationDate = time.Now().Add(time.Hour)
+			existing.ExpirationDate = time.Now().Add(2 * time.Hour)
+			// New remediation has same or earlier expiration — rejected
+			remediation.ExpirationDate = time.Now().Add(time.Hour)
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("returns InvalidArgument error if the new expiration date equals the existing one", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			sharedExpiration := time.Now().Add(time.Hour).Truncate(time.Second)
+			existing := remediation
+			existing.ExpirationDate = sharedExpiration
+			remediation.ExpirationDate = sharedExpiration
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 
@@ -295,13 +320,103 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 			Expect(err).ToNot(BeNil())
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue())
-			Expect(appErr.Code).To(Equal(appErrors.AlreadyExists))
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("returns InvalidArgument error if the existing one has no expiration date (permanent)", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			existing := remediation
+			existing.ExpirationDate = time.Time{}
+			remediation.ExpirationDate = time.Now().Add(24 * time.Hour)
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("returns InvalidArgument error if the new remediation has no expiration date", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			existing := remediation
+			existing.ExpirationDate = time.Now().Add(time.Hour)
+			remediation.ExpirationDate = time.Time{} // zero — no expiration on new one
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("creates remediation if the new expiration date is strictly later", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			existing := remediation
+			existing.ExpirationDate = time.Now().Add(time.Hour)
+			// New remediation has a later expiration — allowed
+			remediation.ExpirationDate = time.Now().Add(2 * time.Hour)
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
+				Return(&remediation, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(err).To(BeNil())
+			Expect(newRemediation).ToNot(BeNil())
 		})
 
 		It("creates remediation if the existing one is expired", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(-time.Hour)
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
+				Return(&remediation, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(err).To(BeNil())
+			Expect(newRemediation).ToNot(BeNil())
+		})
+	})
+
+	Context("when a remediation of a different type exists and is active", func() {
+		It("creates remediation regardless of expiration dates", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			existing := remediation
+			existing.ExpirationDate = time.Now().Add(24 * time.Hour)
+			// Force different types
+			if remediation.Type == entity.RemediationTypeFalsePositive {
+				existing.Type = entity.RemediationTypeMitigation
+			} else {
+				existing.Type = entity.RemediationTypeFalsePositive
+			}
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).

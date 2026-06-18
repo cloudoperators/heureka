@@ -30,6 +30,7 @@ require (
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.11.1
 	github.com/valkey-io/valkey-go v1.0.75
+	github.com/vektah/gqlparser/v2 v2.5.33
 	golang.org/x/text v0.37.0
 	golang.org/x/time v0.15.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
@@ -53,7 +54,6 @@ require (
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/urfave/cli/v3 v3.8.0 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.33 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect

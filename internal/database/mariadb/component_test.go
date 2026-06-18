@@ -654,6 +654,115 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 		})
 	})
 
+	When("order by count is used with UseMvComponentService", func() {
+		var componentFilter *entity.ComponentFilter
+
+		BeforeEach(func() {
+			seeder.SeedIssueRepositories()
+
+			for range 10 {
+				issue := test.NewFakeIssue()
+				issue.Type.String = entity.IssueTypeVulnerability.String()
+				seeder.InsertFakeIssue(issue)
+			}
+
+			seeder.SeedComponents(5)
+
+			services := seeder.SeedServices(5)
+
+			serviceCcrns := make([]*string, 0, len(services))
+			for i := range services {
+				serviceCcrns = append(serviceCcrns, &services[i].CCRN.String)
+			}
+
+			componentFilter = &entity.ComponentFilter{
+				ServiceCCRN:           serviceCcrns,
+				UseMvComponentService: true,
+			}
+			componentVersions, componentInstances, issueVariants, componentVersionIssues, issueMatches, err := loadTestData()
+			Expect(err).To(BeNil())
+
+			for _, iv := range issueVariants {
+				_, err := seeder.InsertFakeIssueVariant(iv)
+				Expect(err).To(BeNil())
+			}
+
+			for _, cv := range componentVersions {
+				_, err := seeder.InsertFakeComponentVersion(cv)
+				Expect(err).To(BeNil())
+			}
+
+			for _, cvi := range componentVersionIssues {
+				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
+				Expect(err).To(BeNil())
+			}
+
+			for _, ci := range componentInstances {
+				_, err := seeder.InsertFakeComponentInstance(ci)
+				Expect(err).To(BeNil())
+			}
+
+			for _, im := range issueMatches {
+				_, err := seeder.InsertFakeIssueMatch(im)
+				Expect(err).To(BeNil())
+			}
+
+			err = seeder.RefreshComponentVulnerabilityCounts()
+			Expect(err).To(BeNil())
+
+			err = seeder.RefreshMvComponentService()
+			Expect(err).To(BeNil())
+		})
+		It("returns the same results as the legacy path when ordering desc", func() {
+			order := []entity.Order{
+				{By: entity.CriticalCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.HighCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.MediumCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.LowCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.NoneCount, Direction: entity.OrderDirectionDesc},
+			}
+
+			components, err := db.GetComponents(context.Background(), componentFilter, order)
+			Expect(err).To(BeNil())
+			Expect(components).To(HaveLen(5))
+			Expect(components[0].Id).To(BeEquivalentTo(1))
+			Expect(components[1].Id).To(BeEquivalentTo(2))
+			Expect(components[2].Id).To(BeEquivalentTo(3))
+			Expect(components[3].Id).To(BeEquivalentTo(4))
+			Expect(components[4].Id).To(BeEquivalentTo(5))
+		})
+		It("returns the same results as the legacy path when ordering asc", func() {
+			order := []entity.Order{
+				{By: entity.CriticalCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.HighCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.MediumCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.LowCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.NoneCount, Direction: entity.OrderDirectionAsc},
+			}
+
+			components, err := db.GetComponents(context.Background(), componentFilter, order)
+			Expect(err).To(BeNil())
+			Expect(components).To(HaveLen(5))
+			Expect(components[0].Id).To(BeEquivalentTo(5))
+			Expect(components[1].Id).To(BeEquivalentTo(4))
+			Expect(components[2].Id).To(BeEquivalentTo(3))
+			Expect(components[3].Id).To(BeEquivalentTo(2))
+			Expect(components[4].Id).To(BeEquivalentTo(1))
+		})
+		It("filters by service correctly without the CV→CI join chain", func() {
+			// Use only the first service CCRN to verify filtering works
+			singleServiceFilter := &entity.ComponentFilter{
+				ServiceCCRN:           componentFilter.ServiceCCRN[:1],
+				UseMvComponentService: true,
+			}
+
+			components, err := db.GetComponents(context.Background(), singleServiceFilter, []entity.Order{})
+			Expect(err).To(BeNil())
+			Expect(len(components)).To(BeNumerically(">", 0), "should return components for the filtered service")
+			Expect(len(components)).To(BeNumerically("<", 5), "should not return all components")
+		})
+	})
+
 	When("with ASC order", Label("ComponentASCOrder"), func() {
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)

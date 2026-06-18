@@ -36,6 +36,11 @@ type ComponentFilter struct {
 	Id                 []*int64          `json:"id"`
 	ComponentVersionId []*int64          `json:"component_version_id"`
 	State              []StateFilterType `json:"state"`
+
+	// UseMvComponentService enables the optimized query path via the mvComponentService
+	// materialized view instead of the expensive CV→CI→S join chain. Set by ImageBaseResolver
+	// to avoid scanning millions of ComponentInstance rows when filtering by service.
+	UseMvComponentService bool `json:"use_mv_component_service"`
 }
 
 func (f *ComponentFilter) Get() any {
