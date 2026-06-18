@@ -46,25 +46,18 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository, *entity.IssueRepos
 			Condition: func(f *entity.IssueRepositoryFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
 		},
 	},
-	GetItemAppender: func(l []entity.IssueRepositoryResult, e RowComposite, order []entity.Order) []entity.IssueRepositoryResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.IssueRepository, string) {
 		ir := e.BaseIssueRepositoryRow.AsIssueRepository()
+
 		cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
 
-		irr := entity.IssueRepositoryResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			IssueRepository: &ir,
-		}
-
-		return append(l, irr)
+		return &ir, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		ir := e.BaseIssueRepositoryRow.AsIssueRepository()
-
-		cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
-
-		return append(l, cursor)
+	NewResult: func(ir *entity.IssueRepository, cursor string) entity.IssueRepositoryResult {
+		return entity.IssueRepositoryResult{
+			WithCursor:      entity.WithCursor{Value: cursor},
+			IssueRepository: ir,
+		}
 	},
 }
 

@@ -139,7 +139,7 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 		}
 		return s
 	},
-	GetItemAppender: func(l []entity.ComponentResult, e RowComposite, order []entity.Order) []entity.ComponentResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.Component, string) {
 		c := e.AsComponent()
 
 		var isc entity.IssueSeverityCounts
@@ -149,24 +149,13 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 
 		cursor, _ := EncodeCursor(WithComponent(order, c, isc))
 
-		cr := entity.ComponentResult{
-			WithCursor: entity.WithCursor{Value: cursor},
-			Component:  &c,
-		}
-
-		return append(l, cr)
+		return &c, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		c := e.AsComponent()
-
-		var isc entity.IssueSeverityCounts
-		if e.RatingCount != nil {
-			isc = e.AsIssueSeverityCounts()
+	NewResult: func(c *entity.Component, cursor string) entity.ComponentResult {
+		return entity.ComponentResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			Component:  c,
 		}
-
-		cursor, _ := EncodeCursor(WithComponent(order, c, isc))
-
-		return append(l, cursor)
 	},
 }
 

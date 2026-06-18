@@ -55,25 +55,18 @@ var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter,
 		NewFilterProperty("R.remediation_issue LIKE Concat('%',?,'%')", func(filter *entity.RemediationFilter) any { return filter.Search }),
 		NewStateFilterProperty("R.remediation", func(filter *entity.RemediationFilter) any { return filter.State }),
 	},
-	GetItemAppender: func(l []entity.RemediationResult, e RowComposite, order []entity.Order) []entity.RemediationResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.Remediation, string) {
 		r := e.AsRemediation()
+
 		cursor, _ := EncodeCursor(WithRemediation(order, r))
 
-		rr := entity.RemediationResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			Remediation: &r,
-		}
-
-		return append(l, rr)
+		return &r, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		r := e.AsRemediation()
-
-		cursor, _ := EncodeCursor(WithRemediation(order, r))
-
-		return append(l, cursor)
+	NewResult: func(r *entity.Remediation, cursor string) entity.RemediationResult {
+		return entity.RemediationResult{
+			WithCursor:  entity.WithCursor{Value: cursor},
+			Remediation: r,
+		}
 	},
 }
 

@@ -22,25 +22,20 @@ var patchObject = DbObject[*entity.Patch, *entity.PatchFilter, entity.PatchResul
 		NewFilterProperty("P.patch_component_version_name = ?", func(filter *entity.PatchFilter) any { return filter.ComponentVersionName }),
 		NewStateFilterProperty("P.patch", func(filter *entity.PatchFilter) any { return filter.State }),
 	},
-	GetItemAppender: func(l []entity.PatchResult, e RowComposite, order []entity.Order) []entity.PatchResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.Patch, string) {
 		p := e.AsPatch()
+
 		cursor, _ := EncodeCursor(WithPatch(order, p))
 
-		pr := entity.PatchResult{
+		return &p, cursor
+	},
+	NewResult: func(p *entity.Patch, cursor string) entity.PatchResult {
+		return entity.PatchResult{
 			WithCursor: entity.WithCursor{
 				Value: cursor,
 			},
-			Patch: &p,
+			Patch: p,
 		}
-
-		return append(l, pr)
-	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		r := e.AsPatch()
-
-		cursor, _ := EncodeCursor(WithPatch(order, r))
-
-		return append(l, cursor)
 	},
 }
 

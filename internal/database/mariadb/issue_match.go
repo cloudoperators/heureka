@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 )
 
 var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, entity.IssueMatchResult]{
@@ -147,40 +148,25 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		}
 		return s
 	},
-	GetItemAppender: func(l []entity.IssueMatchResult, e RowComposite, order []entity.Order) []entity.IssueMatchResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.IssueMatch, string) {
 		im := e.AsIssueMatch()
 		if e.IssueRow != nil {
-			im.Issue = new(e.IssueRow.AsIssue())
+			im.Issue = lo.ToPtr(e.IssueRow.AsIssue())
 		}
 
 		if e.ComponentInstanceRow != nil {
-			im.ComponentInstance = new(e.AsComponentInstance())
+			im.ComponentInstance = lo.ToPtr(e.AsComponentInstance())
 		}
 
 		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
 
-		imr := entity.IssueMatchResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			IssueMatch: &im,
-		}
-
-		return append(l, imr)
+		return &im, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		im := e.AsIssueMatch()
-		if e.IssueRow != nil {
-			im.Issue = new(e.IssueRow.AsIssue())
+	NewResult: func(im *entity.IssueMatch, cursor string) entity.IssueMatchResult {
+		return entity.IssueMatchResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			IssueMatch: im,
 		}
-
-		if e.ComponentInstanceRow != nil {
-			im.ComponentInstance = new(e.AsComponentInstance())
-		}
-
-		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
-
-		return append(l, cursor)
 	},
 }
 
