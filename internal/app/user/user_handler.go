@@ -104,8 +104,9 @@ func (u *userHandler) ListUsers(
 		u.cache,
 		CacheTtlGetUsers,
 		"GetUsers",
-		cache.WrapContext1(ctx, u.database.GetUsers),
+		cache.WrapContext2(ctx, u.database.GetUsers),
 		filter,
+		options.Order,
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
@@ -323,7 +324,7 @@ func (u *userHandler) ListUserNamesAndIds(
 		"filter": filter,
 	})
 
-	users, err := u.database.GetUsers(ctx, filter)
+	users, err := u.database.GetUsers(ctx, filter, options.Order)
 	if err != nil {
 		l.Error(err)
 		return nil, nil, NewUserHandlerError("Internal error while retrieving user.")

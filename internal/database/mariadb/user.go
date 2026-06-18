@@ -75,8 +75,8 @@ func (s *SqlDatabase) GetAllUserCursors(ctx context.Context, filter *entity.User
 	return userObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
-func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) ([]entity.UserResult, error) {
-	return userObject.Get(ctx, s.db, filter, nil)
+func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter, order []entity.Order) ([]entity.UserResult, error) {
+	return userObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountUsers(ctx context.Context, filter *entity.UserFilter) (int64, error) {

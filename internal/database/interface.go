@@ -87,7 +87,7 @@ type Database interface {
 	GetVulnerabilitiesByComponentIDs(context.Context, []int64) (map[int64][]entity.VulnerabilityResult, error)
 	GetVulnerabilityCountsByComponentIDs(context.Context, []int64) (map[int64]int, error)
 
-	GetUsers(context.Context, *entity.UserFilter) ([]entity.UserResult, error)
+	GetUsers(context.Context, *entity.UserFilter, []entity.Order) ([]entity.UserResult, error)
 	GetAllUserIds(context.Context, *entity.UserFilter) ([]int64, error)
 	GetAllUserCursors(context.Context, *entity.UserFilter, []entity.Order) ([]string, error)
 	CountUsers(context.Context, *entity.UserFilter) (int64, error)
