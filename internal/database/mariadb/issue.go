@@ -33,6 +33,22 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 		NewFilterProperty("I.issue_id = ?", func(filter *entity.IssueFilter) any { return filter.Id }),
 		NewFilterProperty("IM.issuematch_status = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchStatus }),
 		NewFilterProperty("IM.issuematch_rating = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchSeverity }),
+		// Exclude soft-deleted IssueMatches when the IM table is joined.
+		// The IM join (IM_RJ or IM_LJ) activates when HasIssueMatches or IssueMatchStatus is set.
+		NewCustomFilterProperty(
+			WrapBuilder(func(vals []bool) string {
+				if len(vals) > 0 && vals[0] {
+					return "IM.issuematch_deleted_at IS NULL"
+				}
+				return ""
+			}),
+			func(filter *entity.IssueFilter) any {
+				if filter.HasIssueMatches || len(filter.IssueMatchStatus) > 0 || len(filter.IssueMatchId) > 0 || len(filter.IssueMatchSeverity) > 0 {
+					return []bool{true}
+				}
+				return []bool{}
+			},
+		),
 		NewFilterProperty("MVL.max_severity = ?", func(filter *entity.IssueFilter) any { return filter.MvSeverity }),
 		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchId }),
 		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any { return filter.ComponentVersionId }),
@@ -42,6 +58,20 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 		NewFilterProperty("IV.issuevariant_repository_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueRepositoryId }),
 		NewFilterProperty("SG.supportgroup_ccrn = ?", func(filter *entity.IssueFilter) any { return filter.SupportGroupCCRN }),
 		NewFilterProperty("CV.componentversion_component_id = ?", func(filter *entity.IssueFilter) any { return filter.ComponentId }),
+		// When HasIssueMatches is set with ComponentId, restrict the IM path to only
+		// include IssueMatches whose ComponentInstance belongs to a ComponentVersion
+		// of the target component. Without this, IssueMatches from OTHER components
+		// in the same service would leak through.
+		// Self-contained subquery on IM — does not require CI to be joined.
+		NewFilterProperty(
+			"IM.issuematch_component_instance_id IN (SELECT ci.componentinstance_id FROM ComponentInstance ci JOIN ComponentVersion cv ON ci.componentinstance_component_version_id = cv.componentversion_id WHERE cv.componentversion_component_id = ?)",
+			func(filter *entity.IssueFilter) any {
+				if filter.HasIssueMatches {
+					return filter.ComponentId
+				}
+				return []int64{}
+			},
+		),
 		NewNFilterProperty(
 			"IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')",
 			func(filter *entity.IssueFilter) any { return filter.Search },
@@ -114,7 +144,8 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CI with IM_LJ"},
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.ServiceCCRN) > 0 && !f.UseMvVulnerabilityList
+				// Only activate when NOT using IM_RJ path — otherwise CV comes from CVI path
+				return len(f.ServiceCCRN) > 0 && !f.UseMvVulnerabilityList && !f.HasIssueMatches
 			},
 		},
 		{
@@ -123,8 +154,11 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI with IM_RJ"},
-			Condition: func(f *entity.IssueFilter, _ *Order) bool { return f.AllServices },
-		}, // Looks like this case is not used because of mv_vulnerabilities
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				// Activate for service CCRN filtering when IM_RJ is the active path
+				return f.HasIssueMatches && len(f.ServiceCCRN) > 0 || f.AllServices
+			},
+		},
 		{
 			Name:      "S with IM_LJ",
 			Type:      LeftJoin,
@@ -132,7 +166,8 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI with IM_LJ"},
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.ServiceCCRN) > 0 && !f.UseMvVulnerabilityList
+				// Only activate when NOT using IM_RJ path
+				return len(f.ServiceCCRN) > 0 && !f.UseMvVulnerabilityList && !f.HasIssueMatches
 			},
 		},
 		{
@@ -178,7 +213,11 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			On:        "CVI.componentversionissue_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CVI"},
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.ComponentId) > 0 && (len(f.ServiceId) == 0 && len(f.ServiceCCRN) == 0 && len(f.SupportGroupCCRN) == 0 && !f.AllServices)
+				// Activate when ComponentId is set AND the ServiceCCRN path won't create
+				// a conflicting CV alias. When HasIssueMatches is true, service filtering
+				// goes through IM_RJ→CI→S (not IM_LJ→CI→CV), so no alias collision.
+				noConflictingServicePath := len(f.ServiceCCRN) == 0 || f.HasIssueMatches
+				return len(f.ComponentId) > 0 && noConflictingServicePath && len(f.SupportGroupCCRN) == 0 && !f.AllServices
 			},
 		},
 		{
