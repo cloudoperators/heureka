@@ -328,7 +328,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 
 		return []string{}
 	},
-	GetItemAppender: func(l []entity.IssueResult, e RowComposite, order []entity.Order) []entity.IssueResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.Issue, string) {
 		issue := e.IssueRow.AsIssue()
 
 		var ivRating int64
@@ -338,24 +338,13 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 
 		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
 
-		sr := entity.IssueResult{
-			WithCursor: entity.WithCursor{Value: cursor},
-			Issue:      &issue,
-		}
-
-		return append(l, sr)
+		return &issue, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		issue := e.IssueRow.AsIssue()
-
-		var ivRating int64
-		if e.IssueVariantRow != nil {
-			ivRating = e.RatingNumerical.Int64
+	NewResult: func(i *entity.Issue, cursor string) entity.IssueResult {
+		return entity.IssueResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			Issue:      i,
 		}
-
-		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
-
-		return append(l, cursor)
 	},
 }
 

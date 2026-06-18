@@ -111,7 +111,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 	When("Getting Users", Label("GetUsers"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetUsers(context.Background(), nil)
+				res, err := db.GetUsers(context.Background(), nil, nil)
 				res = e2e_common.SubtractSystemUsersEntity(res)
 
 				By("throwing no error", func() {
@@ -129,7 +129,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetUsers(context.Background(), nil)
+					res, err := db.GetUsers(context.Background(), nil, nil)
 					res = e2e_common.SubtractSystemUsersEntity(res)
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -181,7 +181,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 						Id: []*int64{&user.Id.Int64},
 					}
 
-					entries, err := db.GetUsers(context.Background(), filter)
+					entries, err := db.GetUsers(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -208,7 +208,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 						}
 					}
 
-					entries, err := db.GetUsers(context.Background(), filter)
+					entries, err := db.GetUsers(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -237,7 +237,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 						}
 					}
 
-					entries, err := db.GetUsers(context.Background(), filter)
+					entries, err := db.GetUsers(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -258,7 +258,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 
 					filter := &entity.UserFilter{Name: []*string{&row.Name.String}}
 
-					entries, err := db.GetUsers(context.Background(), filter)
+					entries, err := db.GetUsers(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -277,7 +277,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 
 					filter := &entity.UserFilter{UniqueUserID: []*string{&row.UniqueUserID.String}}
 
-					entries, err := db.GetUsers(context.Background(), filter)
+					entries, err := db.GetUsers(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -295,7 +295,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					humanUserTypeFilter := &entity.UserFilter{
 						Type: []entity.UserType{entity.HumanUserType},
 					}
-					humanUserEntries, cErr := db.GetUsers(context.Background(), humanUserTypeFilter)
+					humanUserEntries, cErr := db.GetUsers(context.Background(), humanUserTypeFilter, nil)
 					By("throwing no error when filtering human user type", func() {
 						Expect(cErr).To(BeNil())
 					})
@@ -311,7 +311,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					technicalUserTypeFilter := &entity.UserFilter{
 						Type: []entity.UserType{entity.TechnicalUserType},
 					}
-					technicalUserEntries, tErr := db.GetUsers(context.Background(), technicalUserTypeFilter)
+					technicalUserEntries, tErr := db.GetUsers(context.Background(), technicalUserTypeFilter, nil)
 					By("throwing no error when filtering technical user type", func() {
 						Expect(tErr).To(BeNil())
 					})
@@ -420,7 +420,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					Id: []*int64{&user.Id},
 				}
 
-				u, err := db.GetUsers(context.Background(), userFilter)
+				u, err := db.GetUsers(context.Background(), userFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -468,7 +468,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					Id: []*int64{&user.Id},
 				}
 
-				u, err := db.GetUsers(context.Background(), userFilter)
+				u, err := db.GetUsers(context.Background(), userFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -496,7 +496,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					Id: []*int64{&user.Id},
 				}
 
-				u, err := db.GetUsers(context.Background(), userFilter)
+				u, err := db.GetUsers(context.Background(), userFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -524,7 +524,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					Id: []*int64{&user.Id},
 				}
 
-				u, err := db.GetUsers(context.Background(), userFilter)
+				u, err := db.GetUsers(context.Background(), userFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -559,7 +559,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					Id: []*int64{&user.Id},
 				}
 
-				u, err := db.GetUsers(context.Background(), userFilter)
+				u, err := db.GetUsers(context.Background(), userFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})

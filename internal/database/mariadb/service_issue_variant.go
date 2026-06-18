@@ -71,24 +71,23 @@ var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant, *entity.Se
 		return []string{"IRS.issuerepositoryservice_priority", "IV.*"}
 	},
 	ForceFrom: "ComponentInstance CI",
-	GetItemAppender: func(l []entity.ServiceIssueVariantResult, e RowComposite, order []entity.Order) []entity.ServiceIssueVariantResult {
-		r := ServiceIssueVariantRow{
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.ServiceIssueVariant, string) {
+		siv := ServiceIssueVariantRow{
 			IssueVariantRow: *e.IssueVariantRow,
 			IssueRepositoryRow: IssueRepositoryRow{
 				IssueRepositoryServiceRow: *e.IssueRepositoryServiceRow,
 			},
 		}.AsServiceIssueVariantEntry()
 
-		cursor, _ := EncodeCursor(WithServiceIssueVariant(order, r))
+		cursor, _ := EncodeCursor(WithServiceIssueVariant(order, siv))
 
-		rr := entity.ServiceIssueVariantResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			ServiceIssueVariant: &r,
+		return &siv, cursor
+	},
+	NewResult: func(siv *entity.ServiceIssueVariant, cursor string) entity.ServiceIssueVariantResult {
+		return entity.ServiceIssueVariantResult{
+			WithCursor:          entity.WithCursor{Value: cursor},
+			ServiceIssueVariant: siv,
 		}
-
-		return append(l, rr)
 	},
 }
 

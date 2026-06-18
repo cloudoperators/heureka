@@ -21,21 +21,21 @@ import (
 )
 
 // DbObject
-type DbObject[ET entity.Entity, ETFilter entity.Filter, ETResult entity.HeurekaEntity | DatabaseRow] struct {
-	Prefix                   string
-	TableName                string
-	TableKey                 string
-	DefaultOrder             entity.Order
-	OrderPrefix              string
-	Properties               []*Property[ET]
-	FilterProperties         []*FilterProperty[ETFilter]
-	JoinDefs                 []*JoinDef[ETFilter]
-	Attributes               []Attr
-	Aggregated               bool
-	ExtraColumnsSelector     func(ETFilter, *Order) []string
-	GetItemAppender          func([]ETResult, RowComposite, []entity.Order) []ETResult
-	GetAllCursorItemAppender func([]string, RowComposite, []entity.Order) []string
-	ForceFrom                string
+type DbObject[ET entity.Entity, ETFilter entity.Filter, ETResult entity.HeurekaEntity] struct {
+	Prefix               string
+	TableName            string
+	TableKey             string
+	DefaultOrder         entity.Order
+	OrderPrefix          string
+	Properties           []*Property[ET]
+	FilterProperties     []*FilterProperty[ETFilter]
+	JoinDefs             []*JoinDef[ETFilter]
+	Attributes           []Attr
+	Aggregated           bool
+	ExtraColumnsSelector func(ETFilter, *Order) []string
+	RowToData            func(RowComposite, []entity.Order) (ET, string)
+	NewResult            func(ET, string) ETResult
+	ForceFrom            string
 }
 
 type Attr struct {
@@ -249,7 +249,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) Get(ctx context.Context, db Db, filt
 		filterParameters,
 		l,
 		func(l []ETResult, e RowComposite) []ETResult {
-			return do.GetItemAppender(l, e, order)
+			return append(l, do.NewResult(do.RowToData(e, order)))
 		},
 	)
 }
@@ -297,7 +297,8 @@ func (do *DbObject[ET, ETFilter, ETResult]) GetAllCursors(ctx context.Context, d
 		filterParameters,
 		l,
 		func(l []string, e RowComposite) []string {
-			return do.GetAllCursorItemAppender(l, e, order)
+			_, cursor := do.RowToData(e, order)
+			return append(l, cursor)
 		},
 	)
 }

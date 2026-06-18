@@ -52,25 +52,18 @@ var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
 		{Name: "unique_user_id", Order: entity.Order{By: entity.UserUniqueUserID, Direction: entity.OrderDirectionAsc}},
 		{Name: "name", Order: entity.Order{By: entity.UserName, Direction: entity.OrderDirectionAsc}},
 	},
-	GetItemAppender: func(l []entity.UserResult, e RowComposite, order []entity.Order) []entity.UserResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.User, string) {
 		u := e.AsUser()
-		cursor, _ := EncodeCursor(WithUser([]entity.Order{}, u))
 
-		ur := entity.UserResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			User: &u,
-		}
+		cursor, _ := EncodeCursor(WithUser(order, u))
 
-		return append(l, ur)
+		return &u, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		r := e.AsUser()
-
-		cursor, _ := EncodeCursor(WithUser(order, r))
-
-		return append(l, cursor)
+	NewResult: func(u *entity.User, cursor string) entity.UserResult {
+		return entity.UserResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			User:       u,
+		}
 	},
 }
 
@@ -82,8 +75,8 @@ func (s *SqlDatabase) GetAllUserCursors(ctx context.Context, filter *entity.User
 	return userObject.GetAllCursors(ctx, s.db, filter, order)
 }
 
-func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) ([]entity.UserResult, error) {
-	return userObject.Get(ctx, s.db, filter, nil)
+func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter, order []entity.Order) ([]entity.UserResult, error) {
+	return userObject.Get(ctx, s.db, filter, order)
 }
 
 func (s *SqlDatabase) CountUsers(ctx context.Context, filter *entity.UserFilter) (int64, error) {

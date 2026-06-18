@@ -93,7 +93,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
-			db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
+			db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
 			db.On("CountUsers", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
@@ -140,7 +140,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 					cursors = append(cursors, c)
 				}
 
-				db.On("GetUsers", mock.Anything, filter).Return(users, nil)
+				db.On("GetUsers", mock.Anything, filter, mock.Anything).Return(users, nil)
 				db.On("GetAllUserCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
 				db.On("GetAllUserIds", mock.Anything, authFilter).Return([]int64{}, nil)
 				// db.On("GetAllUserIds", filter).Return(lo.Map(users, func(m entity.UserResult, _
@@ -195,7 +195,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 				sgIds := int64(-1)
 				filter.SupportGroupId = []*int64{&sgIds}
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
-				db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
+				db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
 			})
 
 			It("should return no users", func() {
@@ -215,7 +215,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 				filter.SupportGroupId = []*int64{&sgId}
 				user = test.NewFakeUserEntity()
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
-				db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{{User: &user}}, nil)
+				db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{{User: &user}}, nil)
 
 				relations := []openfga.RelationInput{
 					{ // create support group
@@ -283,7 +283,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		filter.UniqueUserID = []*string{&user.UniqueUserID}
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateUser", &user).Return(&user, nil)
-		db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
+		db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
 		userHandler = u.NewUserHandler(handlerContext)
 		newUser, err := userHandler.CreateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -328,7 +328,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		userHandler = u.NewUserHandler(handlerContext)
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
-		db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{
+		db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{
 			{
 				User: &user,
 			},
@@ -376,7 +376,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteUser", id, mock.Anything).Return(nil)
 		userHandler = u.NewUserHandler(handlerContext)
-		db.On("GetUsers", mock.Anything, filter).Return([]entity.UserResult{}, nil)
+		db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
 		err := userHandler.DeleteUser(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 

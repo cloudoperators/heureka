@@ -60,25 +60,18 @@ var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilt
 		},
 	},
 	Attributes: []Attr{{Name: "ccrn", Order: entity.Order{By: entity.SupportGroupCcrn, Direction: entity.OrderDirectionAsc}}},
-	GetItemAppender: func(l []entity.SupportGroupResult, e RowComposite, order []entity.Order) []entity.SupportGroupResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.SupportGroup, string) {
 		sg := e.AsSupportGroup()
+
 		cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
 
-		sgr := entity.SupportGroupResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			SupportGroup: &sg,
-		}
-
-		return append(l, sgr)
+		return &sg, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		sg := e.AsSupportGroup()
-
-		cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
-
-		return append(l, cursor)
+	NewResult: func(sg *entity.SupportGroup, cursor string) entity.SupportGroupResult {
+		return entity.SupportGroupResult{
+			WithCursor:   entity.WithCursor{Value: cursor},
+			SupportGroup: sg,
+		}
 	},
 }
 

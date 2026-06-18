@@ -71,25 +71,18 @@ var issueVariantObject = DbObject[*entity.IssueVariant, *entity.IssueVariantFilt
 			Condition: func(f *entity.IssueVariantFilter, _ *Order) bool { return len(f.IssueMatchId) > 0 },
 		},
 	},
-	GetItemAppender: func(l []entity.IssueVariantResult, e RowComposite, order []entity.Order) []entity.IssueVariantResult {
+	RowToData: func(e RowComposite, order []entity.Order) (*entity.IssueVariant, string) {
 		iv := e.AsIssueVariant()
+
 		cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
 
-		ivr := entity.IssueVariantResult{
-			WithCursor: entity.WithCursor{
-				Value: cursor,
-			},
-			IssueVariant: &iv,
-		}
-
-		return append(l, ivr)
+		return &iv, cursor
 	},
-	GetAllCursorItemAppender: func(l []string, e RowComposite, order []entity.Order) []string {
-		iv := e.AsIssueVariant()
-
-		cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
-
-		return append(l, cursor)
+	NewResult: func(iv *entity.IssueVariant, cursor string) entity.IssueVariantResult {
+		return entity.IssueVariantResult{
+			WithCursor:   entity.WithCursor{Value: cursor},
+			IssueVariant: iv,
+		}
 	},
 }
 
