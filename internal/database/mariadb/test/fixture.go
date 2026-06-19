@@ -1238,6 +1238,7 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 			issuematch_user_id,
 			issuematch_remediation_date,
 			issuematch_target_remediation_date,
+			issuematch_deleted_at,
 			issuematch_created_by,
 			issuematch_updated_by
 		) VALUES (
@@ -1249,6 +1250,7 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 			:issuematch_user_id,
 			:issuematch_remediation_date,
 			:issuematch_target_remediation_date,
+			:issuematch_deleted_at,
 			:issuematch_created_by,
 			:issuematch_updated_by
 		)`
