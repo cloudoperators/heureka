@@ -372,12 +372,10 @@ func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64, earlies
 					Field{Name: entity.IssueVariantRating, Value: ivRating, Order: o.Direction},
 				)
 			case entity.IssueEarliestTargetRemediationDate:
-				if earliestTargetRemediation.Valid {
-					cursors.fields = append(
-						cursors.fields,
-						Field{Name: entity.IssueEarliestTargetRemediationDate, Value: earliestTargetRemediation.Time, Order: o.Direction},
-					)
-				}
+				cursors.fields = append(
+					cursors.fields,
+					Field{Name: entity.IssueEarliestTargetRemediationDate, Value: earliestTargetRemediation.Time, Order: o.Direction},
+				)
 			default:
 				continue
 			}

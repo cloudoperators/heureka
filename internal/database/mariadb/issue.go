@@ -327,7 +327,15 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				cols = append(cols, "MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num")
 			case entity.IssueEarliestTargetRemediationDate:
 				if f != nil && f.UseMvVulnerabilityList {
-					cols = append(cols, "MVL.earliest_remediation_date AS issue_earliest_target_remediation_date")
+					// MV path: pre-aggregated by the materialized view.
+					// COALESCE ensures non-NULL so the cursor can always encode this field.
+					// Vulnerabilities with no date sort last (far-future sentinel > any real date).
+					cols = append(cols, "COALESCE(MVL.earliest_remediation_date, CAST('9999-12-31 23:59:59' AS DATETIME)) AS issue_earliest_target_remediation_date")
+				} else {
+					// Non-MV path (image/imageVersion child queries): IM is RIGHT-joined and
+					// the query groups by issue_id, so we must aggregate here too.
+					// MIN gives a single deterministic value per group, matching MV semantics.
+					cols = append(cols, "COALESCE(MIN(IM.issuematch_target_remediation_date), CAST('9999-12-31 23:59:59' AS DATETIME)) AS issue_earliest_target_remediation_date")
 				}
 			}
 		}
@@ -363,7 +371,9 @@ func appendIssueColumns(s []string, filter *entity.IssueFilter, order []entity.O
 			s = append(s, "MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num")
 		case entity.IssueEarliestTargetRemediationDate:
 			if filter != nil && filter.UseMvVulnerabilityList {
-				s = append(s, "MVL.earliest_remediation_date AS issue_earliest_target_remediation_date")
+				s = append(s, "COALESCE(MVL.earliest_remediation_date, CAST('9999-12-31 23:59:59' AS DATETIME)) AS issue_earliest_target_remediation_date")
+			} else {
+				s = append(s, "COALESCE(MIN(IM.issuematch_target_remediation_date), CAST('9999-12-31 23:59:59' AS DATETIME)) AS issue_earliest_target_remediation_date")
 			}
 		}
 	}
