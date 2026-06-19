@@ -128,11 +128,6 @@ func (s *SqlDatabase) processAutopatchForSingleTag(ctx context.Context, tagRuns 
 		return false, err
 	}
 
-	err = s.deleteVersionIssuesOfDisappearedInstances(versionsOfDisappearedInstances)
-	if err != nil {
-		return false, err
-	}
-
 	componentsOfDisappearedInstances, err := s.getComponentIdsOfDisappearedInstances(
 		ctx,
 		versionsOfDisappearedInstances,
@@ -273,18 +268,6 @@ func (s *SqlDatabase) getComponentIdsOfDisappearedInstances(
 	return componentIdsOfDisappearedInstances, nil
 }
 
-func (s *SqlDatabase) deleteVersionIssuesOfDisappearedInstances(
-	versionIdsOfDisappearedInstances map[int64]struct{},
-) error {
-	for vIdDi := range versionIdsOfDisappearedInstances {
-		if err := s.RemoveAllIssuesFromComponentVersion(vIdDi); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(
 	ctx context.Context,
 	versionIdsOfDisappearedInstances map[int64]struct{},
@@ -298,9 +281,19 @@ func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(
 		}
 
 		if len(res) == 0 {
+
+			for vIdDi := range versionIdsOfDisappearedInstances {
+
+				if err := s.RemoveAllIssuesFromComponentVersion(vIdDi); err != nil {
+					return err
+				}
+
+			}
+
 			if err := s.DeleteComponentVersion(vIdDi, util.SystemUserId); err != nil {
 				return err
 			}
+
 		}
 	}
 
