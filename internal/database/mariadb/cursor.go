@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -346,7 +347,7 @@ func WithComponentVersion(
 	}
 }
 
-func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCursor {
+func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64, earliestTargetRemediation sql.NullTime) NewCursor {
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -370,6 +371,13 @@ func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCurs
 					cursors.fields,
 					Field{Name: entity.IssueVariantRating, Value: ivRating, Order: o.Direction},
 				)
+			case entity.IssueEarliestTargetRemediationDate:
+				if earliestTargetRemediation.Valid {
+					cursors.fields = append(
+						cursors.fields,
+						Field{Name: entity.IssueEarliestTargetRemediationDate, Value: earliestTargetRemediation.Time, Order: o.Direction},
+					)
+				}
 			default:
 				continue
 			}

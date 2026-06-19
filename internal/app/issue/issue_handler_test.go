@@ -4,6 +4,7 @@ package issue_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"math"
 	"strconv"
@@ -221,7 +222,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				filter.First = &pageSize
 				issues := []entity.IssueResult{}
 				for _, i := range test.NNewFakeIssueEntities(resElements) {
-					cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0))
+					cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0, sql.NullTime{}))
 					issues = append(
 						issues,
 						entity.IssueResult{
@@ -233,7 +234,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 				cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
 					cursor, _ := mariadb.EncodeCursor(
-						mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0),
+						mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0, sql.NullTime{}),
 					)
 					return cursor
 				})
@@ -242,7 +243,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				for len(cursors) < dbElements {
 					i++
 					issue := test.NewFakeIssueEntity()
-					c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0))
+					c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0, sql.NullTime{}))
 					cursors = append(cursors, c)
 				}
 				db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return(issues, nil)

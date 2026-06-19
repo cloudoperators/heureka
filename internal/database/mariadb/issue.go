@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -318,25 +319,32 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 		},
 	},
 	Attributes: []Attr{{Name: "primary_name", Order: entity.Order{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc}}},
-	ExtraColumnsSelector: func(_ *entity.IssueFilter, order *Order) []string {
+	ExtraColumnsSelector: func(f *entity.IssueFilter, order *Order) []string {
+		var cols []string
 		for _, o := range order.Sequence() {
 			switch o.By {
 			case entity.IssueVariantRating:
-				return []string{"MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num"}
+				cols = append(cols, "MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num")
+			case entity.IssueEarliestTargetRemediationDate:
+				if f != nil && f.UseMvVulnerabilityList {
+					cols = append(cols, "MVL.earliest_remediation_date AS issue_earliest_target_remediation_date")
+				}
 			}
 		}
 
-		return []string{}
+		return cols
 	},
 	RowToData: func(e RowComposite, order []entity.Order) (*entity.Issue, string) {
 		issue := e.IssueRow.AsIssue()
 
 		var ivRating int64
+		var earliestTargetRemediation sql.NullTime
 		if e.IssueVariantRow != nil {
 			ivRating = e.RatingNumerical.Int64
+			earliestTargetRemediation = e.EarliestTargetRemediation
 		}
 
-		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
+		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating, earliestTargetRemediation))
 
 		return &issue, cursor
 	},
@@ -348,11 +356,15 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 	},
 }
 
-func appendIssueColumns(s []string, order []entity.Order) []string {
+func appendIssueColumns(s []string, filter *entity.IssueFilter, order []entity.Order) []string {
 	for _, o := range order {
 		switch o.By {
 		case entity.IssueVariantRating:
 			s = append(s, "MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num")
+		case entity.IssueEarliestTargetRemediationDate:
+			if filter != nil && filter.UseMvVulnerabilityList {
+				s = append(s, "MVL.earliest_remediation_date AS issue_earliest_target_remediation_date")
+			}
 		}
 	}
 
@@ -432,7 +444,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
 		return nil, err
 	}
 
-	columns := strings.Join(appendIssueColumns([]string{}, order), ",")
+	columns := strings.Join(appendIssueColumns([]string{}, filter, order), ",")
 	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 
 	whereClause := issueObject.GetFilterWhereClause_tmp(filter, false)
@@ -486,11 +498,15 @@ func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *ent
 			issue := gibr.AsIssueWithAggregations()
 
 			var ivRating int64
+
+			var earliestTargetRemediation sql.NullTime
+
 			if e.IssueVariantRow != nil {
 				ivRating = e.RatingNumerical.Int64
+				earliestTargetRemediation = e.EarliestTargetRemediation
 			}
 
-			cursor, _ := EncodeCursor(WithIssue(ord.Sequence(), issue.Issue, ivRating))
+			cursor, _ := EncodeCursor(WithIssue(ord.Sequence(), issue.Issue, ivRating, earliestTargetRemediation))
 
 			sr := entity.IssueResult{
 				WithCursor: entity.WithCursor{
