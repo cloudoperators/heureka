@@ -281,19 +281,15 @@ func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(
 		}
 
 		if len(res) == 0 {
-
 			for vIdDi := range versionIdsOfDisappearedInstances {
-
 				if err := s.RemoveAllIssuesFromComponentVersion(vIdDi); err != nil {
 					return err
 				}
-
 			}
 
 			if err := s.DeleteComponentVersion(vIdDi, util.SystemUserId); err != nil {
 				return err
 			}
-
 		}
 	}
 

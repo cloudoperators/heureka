@@ -533,20 +533,21 @@ func (irr IssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 }
 
 type IssueVariantRow struct {
-	Id                sql.NullInt64  `db:"issuevariant_id"             json:"id"`
-	IssueId           sql.NullInt64  `db:"issuevariant_issue_id"       json:"issue_id"`
-	IssueRepositoryId sql.NullInt64  `db:"issuevariant_repository_id"  json:"issue_repository_id"`
-	SecondaryName     sql.NullString `db:"issuevariant_secondary_name" json:"secondary_name"`
-	Vector            sql.NullString `db:"issuevariant_vector"         json:"vector"`
-	Rating            sql.NullString `db:"issuevariant_rating"         json:"rating"`
-	RatingNumerical   sql.NullInt64  `db:"issuevariant_rating_num"     json:"rating_numerical"`
-	Description       sql.NullString `db:"issuevariant_description"    json:"description"`
-	ExternalUrl       sql.NullString `db:"issuevariant_external_url"   json:"external_url"`
-	CreatedAt         sql.NullTime   `db:"issuevariant_created_at"     json:"created_at"`
-	CreatedBy         sql.NullInt64  `db:"issuevariant_created_by"     json:"created_by"`
-	DeletedAt         sql.NullTime   `db:"issuevariant_deleted_at"     json:"deleted_at"`
-	UpdatedAt         sql.NullTime   `db:"issuevariant_updated_at"     json:"updated_at"`
-	UpdatedBy         sql.NullInt64  `db:"issuevariant_updated_by"     json:"updated_by"`
+	Id                        sql.NullInt64  `db:"issuevariant_id"             json:"id"`
+	IssueId                   sql.NullInt64  `db:"issuevariant_issue_id"       json:"issue_id"`
+	IssueRepositoryId         sql.NullInt64  `db:"issuevariant_repository_id"  json:"issue_repository_id"`
+	SecondaryName             sql.NullString `db:"issuevariant_secondary_name" json:"secondary_name"`
+	Vector                    sql.NullString `db:"issuevariant_vector"         json:"vector"`
+	Rating                    sql.NullString `db:"issuevariant_rating"         json:"rating"`
+	RatingNumerical           sql.NullInt64  `db:"issuevariant_rating_num"        json:"rating_numerical"`
+	EarliestTargetRemediation sql.NullTime   `db:"issue_earliest_target_remediation_date"   json:"issue_earliest_target_remediation_date"`
+	Description               sql.NullString `db:"issuevariant_description"    json:"description"`
+	ExternalUrl               sql.NullString `db:"issuevariant_external_url"   json:"external_url"`
+	CreatedAt                 sql.NullTime   `db:"issuevariant_created_at"     json:"created_at"`
+	CreatedBy                 sql.NullInt64  `db:"issuevariant_created_by"     json:"created_by"`
+	DeletedAt                 sql.NullTime   `db:"issuevariant_deleted_at"     json:"deleted_at"`
+	UpdatedAt                 sql.NullTime   `db:"issuevariant_updated_at"     json:"updated_at"`
+	UpdatedBy                 sql.NullInt64  `db:"issuevariant_updated_by"     json:"updated_by"`
 }
 
 func (ivr IssueVariantRow) AsIssueVariant() entity.IssueVariant {
