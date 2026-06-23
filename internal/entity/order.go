@@ -37,6 +37,7 @@ const (
 	IssueMatchId
 	IssueMatchRating
 	IssueMatchTargetRemediationDate
+	IssueEarliestTargetRemediationDate
 
 	CriticalCount
 	HighCount

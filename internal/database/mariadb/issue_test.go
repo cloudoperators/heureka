@@ -497,6 +497,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 										[]entity.Order{},
 										*entries[len(entries)-1].Issue,
 										0,
+										sql.NullTime{},
 									),
 								)
 								return after
