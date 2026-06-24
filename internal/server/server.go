@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	aiapi "github.com/cloudoperators/heureka/internal/api/ai"
+	"github.com/cloudoperators/heureka/internal/api/ai/llm"
 	graphqlapi "github.com/cloudoperators/heureka/internal/api/graphql"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -31,6 +33,7 @@ import (
 type Server struct {
 	router     *gin.Engine
 	graphQLAPI *graphqlapi.GraphQLAPI
+	aiAPI      *aiapi.AIAPI
 	config     util.Config
 
 	// Use this context if you want your software
@@ -67,9 +70,25 @@ func NewServer(cfg util.Config) *Server {
 
 	application := app.NewHeurekaApp(ctx, &wg, db, cfg)
 
+	var ai *aiapi.AIAPI
+
+	if cfg.AIEnable {
+		var aiClient llm.Client
+
+		switch cfg.AIProvider {
+		case "openai":
+			aiClient = llm.NewSAPProxyClient(cfg.AISAPProxyURL, cfg.AISAPProxyModel, cfg.AISAPProxyToken)
+		default:
+			aiClient = llm.NewAnthropicClient(cfg.AISAPProxyURL, cfg.AISAPProxyModel, cfg.AISAPProxyToken)
+		}
+
+		ai = aiapi.NewAIAPI(cfg, aiClient)
+	}
+
 	s := Server{
 		router:       &gin.Engine{},
 		graphQLAPI:   graphqlapi.NewGraphQLAPI(application, cfg),
+		aiAPI:        ai,
 		config:       cfg,
 		app:          application,
 		shutdownCtx:  ctx,
@@ -150,6 +169,10 @@ func (s *Server) createEndpoints() {
 	s.router.GET("info", s.infoHandler)
 
 	s.graphQLAPI.CreateEndpoints(s.router)
+
+	if s.aiAPI != nil {
+		s.aiAPI.CreateEndpoints(s.router)
+	}
 }
 
 func (s *Server) homeHandler(c *gin.Context) {
