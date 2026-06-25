@@ -78,23 +78,24 @@ func ImageBaseResolver(
 		edges = append(edges, &edge)
 	}
 
+	// Parse component IDs once; reused for both per-image preloads and ImageConnection.counts
+	componentIDs := make([]int64, 0, len(edges))
+	for _, edge := range edges {
+		id, err := strconv.ParseInt(edge.Node.ID, 10, 64)
+		if err != nil {
+			logrus.WithField("id", edge.Node.ID).Warn("ImageBaseResolver: failed to parse component ID for batch preload")
+			continue
+		}
+
+		componentIDs = append(componentIDs, id)
+	}
+
 	// Batch pre-load for nested fields
 	needVersions := lo.Contains(requestedFields, "edges.node.versions")
 	needVulnCounts := lo.Contains(requestedFields, "edges.node.vulnerabilityCounts")
 	needVulnerabilities := containsField(requestedFields, "edges.node.vulnerabilities")
 
-	if (needVersions || needVulnCounts || needVulnerabilities) && len(edges) > 0 {
-		componentIDs := make([]int64, 0, len(edges))
-		for _, edge := range edges {
-			id, err := strconv.ParseInt(edge.Node.ID, 10, 64)
-			if err != nil {
-				logrus.WithField("id", edge.Node.ID).Warn("ImageBaseResolver: failed to parse component ID for batch preload")
-				continue
-			}
-
-			componentIDs = append(componentIDs, id)
-		}
-
+	if (needVersions || needVulnCounts || needVulnerabilities) && len(componentIDs) > 0 {
 		var (
 			versionsMap    map[int64][]entity.ComponentVersionResult
 			issueCountsMap map[int64]entity.IssueSeverityCounts

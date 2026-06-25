@@ -2121,7 +2121,6 @@ func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
 func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
 	_, err := s.db.Exec(`
 		CALL refresh_mvSingleComponentByServiceVulnerabilityCounts_proc();
-		CALL refresh_mvAllComponentsByServiceVulnerabilityCounts_proc();
 	`)
 
 	return err
@@ -2129,6 +2128,12 @@ func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
 
 func (s *DatabaseSeeder) RefreshMvVulnerabilityList() error {
 	_, err := s.db.Exec(`CALL refresh_mvVulnerabilityList_proc();`)
+
+	return err
+}
+
+func (s *DatabaseSeeder) RefreshMvVulnerabilityService() error {
+	_, err := s.db.Exec(`CALL refresh_mvVulnerabilityService_proc();`)
 
 	return err
 }

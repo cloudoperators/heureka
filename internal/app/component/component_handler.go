@@ -314,7 +314,7 @@ func (cs *componentHandler) GetComponentVulnerabilityCounts(
 	filter *entity.ComponentFilter,
 ) ([]entity.IssueSeverityCounts, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":  GetComponentIssueSeverityCountsEventName,
+		"event":  "GetComponentVulnerabilityCounts",
 		"filter": filter,
 	})
 
@@ -326,10 +326,6 @@ func (cs *componentHandler) GetComponentVulnerabilityCounts(
 			"Internal error while retrieving issue severity counts.",
 		)
 	}
-
-	cs.eventRegistry.PushEvent(
-		&GetComponentIssueSeverityCountsEvent{Filter: filter, Counts: counts},
-	)
 
 	return counts, nil
 }
