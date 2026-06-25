@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -15,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResult]{
+var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResult, *entity.IssueAggregations]{
 	Prefix:       "issue",
 	TableName:    "Issue",
 	TableKey:     "I",
@@ -356,179 +355,67 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 
 		return &issue, cursor
 	},
-	NewResult: func(i *entity.Issue, cursor string) entity.IssueResult {
+	RowToAggregatedData: func(e RowComposite, order []entity.Order) (*entity.Issue, *entity.IssueAggregations, string) {
+		gibr := GetIssuesByRow{
+			IssueAggregationsRow: *e.IssueAggregationsRow,
+			IssueRow:             *e.IssueRow,
+		}
+		issue := gibr.AsIssueWithAggregations()
+
+		var ivRating int64
+
+		var earliestTargetRemediation sql.NullTime
+
+		if e.IssueVariantRow != nil {
+			ivRating = e.RatingNumerical.Int64
+			earliestTargetRemediation = e.EarliestTargetRemediation
+		}
+
+		cursor, _ := EncodeCursor(WithIssue(order, issue.Issue, ivRating, earliestTargetRemediation))
+
+		return &issue.Issue, &issue.IssueAggregations, cursor
+	},
+	NewResult: func(i *entity.Issue, ia *entity.IssueAggregations, cursor string) entity.IssueResult {
 		return entity.IssueResult{
-			WithCursor: entity.WithCursor{Value: cursor},
-			Issue:      i,
+			WithCursor:        entity.WithCursor{Value: cursor},
+			Issue:             i,
+			IssueAggregations: ia,
 		}
 	},
 }
 
-func appendIssueColumns(s []string, filter *entity.IssueFilter, order []entity.Order) []string {
-	for _, o := range order {
-		switch o.By {
-		case entity.IssueVariantRating:
-			s = append(s, "MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num")
-		case entity.IssueEarliestTargetRemediationDate:
-			if filter != nil && filter.UseMvVulnerabilityList {
-				s = append(s, "COALESCE(MVL.earliest_remediation_date, CAST('9999-12-31 23:59:59' AS DATETIME)) AS issue_earliest_target_remediation_date")
-			} else {
-				s = append(s, "COALESCE(MIN(IM.issuematch_target_remediation_date), CAST('9999-12-31 23:59:59' AS DATETIME)) AS issue_earliest_target_remediation_date")
-			}
-		}
-	}
-
-	return s
-}
-
 func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery sq.SelectBuilder, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
-	statement := Statement[*entity.IssueFilter]{
-		Db:         s.db,
-		L:          l,
-		Obj:        &issueObject,
-		BaseQuery:  baseQuery,
-		Order:      NewOrder(order, issueObject.DefaultOrder),
-		WithCursor: withCursor,
-	}
-
-	return BuildStatement(ctx, statement, filter)
+	ord := NewOrder(order, issueObject.DefaultOrder)
+	return issueObject.BuildStatement(ctx, l, s.db, baseQuery, filter, ord, withCursor)
 }
 
-// TODO: use DbObject
 func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
-	filter = EnsureFilter(filter)
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetIssuesWithAggregations",
-	})
-
-	baseCiQuery := `
-        SELECT I.*, SUM(CI.componentinstance_count) AS agg_affected_component_instances %s FROM Issue I
-        LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
-        LEFT JOIN ComponentInstance CI on IM.issuematch_component_instance_id = CI.componentinstance_id
-        %s
-        %s
-        GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
-    `
-
-	// count(distinct activity_id) as agg_activities,
-	// LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
-	// LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id~
-
-	baseAggQuery := `
-		SELECT I.*,
-		count(distinct issuematch_id) as agg_issue_matches,
-		count(distinct service_ccrn) as agg_affected_services,
-		count(distinct componentversionissue_component_version_id) as agg_component_versions,
-		min(issuematch_target_remediation_date) as agg_earliest_target_remediation_date,
-		min(issuematch_created_at) agg_earliest_discovery_date
-		%s
-        FROM Issue I
-        LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
-        LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
-        LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
-        LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
-        LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
-		%s
-		%s
-		GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
-    `
-
-	baseQuery := `
-        With ComponentInstanceCounts AS (
-            %s
-        ),
-        Aggs AS (
-            %s
-        )
-        SELECT A.*, CIC.*
-        FROM ComponentInstanceCounts CIC
-        JOIN Aggs A ON CIC.issue_id = A.issue_id;
-    `
-
-	joins := issueObject.GetJoins_tmp(filter, NewOrder(order, entity.Order{})) // It seems that this join is redundant for baseAppQuery
-	// We should improve testing and remove redundant joins from query
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, err
-	}
-
-	columns := strings.Join(appendIssueColumns([]string{}, filter, order), ",")
-	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
-
-	whereClause := issueObject.GetFilterWhereClause_tmp(filter, false)
-
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	filterStr := issueObject.GetFilterQuery_tmp(filter)
-	if filterStr != "" && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
-
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
-	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
-	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery)
-
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			},
-		).Error(msg)
-
-		return nil, fmt.Errorf("%s", msg)
-	}
-
-	// parameters for component instance query
-	filterParameters := issueObject.GetFilterParameters_tmp(filter, true, cursorFields)
-	// parameters for agg query
-	filterParameters = append(filterParameters, issueObject.GetFilterParameters_tmp(filter, true, cursorFields)...)
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.IssueResult, e RowComposite) []entity.IssueResult {
-			gibr := GetIssuesByRow{
-				IssueAggregationsRow: *e.IssueAggregationsRow,
-				IssueRow:             *e.IssueRow,
-			}
-			issue := gibr.AsIssueWithAggregations()
-
-			var ivRating int64
-
-			var earliestTargetRemediation sql.NullTime
-
-			if e.IssueVariantRow != nil {
-				ivRating = e.RatingNumerical.Int64
-				earliestTargetRemediation = e.EarliestTargetRemediation
-			}
-
-			cursor, _ := EncodeCursor(WithIssue(ord.Sequence(), issue.Issue, ivRating, earliestTargetRemediation))
-
-			sr := entity.IssueResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
+	aggDef := AggregationDef{
+		Aggregations: []Aggregation{
+			{
+				Table:    "Aggs",
+				TableKey: "A",
+				Columns: []string{
+					"COUNT(distinct issuematch_id) AS agg_issue_matches",
+					"COUNT(distinct service_ccrn) AS agg_affected_services",
+					"COUNT(distinct componentversionissue_component_version_id) AS agg_component_versions",
+					"MIN(issuematch_target_remediation_date) AS agg_earliest_target_remediation_date",
+					"MIN(issuematch_created_at) AS agg_earliest_discovery_date",
 				},
-				Issue:             &issue.Issue,
-				IssueAggregations: &issue.IssueAggregations,
-			}
-
-			return append(l, sr)
+				ForcedJoins: []string{"S with IM_LJ", "CV with IM_LJ", "CVI"},
+			},
+			{
+				Table:       "ComponentInstanceCounts",
+				TableKey:    "CIC",
+				Columns:     []string{"SUM(CI.componentinstance_count) AS agg_affected_component_instances"},
+				ForcedJoins: []string{"CI with IM_LJ"},
+			},
 		},
-	)
+		From:  "ComponentInstanceCounts CIC",
+		Joins: []string{"JOIN Aggs A on CIC.issue_id = A.issue_id"},
+	}
+
+	return issueObject.GetWithAggregations(ctx, s.db, aggDef, filter, order)
 }
 
 func (s *SqlDatabase) CountIssues(ctx context.Context, filter *entity.IssueFilter) (int64, error) {
