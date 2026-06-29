@@ -230,7 +230,7 @@ func (s *Scanner) GroupPodsByGenerateName(pods []v1.Pod) []PodSet {
 			if idx := strings.LastIndex(key, "-"); idx != -1 {
 				key = key[:idx]
 			}
-		} else {
+		} else if podInfo.GenerateName != "" {
 			key = podInfo.GenerateName
 		}
 
