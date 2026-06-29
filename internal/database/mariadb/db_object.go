@@ -348,7 +348,7 @@ func (do *DbObject[ET, ETFilter, ETResult]) queryAttr(ctx context.Context, db Db
 	}()
 
 	// Execute the query
-	rows, err := stmt.QueryxContext(context.Background(), filterParameters...)
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute %s attribute query for %s: %w", do.TableName, attr.Name, err)
 	}
