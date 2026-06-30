@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.ComponentInstanceFilter, entity.ComponentInstanceResult]{
+var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.ComponentInstanceFilter, entity.ComponentInstanceResult, *any]{
 	Prefix:       "componentinstance",
 	TableName:    "ComponentInstance",
 	TableKey:     "CI",
@@ -105,7 +105,7 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance, *entity.Compon
 
 		return &ci, cursor
 	},
-	NewResult: func(ci *entity.ComponentInstance, cursor string) entity.ComponentInstanceResult {
+	NewResult: func(ci *entity.ComponentInstance, _ *any, cursor string) entity.ComponentInstanceResult {
 		return entity.ComponentInstanceResult{
 			WithCursor:        entity.WithCursor{Value: cursor},
 			ComponentInstance: ci,

@@ -9,7 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-var issueRepositoryObject = DbObject[*entity.IssueRepository, *entity.IssueRepositoryFilter, entity.IssueRepositoryResult]{
+var issueRepositoryObject = DbObject[*entity.IssueRepository, *entity.IssueRepositoryFilter, entity.IssueRepositoryResult, *any]{
 	Prefix:       "issuerepository",
 	TableName:    "IssueRepository",
 	TableKey:     "IR",
@@ -53,7 +53,7 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository, *entity.IssueRepos
 
 		return &ir, cursor
 	},
-	NewResult: func(ir *entity.IssueRepository, cursor string) entity.IssueRepositoryResult {
+	NewResult: func(ir *entity.IssueRepository, _ *any, cursor string) entity.IssueRepositoryResult {
 		return entity.IssueRepositoryResult{
 			WithCursor:      entity.WithCursor{Value: cursor},
 			IssueRepository: ir,

@@ -9,7 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.ComponentVersionFilter, entity.ComponentVersionResult]{
+var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.ComponentVersionFilter, entity.ComponentVersionResult, *any]{
 	Prefix:       "componentversion",
 	TableName:    "ComponentVersion",
 	TableKey:     "CV",
@@ -113,7 +113,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 
 		return &cv, cursor
 	},
-	NewResult: func(cv *entity.ComponentVersion, cursor string) entity.ComponentVersionResult {
+	NewResult: func(cv *entity.ComponentVersion, _ *any, cursor string) entity.ComponentVersionResult {
 		return entity.ComponentVersionResult{
 			WithCursor:       entity.WithCursor{Value: cursor},
 			ComponentVersion: cv,
