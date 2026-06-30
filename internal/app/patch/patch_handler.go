@@ -55,11 +55,14 @@ func (ph *patchHandler) ListPatches(
 
 	res, err := cache.CallCached[[]entity.PatchResult](
 		ph.cache,
-		CacheTtlGetPatches,
-		"GetPatches",
-		cache.WrapContext2(ctx, ph.database.GetPatches),
-		filter,
-		options.Order,
+		cache.NewCacheCallParams(
+			CacheTtlGetPatches,
+			ctx,
+			"GetPatches",
+			ph.database.GetPatches,
+			filter,
+			options.Order,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Patches", "", err)
@@ -74,11 +77,14 @@ func (ph *patchHandler) ListPatches(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				ph.cache,
-				CacheTtlGetAllPatchCursors,
-				"GetAllPatchCursors",
-				cache.WrapContext2(ctx, ph.database.GetAllPatchCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllPatchCursors,
+					ctx,
+					"GetAllPatchCursors",
+					ph.database.GetAllPatchCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "PatchCursors", "", err)
@@ -95,10 +101,13 @@ func (ph *patchHandler) ListPatches(
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			ph.cache,
-			CacheTtlCountPatches,
-			"CountPatches",
-			cache.WrapContext1(ctx, ph.database.CountPatches),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountPatches,
+				ctx,
+				"CountPatches",
+				ph.database.CountPatches,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "PatchCount", "", err)

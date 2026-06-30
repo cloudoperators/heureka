@@ -102,11 +102,14 @@ func (u *userHandler) ListUsers(
 
 	res, err := cache.CallCached[[]entity.UserResult](
 		u.cache,
-		CacheTtlGetUsers,
-		"GetUsers",
-		cache.WrapContext2(ctx, u.database.GetUsers),
-		filter,
-		options.Order,
+		cache.NewCacheCallParams(
+			CacheTtlGetUsers,
+			ctx,
+			"GetUsers",
+			u.database.GetUsers,
+			filter,
+			options.Order,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
@@ -121,11 +124,14 @@ func (u *userHandler) ListUsers(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				u.cache,
-				CacheTtlGetAllUserCursors,
-				"GetAllUserCursors",
-				cache.WrapContext2(ctx, u.database.GetAllUserCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllUserCursors,
+					ctx,
+					"GetAllUserCursors",
+					u.database.GetAllUserCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "Users", "", err)

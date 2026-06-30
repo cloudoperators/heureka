@@ -103,11 +103,14 @@ func (cv *componentVersionHandler) ListComponentVersions(
 
 	res, err := cache.CallCached[[]entity.ComponentVersionResult](
 		cv.cache,
-		CacheTtlGetComponentVersions,
-		"GetComponentVersions",
-		cache.WrapContext2(ctx, cv.database.GetComponentVersions),
-		filter,
-		options.Order,
+		cache.NewCacheCallParams(
+			CacheTtlGetComponentVersions,
+			ctx,
+			"GetComponentVersions",
+			cv.database.GetComponentVersions,
+			filter,
+			options.Order,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
@@ -122,11 +125,14 @@ func (cv *componentVersionHandler) ListComponentVersions(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				cv.cache,
-				CacheTtlGetAllComponentVersionCursors,
-				"GetAllComponentVersionCursors",
-				cache.WrapContext2(ctx, cv.database.GetAllComponentVersionCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllComponentVersionCursors,
+					ctx,
+					"GetAllComponentVersionCursors",
+					cv.database.GetAllComponentVersionCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
@@ -143,10 +149,13 @@ func (cv *componentVersionHandler) ListComponentVersions(
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			cv.cache,
-			CacheTtlCountComponentVersions,
-			"CountComponentVersions",
-			cache.WrapContext1(ctx, cv.database.CountComponentVersions),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountComponentVersions,
+				ctx,
+				"CountComponentVersions",
+				cv.database.CountComponentVersions,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
