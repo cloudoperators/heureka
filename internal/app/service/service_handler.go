@@ -180,11 +180,14 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.ServiceResult](
 			s.cache,
-			CacheTtlGetServicesWithAggregations,
-			"GetServicesWithAggregations",
-			cache.WrapContext2(ctx, s.database.GetServicesWithAggregations),
-			filter,
-			options.Order,
+			cache.NewCacheCallParams(
+				CacheTtlGetServicesWithAggregations,
+				ctx,
+				"GetServicesWithAggregations",
+				s.database.GetServicesWithAggregations,
+				filter,
+				options.Order,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
@@ -197,11 +200,14 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 	} else {
 		res, err = cache.CallCached[[]entity.ServiceResult](
 			s.cache,
-			CacheTtlGetServices,
-			"GetServices",
-			cache.WrapContext2(ctx, s.database.GetServices),
-			filter,
-			options.Order,
+			cache.NewCacheCallParams(
+				CacheTtlGetServices,
+				ctx,
+				"GetServices",
+				s.database.GetServices,
+				filter,
+				options.Order,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
@@ -217,11 +223,14 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				s.cache,
-				CacheTtlGetAllSericeCursors,
-				"GetAllServiceCursors",
-				cache.WrapContext2(ctx, s.database.GetAllServiceCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllSericeCursors,
+					ctx,
+					"GetAllServiceCursors",
+					s.database.GetAllServiceCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
@@ -238,10 +247,13 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			s.cache,
-			CacheTtlCountServices,
-			"CountServices",
-			cache.WrapContext1(ctx, s.database.CountServices),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountServices,
+				ctx,
+				"CountServices",
+				s.database.CountServices,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
@@ -471,10 +483,13 @@ func (s *serviceHandler) ListServiceCcrns(
 
 	serviceCcrns, err := cache.CallCached[[]string](
 		s.cache,
-		CacheTtlGetServiceAttrs,
-		"GetServiceCcrns",
-		cache.WrapContext1(ctx, s.database.GetServiceCcrns),
-		filter,
+		cache.NewCacheCallParams(
+			CacheTtlGetServiceAttrs,
+			ctx,
+			"GetServiceCcrns",
+			s.database.GetServiceCcrns,
+			filter,
+		),
 	)
 	if err != nil {
 		l.Error(err)
@@ -500,10 +515,13 @@ func (s *serviceHandler) ListServiceDomains(
 
 	serviceDomains, err := cache.CallCached[[]string](
 		s.cache,
-		CacheTtlGetServiceAttrs,
-		"GetServiceDomains",
-		cache.WrapContext1(ctx, s.database.GetServiceDomains),
-		filter,
+		cache.NewCacheCallParams(
+			CacheTtlGetServiceAttrs,
+			ctx,
+			"GetServiceDomains",
+			s.database.GetServiceDomains,
+			filter,
+		),
 	)
 	if err != nil {
 		l.Error(err)
@@ -529,10 +547,13 @@ func (s *serviceHandler) ListServiceRegions(
 
 	serviceRegions, err := cache.CallCached[[]string](
 		s.cache,
-		CacheTtlGetServiceAttrs,
-		"GetServiceRegions",
-		cache.WrapContext1(ctx, s.database.GetServiceRegions),
-		filter,
+		cache.NewCacheCallParams(
+			CacheTtlGetServiceAttrs,
+			ctx,
+			"GetServiceRegions",
+			s.database.GetServiceRegions,
+			filter,
+		),
 	)
 	if err != nil {
 		l.Error(err)
@@ -557,10 +578,13 @@ func (s *serviceHandler) ListOwnersByServiceIDs(
 
 	owners, err := cache.CallCached[map[int64][]entity.User](
 		s.cache,
-		CacheTtlGetOwnersByServiceIDs,
-		"GetOwnersByServiceIDs",
-		cache.WrapContext1(ctx, s.database.GetOwnersByServiceIDs),
-		serviceIDs,
+		cache.NewCacheCallParams(
+			CacheTtlGetOwnersByServiceIDs,
+			ctx,
+			"GetOwnersByServiceIDs",
+			s.database.GetOwnersByServiceIDs,
+			serviceIDs,
+		),
 	)
 	if err != nil {
 		l.Error(err)
@@ -581,10 +605,13 @@ func (s *serviceHandler) ListSupportGroupsByServiceIDs(
 
 	supportGroups, err := cache.CallCached[map[int64][]entity.SupportGroup](
 		s.cache,
-		CacheTtlGetSupportGroupsByServiceIDs,
-		"GetSupportGroupsByServiceIDs",
-		cache.WrapContext1(ctx, s.database.GetSupportGroupsByServiceIDs),
-		serviceIDs,
+		cache.NewCacheCallParams(
+			CacheTtlGetSupportGroupsByServiceIDs,
+			ctx,
+			"GetSupportGroupsByServiceIDs",
+			s.database.GetSupportGroupsByServiceIDs,
+			serviceIDs,
+		),
 	)
 	if err != nil {
 		l.Error(err)
@@ -605,10 +632,13 @@ func (s *serviceHandler) ListIssueCountsByServiceIDs(
 
 	issueCounts, err := cache.CallCached[map[int64]entity.IssueSeverityCounts](
 		s.cache,
-		CacheTtlGetIssueCountsByServiceIDs,
-		"GetIssueCountsByServiceIDs",
-		cache.WrapContext1(ctx, s.database.GetIssueCountsByServiceIDs),
-		serviceIDs,
+		cache.NewCacheCallParams(
+			CacheTtlGetIssueCountsByServiceIDs,
+			ctx,
+			"GetIssueCountsByServiceIDs",
+			s.database.GetIssueCountsByServiceIDs,
+			serviceIDs,
+		),
 	)
 	if err != nil {
 		l.Error(err)

@@ -89,9 +89,9 @@ func main() {
 
 			switch fn := funExpr.(type) {
 			case *ast.Ident:
-				isCallCached = fn.Name == "CallCached"
+				isCallCached = fn.Name == "NewCacheCallParams"
 			case *ast.SelectorExpr:
-				isCallCached = fn.Sel.Name == "CallCached"
+				isCallCached = fn.Sel.Name == "NewCacheCallParams"
 			}
 
 			if !isCallCached {
