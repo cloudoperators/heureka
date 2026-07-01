@@ -146,7 +146,13 @@ func (r *queryResolver) VulnerabilityFilterValues(ctx context.Context) (*model.V
 }
 
 func (r *queryResolver) Images(ctx context.Context, filter *model.ImageFilter, first *int, after *string) (*model.ImageConnection, error) {
-	ctx = context.WithValue(ctx, "serviceFilter", filter.Service)
+	var serviceFilter any
+	if filter != nil {
+		serviceFilter = filter.Service
+	}
+
+	ctx = context.WithValue(ctx, "serviceFilter", serviceFilter)
+
 	return baseResolver.ImageBaseResolver(r.App, ctx, filter, first, after)
 }
 
