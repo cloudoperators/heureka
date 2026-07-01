@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entity.ComponentResult]{
+var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entity.ComponentResult, *any]{
 	Prefix:       "component",
 	TableName:    "Component",
 	TableKey:     "C",
@@ -140,7 +140,7 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 
 		return &c, cursor
 	},
-	NewResult: func(c *entity.Component, cursor string) entity.ComponentResult {
+	NewResult: func(c *entity.Component, _ *any, cursor string) entity.ComponentResult {
 		return entity.ComponentResult{
 			WithCursor: entity.WithCursor{Value: cursor},
 			Component:  c,

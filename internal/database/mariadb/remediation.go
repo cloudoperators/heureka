@@ -10,7 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter, entity.RemediationResult]{
+var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter, entity.RemediationResult, *any]{
 	Prefix:       "remediation",
 	TableName:    "Remediation",
 	TableKey:     "R",
@@ -62,7 +62,7 @@ var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter,
 
 		return &r, cursor
 	},
-	NewResult: func(r *entity.Remediation, cursor string) entity.RemediationResult {
+	NewResult: func(r *entity.Remediation, _ *any, cursor string) entity.RemediationResult {
 		return entity.RemediationResult{
 			WithCursor:  entity.WithCursor{Value: cursor},
 			Remediation: r,

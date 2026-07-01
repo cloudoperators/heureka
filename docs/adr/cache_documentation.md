@@ -34,8 +34,18 @@ The type of cache used is determined by the following environment variables:
 ### Function Signature
 
 ```go
-CallCached(cache Cache, ttl time.Duration, name string, fn any, args ...any) (any, error)
+CallCached(cache Cache, ccparams *CacheCallParams) (any, error)
 ```
+
+Where CacheCallParams can be created using NewCacheCallParams
+
+```go
+NewCacheCallParams(ttl time.Duration, ctx context.Context, name string, fn any, args ...any) *CacheCallParams
+```
+
+Context (ctx) passed this way is used to skip hashing the context argument into the cache key and to control the context used for background refresh.
+If ctx is nil, no context will be passed to the wrapped function call.
+In that case, all arguments will be used in the cache key.
 
 ### Parameters
 

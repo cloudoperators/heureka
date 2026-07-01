@@ -9,7 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
+var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult, *any]{
 	Prefix:       "user",
 	TableName:    "User",
 	TableKey:     "U",
@@ -59,7 +59,7 @@ var userObject = DbObject[*entity.User, *entity.UserFilter, entity.UserResult]{
 
 		return &u, cursor
 	},
-	NewResult: func(u *entity.User, cursor string) entity.UserResult {
+	NewResult: func(u *entity.User, _ *any, cursor string) entity.UserResult {
 		return entity.UserResult{
 			WithCursor: entity.WithCursor{Value: cursor},
 			User:       u,

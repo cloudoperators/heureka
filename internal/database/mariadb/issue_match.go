@@ -10,7 +10,7 @@ import (
 	"github.com/samber/lo"
 )
 
-var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, entity.IssueMatchResult]{
+var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, entity.IssueMatchResult, *any]{
 	Prefix:       "issuematch",
 	TableName:    "IssueMatch",
 	TableKey:     "IM",
@@ -162,7 +162,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 
 		return &im, cursor
 	},
-	NewResult: func(im *entity.IssueMatch, cursor string) entity.IssueMatchResult {
+	NewResult: func(im *entity.IssueMatch, _ *any, cursor string) entity.IssueMatchResult {
 		return entity.IssueMatchResult{
 			WithCursor: entity.WithCursor{Value: cursor},
 			IssueMatch: im,
