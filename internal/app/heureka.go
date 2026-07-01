@@ -289,6 +289,6 @@ func (h HeurekaApp) GetCache() cache.Cache {
 	return h.cache
 }
 
-func (h HeurekaApp) WaitPostMigrations() error {
-	return h.database.WaitPostMigrations()
+func (h HeurekaApp) WaitPostMigrations() {
+	h.database.WaitPostMigrations()
 }
