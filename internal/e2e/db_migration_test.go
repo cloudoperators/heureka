@@ -34,9 +34,6 @@ var migrationABFiles embed.FS
 //go:embed migrations/*_mvTestTable.*.sql
 var migrationMvTestTableMigrationFiles embed.FS
 
-//go:embed migrations/*_add_post_migration.*.sql
-var migrationAddPostMigrationMigrationFiles embed.FS
-
 // Merge multiple fs.FS into one MapFS with "migrations/" prefix
 func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
 	merged := fstest.MapFS{}
@@ -71,6 +68,8 @@ func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
 }
 
 func setDbTestMigration(migrationFiles fs.FS) {
+	setMvProceduresInMVE([]string{})
+
 	mariadb.MigrationFs = migrationFiles
 }
 
@@ -82,20 +81,16 @@ func setDbABMigration() {
 	setDbTestMigration(&migrationABFiles)
 }
 
-func addDbMvTestTableMigration() {
-	mapFS, err := MergeToMapFS(mariadb.MigrationFs, migrationMvTestTableMigrationFiles)
-	Expect(err).To(BeNil())
-	setDbTestMigration(&mapFS)
+func setDbMvTestTableMigration() {
+	setDbTestMigration(&migrationMvTestTableMigrationFiles)
 }
 
-func addDbMvTestTableAndAddPostMigrationMigration() {
-	mapFS, err := MergeToMapFS(
-		mariadb.MigrationFs,
-		migrationMvTestTableMigrationFiles,
-		migrationAddPostMigrationMigrationFiles,
-	)
-	Expect(err).To(BeNil())
-	setDbTestMigration(&mapFS)
+func setMvProceduresInMVE(procs []string) {
+	mariadb.MVProcedures = procs
+}
+
+func setMvTestTableInMVE() {
+	setMvProceduresInMVE([]string{"refresh_mvTestData_proc"})
 }
 
 func extractVersion(filename string) string {
@@ -224,11 +219,10 @@ func (dbmt *DbMigrationTest) dbVersionIsB() {
 func (dbmt *DbMigrationTest) dbVersionIsMvTestTable() {
 	dbmt.dbVersionShouldBeZero()
 	dbmt.dbShouldNotContainPostMigrationProcedureRefreshTable()
-	addDbMvTestTableMigration()
+	setDbMvTestTableMigration()
 	dbmt.createHeurekaServer()
 	dbmt.dbShouldNotContainPostMigrationProcedureData()
 	dbmt.dbVersionShouldBeMvTestTable()
-	addDbMvTestTableAndAddPostMigrationMigration()
 }
 
 func (dbmt *DbMigrationTest) createHeurekaServer() {
@@ -367,6 +361,7 @@ var _ = Describe(
 			func() {
 				It("executes post migration procedure after successful migration", func() {
 					migrationTest.dbVersionIsMvTestTable()
+					setMvTestTableInMVE()
 					migrationTest.createHeurekaServer()
 					waitForPostMigration()
 					migrationTest.dbShouldContainPostMigrationProcedureData()

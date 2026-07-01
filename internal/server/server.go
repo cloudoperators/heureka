@@ -63,6 +63,8 @@ func NewServer(cfg util.Config) *Server {
 		logrus.WithError(err).Fatalln("Error while Migrating Db")
 	}
 
+	mariadb.StartMVEScheduler(cfg)
+
 	db, err := mariadb.NewSqlDatabase(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
@@ -217,6 +219,8 @@ func (s *Server) BlockingStop() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
+
+	mariadb.StopMVEScheduler()
 
 	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)

@@ -61,9 +61,22 @@ func (dbm *DatabaseManager) loadDBClient() {
 }
 
 func (dbm *DatabaseManager) Setup() error {
-	err := mariadb.RunMigrationsSync(dbm.rootUserConfig())
+	err := dbm.runMigrationsAndTriggerMvUpdates(dbm.rootUserConfig())
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting migrations schema")
+		return err
+	}
+
+	return nil
+}
+
+func (dbm *DatabaseManager) runMigrationsAndTriggerMvUpdates(cfg util.Config) error {
+	if err := mariadb.RunMigrations(cfg); err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting migrations schema")
+		return err
+	}
+
+	if err := mariadb.TriggerMVE(cfg); err != nil {
 		return err
 	}
 
@@ -87,7 +100,7 @@ func (dbm *DatabaseManager) ResetSchema(dbName string) error {
 		return err
 	}
 
-	err = mariadb.RunMigrationsSync(dbm.DbConfig())
+	err = dbm.runMigrationsAndTriggerMvUpdates(dbm.DbConfig())
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while resetting migrations schema")
 		return err
@@ -179,7 +192,7 @@ func (dbm *DatabaseManager) NewTestSchema() *mariadb.SqlDatabase {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "failed to prepare DB schema")
 	}
 
-	err = mariadb.RunMigrationsSync(dbm.DbConfig())
+	err = dbm.runMigrationsAndTriggerMvUpdates(dbm.DbConfig())
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "failure while resetting migrations schema")
 	}

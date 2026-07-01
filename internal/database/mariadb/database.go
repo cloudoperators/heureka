@@ -28,7 +28,6 @@ type SqlDatabase struct {
 	defaultIssuePriority  int64
 	defaultRepositoryName string
 	dbName                string
-	postMigrationCtx      postMigrationContext
 }
 
 func (s *SqlDatabase) CloseConnection() error {
