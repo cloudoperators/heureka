@@ -150,7 +150,6 @@ func registerEvents(cfg util.Config) error {
 	events := []string{
 		"refresh_mvServiceIssueCounts",
 		"refresh_mvSingleComponentByServiceVulnerabilityCounts",
-		"refresh_mvAllComponentsByServiceVulnerabilityCounts",
 		"refresh_mvCountIssueRatingsUniqueService",
 		"refresh_mvCountIssueRatingsService",
 		"refresh_mvCountIssueRatingsServiceWithoutSupportGroup",

@@ -204,19 +204,24 @@ func ComponentIssueCountsBaseResolver(
 		}
 	}
 
-	f := &entity.ComponentFilter{
-		Id:          componentId,
-		ServiceCCRN: filter.ServiceCcrn,
+	if len(componentId) == 0 {
+		return &model.SeverityCounts{}, nil
 	}
 
-	var severityCounts model.SeverityCounts
+	ids := make([]int64, 0, len(componentId))
+	for _, id := range componentId {
+		if id != nil {
+			ids = append(ids, *id)
+		}
+	}
 
-	counts, err := app.GetComponentVulnerabilityCounts(ctx, f)
+	countsMap, err := app.GetIssueCountsByComponentIDs(ctx, ids, filter.ServiceCcrn)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
 
-	for _, c := range counts {
+	var severityCounts model.SeverityCounts
+	for _, c := range countsMap {
 		severityCounts.Critical += int(c.Critical)
 		severityCounts.High += int(c.High)
 		severityCounts.Medium += int(c.Medium)

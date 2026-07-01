@@ -522,6 +522,9 @@ func (it *imageTest) seed10Entries() {
 
 	err = it.seeder.RefreshMvVulnerabilityList()
 	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvVulnerabilityService()
+	Expect(err).To(BeNil())
 }
 
 func (it *imageTest) seedTieBreakerData() {
@@ -575,6 +578,12 @@ func (it *imageTest) seedTieBreakerData() {
 	Expect(err).To(BeNil())
 
 	err = it.seeder.RefreshMvComponentService()
+	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvVulnerabilityList()
+	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvVulnerabilityService()
 	Expect(err).To(BeNil())
 }
 
@@ -711,6 +720,9 @@ func (it *imageTest) seedServiceScopedVulnData() string {
 	err = it.seeder.RefreshMvVulnerabilityList()
 	Expect(err).To(BeNil())
 
+	err = it.seeder.RefreshMvVulnerabilityService()
+	Expect(err).To(BeNil())
+
 	return svcA.CCRN.String
 }
 
@@ -771,6 +783,9 @@ func (it *imageTest) seedRatingMismatchData() string {
 	Expect(err).To(BeNil())
 
 	err = it.seeder.RefreshMvVulnerabilityList()
+	Expect(err).To(BeNil())
+
+	err = it.seeder.RefreshMvVulnerabilityService()
 	Expect(err).To(BeNil())
 
 	return svc.CCRN.String

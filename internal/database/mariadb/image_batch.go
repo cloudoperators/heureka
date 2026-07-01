@@ -127,9 +127,11 @@ func (s *SqlDatabase) GetVersionsByComponentIDs(ctx context.Context, componentID
 	return result, nil
 }
 
-// GetIssueCountsByComponentIDs returns issue severity counts grouped by component ID in a single query.
-// This eliminates N+1 queries when loading vulnerability counts for multiple images.
-// The optional serviceCCRN filter restricts counts to the specified services.
+// GetIssueCountsByComponentIDs returns vulnerability severity counts grouped by component ID.
+// Counts are derived from the same mvVulnerabilityList source used by GetVulnerabilitiesByComponentIDs,
+// so the badge counts always match the number of items shown in the vulnerability list.
+// The optional serviceCCRN filter restricts counts to vulnerabilities active in the specified services
+// (via mvVulnerabilityService).
 func (s *SqlDatabase) GetIssueCountsByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64]entity.IssueSeverityCounts, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":        "database.GetIssueCountsByComponentIDs",
@@ -141,15 +143,21 @@ func (s *SqlDatabase) GetIssueCountsByComponentIDs(ctx context.Context, componen
 	}
 
 	query := sq.Select(
-		"CVR.component_id",
-		"SUM(CVR.critical_count) as critical_count",
-		"SUM(CVR.high_count) as high_count",
-		"SUM(CVR.medium_count) as medium_count",
-		"SUM(CVR.low_count) as low_count",
-		"SUM(CVR.none_count) as none_count",
+		"CV.componentversion_component_id",
+		"COUNT(DISTINCT CASE WHEN MVL.max_severity = 'Critical' THEN I.issue_id END) as critical_count",
+		"COUNT(DISTINCT CASE WHEN MVL.max_severity = 'High' THEN I.issue_id END) as high_count",
+		"COUNT(DISTINCT CASE WHEN MVL.max_severity = 'Medium' THEN I.issue_id END) as medium_count",
+		"COUNT(DISTINCT CASE WHEN MVL.max_severity = 'Low' THEN I.issue_id END) as low_count",
+		"COUNT(DISTINCT CASE WHEN MVL.max_severity = 'None' THEN I.issue_id END) as none_count",
 	).
-		From("mvSingleComponentByServiceVulnerabilityCounts CVR").
-		Where(sq.Eq{"CVR.component_id": componentIDs})
+		From("ComponentVersionIssue CVI").
+		Join("ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id").
+		Join("Issue I ON CVI.componentversionissue_issue_id = I.issue_id").
+		Join("mvVulnerabilityList MVL ON I.issue_id = MVL.issue_id").
+		Where(sq.Eq{"CV.componentversion_component_id": componentIDs}).
+		Where("CVI.componentversionissue_deleted_at IS NULL").
+		Where("CV.componentversion_deleted_at IS NULL").
+		Where("I.issue_deleted_at IS NULL")
 
 	if len(serviceCCRN) > 0 {
 		nonNilCCRNs := make([]string, 0, len(serviceCCRN))
@@ -161,12 +169,13 @@ func (s *SqlDatabase) GetIssueCountsByComponentIDs(ctx context.Context, componen
 
 		if len(nonNilCCRNs) > 0 {
 			query = query.
-				Join("Service S ON CVR.service_id = S.service_id").
+				Join("mvVulnerabilityService MVS ON I.issue_id = MVS.issue_id").
+				Join("Service S ON MVS.service_id = S.service_id").
 				Where(sq.Eq{"S.service_ccrn": nonNilCCRNs})
 		}
 	}
 
-	query = query.GroupBy("CVR.component_id")
+	query = query.GroupBy("CV.componentversion_component_id")
 
 	sqlStr, args, err := query.ToSql()
 	if err != nil {
