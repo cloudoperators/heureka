@@ -18,6 +18,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,6 +32,7 @@ type remediationHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	authz         openfga.Authorization
 	logger        *logrus.Logger
 }
 
@@ -39,6 +41,7 @@ func NewRemediationHandler(handlerContext common.HandlerContext) RemediationHand
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
 		logger:        logrus.New(),
 	}
 }
@@ -185,6 +188,32 @@ func (rh *remediationHandler) CreateRemediation(
 		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
+		})
+
+		return nil, wrappedErr
+	}
+
+	hasPermission, err := rh.authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(remediation.CreatedBy)),
+		Relation:   openfga.RelCanWrite,
+		ObjectType: openfga.TypeService,
+		ObjectId:   openfga.ObjectId(fmt.Sprint(remediation.ServiceId)),
+	})
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
+		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			"remediation": remediation,
+		})
+
+		return nil, wrappedErr
+	}
+
+	if !hasPermission {
+		wrappedErr := appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(remediation.ServiceId))
+		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			"serviceId": remediation.ServiceId,
+			"userId":    remediation.CreatedBy,
 		})
 
 		return nil, wrappedErr

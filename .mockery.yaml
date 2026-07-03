@@ -12,3 +12,6 @@ packages:
   github.com/cloudoperators/heureka/internal/app:
     interfaces:
       Heureka:
+  github.com/cloudoperators/heureka/internal/openfga:
+    interfaces:
+      Authorization:
