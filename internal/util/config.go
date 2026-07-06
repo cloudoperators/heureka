@@ -63,6 +63,14 @@ type Config struct {
 	CacheThrottleIntervalMSec     int64  `envconfig:"CACHE_THROTTLE_INTERVAL_MSEC"      default:"0"     json:"-"`
 	CacheThrottlePerInterval      int    `envconfig:"CACHE_THROTTLE_PER_INTERVAL"       default:"1"     json:"-"`
 	CpuProfilerFilePath           string `envconfig:"CPU_PROFILER_FILE_PATH"            default:""      json:"-"`
+
+	AIEnable        bool    `envconfig:"AI_ENABLE"          default:"false"     json:"-"`
+	AISAPProxyURL   string  `envconfig:"AI_SAP_PROXY_URL"   default:""          json:"-"`
+	AISAPProxyModel string  `envconfig:"AI_SAP_PROXY_MODEL" default:""          json:"-"`
+	AISAPProxyToken string  `envconfig:"AI_SAP_PROXY_TOKEN" default:""          json:"-"`
+	AIProvider      string  `envconfig:"AI_PROVIDER" default:"anthropic" json:"-"`
+	AIHttpRateLimit float64 `envconfig:"AI_HTTP_RATE_LIMIT" default:"5.0" json:"-"`
+	AIHttpRateBurst int     `envconfig:"AI_HTTP_RATE_BURST" default:"5"   json:"-"`
 }
 
 func (c *Config) ConfigToConsole() {
