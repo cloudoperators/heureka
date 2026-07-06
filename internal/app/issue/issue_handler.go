@@ -138,11 +138,14 @@ func (is *issueHandler) ListIssues(
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.IssueResult](
 			is.cache,
-			CacheTtlGetIssuesWithAggregations,
-			"GetIssuesWithAggregations",
-			cache.WrapContext2(ctx, is.database.GetIssuesWithAggregations),
-			filter,
-			options.Order,
+			cache.NewCacheCallParams(
+				CacheTtlGetIssuesWithAggregations,
+				ctx,
+				"GetIssuesWithAggregations",
+				is.database.GetIssuesWithAggregations,
+				filter,
+				options.Order,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
@@ -156,11 +159,14 @@ func (is *issueHandler) ListIssues(
 	} else {
 		res, err = cache.CallCached[[]entity.IssueResult](
 			is.cache,
-			CacheTtlGetIssues,
-			"GetIssues",
-			cache.WrapContext2(ctx, is.database.GetIssues),
-			filter,
-			options.Order,
+			cache.NewCacheCallParams(
+				CacheTtlGetIssues,
+				ctx,
+				"GetIssues",
+				is.database.GetIssues,
+				filter,
+				options.Order,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
@@ -179,11 +185,14 @@ func (is *issueHandler) ListIssues(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				is.cache,
-				CacheTtlGetAllIssueCursors,
-				"GetAllIssueCursors",
-				cache.WrapContext2(ctx, is.database.GetAllIssueCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllIssueCursors,
+					ctx,
+					"GetAllIssueCursors",
+					is.database.GetAllIssueCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "IssueCursors", "", err)
@@ -202,10 +211,13 @@ func (is *issueHandler) ListIssues(
 	if options.ShowPageInfo || options.ShowTotalCount || options.ShowIssueTypeCounts {
 		counts, err := cache.CallCached[*entity.IssueTypeCounts](
 			is.cache,
-			CacheTtlCountIssueTypes,
-			"CountIssueTypes",
-			cache.WrapContext1(ctx, is.database.CountIssueTypes),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountIssueTypes,
+				ctx,
+				"CountIssueTypes",
+				is.database.CountIssueTypes,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "IssueTypeCounts", "", err)
@@ -518,10 +530,13 @@ func (is *issueHandler) ListIssueNames(
 
 	issueNames, err := cache.CallCached[[]string](
 		is.cache,
-		CacheTtlGetIssueNames,
-		"GetIssueNames",
-		cache.WrapContext1(ctx, is.database.GetIssueNames),
-		filter,
+		cache.NewCacheCallParams(
+			CacheTtlGetIssueNames,
+			ctx,
+			"GetIssueNames",
+			is.database.GetIssueNames,
+			filter,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueNames", "", err)
@@ -549,10 +564,13 @@ func (is *issueHandler) GetIssueSeverityCounts(
 
 	counts, err := cache.CallCached[*entity.IssueSeverityCounts](
 		is.cache,
-		CacheTtlCountIssueRatings,
-		"CountIssueRatings",
-		cache.WrapContext1(ctx, is.database.CountIssueRatings),
-		filter,
+		cache.NewCacheCallParams(
+			CacheTtlCountIssueRatings,
+			ctx,
+			"CountIssueRatings",
+			is.database.CountIssueRatings,
+			filter,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueSeverityCounts", "", err)

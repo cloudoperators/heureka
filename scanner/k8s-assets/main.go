@@ -76,6 +76,16 @@ func processNamespace(
 		if len(podReplica.Pods) == 0 {
 			continue
 		}
+
+		if p.IsExcludedPod(podReplica.GenerateName) {
+			log.WithFields(log.Fields{
+				"namespace": namespace,
+				"podName":   podReplica.GenerateName,
+			}).Debug("Skipping excluded pod")
+
+			continue
+		}
+
 		// TODO
 		serviceInfo := s.GetServiceInfo(podReplica.Pods[0])
 

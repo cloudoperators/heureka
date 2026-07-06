@@ -27,6 +27,14 @@ type Processor struct {
 	tag       string
 }
 
+func (p *Processor) IsExcludedPod(generateName string) bool {
+	if p.advConfig == nil {
+		return false
+	}
+
+	return p.advConfig.IsExcludedPod(generateName)
+}
+
 func (p *Processor) CreateScannerRun(ctx context.Context) error {
 	_, err := client.CreateScannerRun(ctx, *p.Client, &client.ScannerRunInput{
 		Uuid: p.uuid,

@@ -101,11 +101,14 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 
 	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
 		ci.cache,
-		CacheTtlGetComponentInstances,
-		"GetComponentInstances",
-		cache.WrapContext2(ctx, ci.database.GetComponentInstances),
-		filter,
-		options.Order,
+		cache.NewCacheCallParams(
+			CacheTtlGetComponentInstances,
+			ctx,
+			"GetComponentInstances",
+			ci.database.GetComponentInstances,
+			filter,
+			options.Order,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
@@ -120,11 +123,14 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				ci.cache,
-				CacheTtlGetAllComponentInstanceCursors,
-				"GetAllComponentInstanceCursors",
-				cache.WrapContext2(ctx, ci.database.GetAllComponentInstanceCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllComponentInstanceCursors,
+					ctx,
+					"GetAllComponentInstanceCursors",
+					ci.database.GetAllComponentInstanceCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(
@@ -146,10 +152,13 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			ci.cache,
-			CacheTtlCountComponentInstances,
-			"CountComponentInstances",
-			cache.WrapContext1(ctx, ci.database.CountComponentInstances),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountComponentInstances,
+				ctx,
+				"CountComponentInstances",
+				ci.database.CountComponentInstances,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCount", "", err)

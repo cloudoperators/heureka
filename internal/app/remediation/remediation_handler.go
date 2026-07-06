@@ -59,11 +59,14 @@ func (rh *remediationHandler) ListRemediations(
 
 	res, err := cache.CallCached[[]entity.RemediationResult](
 		rh.cache,
-		CacheTtlGetRemediations,
-		"GetRemediations",
-		cache.WrapContext2(ctx, rh.database.GetRemediations),
-		filter,
-		options.Order,
+		cache.NewCacheCallParams(
+			CacheTtlGetRemediations,
+			ctx,
+			"GetRemediations",
+			rh.database.GetRemediations,
+			filter,
+			options.Order,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediations", "", err)
@@ -78,11 +81,14 @@ func (rh *remediationHandler) ListRemediations(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				rh.cache,
-				CacheTtlGetAllRemediationCursors,
-				"GetAllRemediationCursors",
-				cache.WrapContext2(ctx, rh.database.GetAllRemediationCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllRemediationCursors,
+					ctx,
+					"GetAllRemediationCursors",
+					rh.database.GetAllRemediationCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "RemediationCursors", "", err)
@@ -99,10 +105,13 @@ func (rh *remediationHandler) ListRemediations(
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			rh.cache,
-			CacheTtlCountRemediations,
-			"CountRemediations",
-			cache.WrapContext1(ctx, rh.database.CountRemediations),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountRemediations,
+				ctx,
+				"CountRemediations",
+				rh.database.CountRemediations,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "RemediationCount", "", err)

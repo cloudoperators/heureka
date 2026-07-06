@@ -4,6 +4,8 @@
 package processor_test
 
 import (
+	"os"
+
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/scanner"
 	. "github.com/onsi/ginkgo/v2"
@@ -201,6 +203,92 @@ var _ = Describe("Processor", func() {
 				Expect(result).To(HaveLen(1))
 				Expect(result[0].Count).To(Equal(4))
 			})
+		})
+	})
+})
+
+var _ = Describe("AdvancedConfig", func() {
+	Describe("IsExcludedPod", func() {
+		Context("with an exclusion list", func() {
+			var cfg *processor.AdvancedConfig
+
+			BeforeEach(func() {
+				cfg = &processor.AdvancedConfig{
+					ExcludedPods: []string{"keep-image-pulled", "debug-pod"},
+				}
+			})
+
+			It("returns true for an exact match", func() {
+				Expect(cfg.IsExcludedPod("keep-image-pulled")).To(BeTrue())
+				Expect(cfg.IsExcludedPod("debug-pod")).To(BeTrue())
+			})
+
+			It("returns true when generateName has a trailing dash (Deployment/DaemonSet pods)", func() {
+				Expect(cfg.IsExcludedPod("keep-image-pulled-")).To(BeTrue())
+				Expect(cfg.IsExcludedPod("debug-pod-")).To(BeTrue())
+			})
+
+			It("returns true for a standalone pod whose Name matches exactly (no trailing dash)", func() {
+				Expect(cfg.IsExcludedPod("keep-image-pulled")).To(BeTrue())
+			})
+
+			It("returns false for a pod not in the list", func() {
+				Expect(cfg.IsExcludedPod("my-app")).To(BeFalse())
+			})
+
+			It("returns false for a partial match", func() {
+				Expect(cfg.IsExcludedPod("keep-image-pulled-extra")).To(BeFalse())
+				Expect(cfg.IsExcludedPod("keep-image")).To(BeFalse())
+			})
+
+			It("returns false for an empty string", func() {
+				Expect(cfg.IsExcludedPod("")).To(BeFalse())
+			})
+		})
+
+		Context("with an empty exclusion list", func() {
+			It("always returns false", func() {
+				cfg := &processor.AdvancedConfig{ExcludedPods: []string{}}
+				Expect(cfg.IsExcludedPod("keep-image-pulled")).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("NewAdvancedConfig", func() {
+		It("parses excluded_pods from a YAML file", func() {
+			f, err := os.CreateTemp("", "advanced-config-*.yaml")
+			Expect(err).NotTo(HaveOccurred())
+			defer os.Remove(f.Name())
+
+			_, err = f.WriteString("excluded_pods:\n  - keep-image-pulled\n  - debug-pod\n")
+			Expect(err).NotTo(HaveOccurred())
+			f.Close()
+
+			cfg, err := processor.NewAdvancedConfig(f.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.ExcludedPods).To(ConsistOf("keep-image-pulled", "debug-pod"))
+			Expect(cfg.IsExcludedPod("keep-image-pulled")).To(BeTrue())
+			Expect(cfg.IsExcludedPod("other-pod")).To(BeFalse())
+		})
+
+		It("returns an empty exclusion list when the file does not exist", func() {
+			cfg, err := processor.NewAdvancedConfig("/nonexistent/path/config.yaml")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.ExcludedPods).To(BeEmpty())
+		})
+
+		It("returns an empty exclusion list when excluded_pods is absent from the file", func() {
+			f, err := os.CreateTemp("", "advanced-config-*.yaml")
+			Expect(err).NotTo(HaveOccurred())
+			defer os.Remove(f.Name())
+
+			_, err = f.WriteString("side_cars:\n  - name: linkerd-proxy\n    service: linkerd\n    support_group: containers\n")
+			Expect(err).NotTo(HaveOccurred())
+			f.Close()
+
+			cfg, err := processor.NewAdvancedConfig(f.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.ExcludedPods).To(BeEmpty())
 		})
 	})
 })

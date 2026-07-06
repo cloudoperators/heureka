@@ -9,7 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilter, entity.SupportGroupResult]{
+var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilter, entity.SupportGroupResult, *any]{
 	Prefix:       "supportgroup",
 	TableName:    "SupportGroup",
 	TableKey:     "SG",
@@ -67,7 +67,7 @@ var supportGroupObject = DbObject[*entity.SupportGroup, *entity.SupportGroupFilt
 
 		return &sg, cursor
 	},
-	NewResult: func(sg *entity.SupportGroup, cursor string) entity.SupportGroupResult {
+	NewResult: func(sg *entity.SupportGroup, _ *any, cursor string) entity.SupportGroupResult {
 		return entity.SupportGroupResult{
 			WithCursor:   entity.WithCursor{Value: cursor},
 			SupportGroup: sg,

@@ -114,11 +114,14 @@ func (cs *componentHandler) ListComponents(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				cs.cache,
-				CacheTtlGetAllComponentCursors,
-				"GetAllComponentCursors",
-				cache.WrapContext2(ctx, cs.database.GetAllComponentCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllComponentCursors,
+					ctx,
+					"GetAllComponentCursors",
+					cs.database.GetAllComponentCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
@@ -135,10 +138,13 @@ func (cs *componentHandler) ListComponents(
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			cs.cache,
-			CacheTtlCountComponents,
-			"CountComponents",
-			cache.WrapContext1(ctx, cs.database.CountComponents),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountComponents,
+				ctx,
+				"CountComponents",
+				cs.database.CountComponents,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
@@ -292,10 +298,13 @@ func (cs *componentHandler) ListComponentCcrns(
 
 	componentCcrns, err := cache.CallCached[[]string](
 		cs.cache,
-		CacheTtlGetComponentCcrns,
-		"GetComponentCcrns",
-		cache.WrapContext1(ctx, cs.database.GetComponentCcrns),
-		filter,
+		cache.NewCacheCallParams(
+			CacheTtlGetComponentCcrns,
+			ctx,
+			"GetComponentCcrns",
+			cs.database.GetComponentCcrns,
+			filter,
+		),
 	)
 	if err != nil {
 		l.Error(err)

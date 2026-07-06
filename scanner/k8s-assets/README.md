@@ -51,6 +51,34 @@ export HEUREKA_CLUSTER_NAME=my-cluster
 export HEUREKA_CLUSTER_REGION=us-west-1
 ```
 
+## Advanced Configuration
+
+Additional behaviour is controlled via a YAML config file mounted at `CONFIG_PATH` (default: `/etc/config`). When deployed via Helm, this is populated from a ConfigMap.
+
+### Excluding pods
+
+Pods whose `generateName` matches an entry in `excluded_pods` are silently skipped and never reported to Heureka. This is for infrastructure pods that should not appear as assets (e.g. `keep-image-pulled`).
+
+```yaml
+excluded_pods:
+  - keep-image-pulled
+  - some-other-pod-prefix
+```
+
+**Helm values** — set `scanner.excluded_pods` in your `values.yaml` or via `--set`:
+
+```yaml
+scanner:
+  excluded_pods:
+    - keep-image-pulled
+    - some-other-pod-prefix
+```
+
+```bash
+helm upgrade my-release ./chart/k8s-assets-scanner \
+  --set 'scanner.excluded_pods[0]=keep-image-pulled'
+```
+
 ## Usage
 
 To run the Kubernetes Assets Scanner:

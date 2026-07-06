@@ -55,11 +55,14 @@ func (ir *issueRepositoryHandler) getIssueRepositoryResults(
 
 	irResults, err := cache.CallCached[[]entity.IssueRepositoryResult](
 		ir.cache,
-		CacheTtlGetIssueRepository,
-		"GetIssueRepositories",
-		cache.WrapContext2(ctx, ir.database.GetIssueRepositories),
-		filter,
-		[]entity.Order{},
+		cache.NewCacheCallParams(
+			CacheTtlGetIssueRepository,
+			ctx,
+			"GetIssueRepositories",
+			ir.database.GetIssueRepositories,
+			filter,
+			[]entity.Order{},
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -94,11 +97,14 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				ir.cache,
-				CacheTtlGetAllIssueRepositoryCursors,
-				"GetAllIssueRepositoryCursors",
-				cache.WrapContext2(ctx, ir.database.GetAllIssueRepositoryCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllIssueRepositoryCursors,
+					ctx,
+					"GetAllIssueRepositoryCursors",
+					ir.database.GetAllIssueRepositoryCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				l.Error(err)

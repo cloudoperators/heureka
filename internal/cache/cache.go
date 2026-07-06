@@ -100,23 +100,78 @@ func getReturnValues[T any](out []reflect.Value) (T, error) {
 	return result, nil
 }
 
-func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn any, args ...any) (T, error) {
-	if c == nil {
-		return callDisabled[T](fn, args...)
+func NewCacheCallParams(ttl time.Duration, ctx context.Context, fnname string, fn any, args ...any) *CacheCallParams {
+	return &CacheCallParams{
+		ttl:    ttl,
+		fnname: fnname,
+		fn:     fn,
+		args:   args,
+		ctx:    ctx,
 	}
-
-	return callEnabled[T](c, ttl, fnname, fn, args...)
 }
 
-func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn any, args ...any) (T, error) {
+type CacheCallParams struct {
+	ttl    time.Duration
+	fnname string
+	fn     any
+	args   []any
+	ctx    context.Context
+}
+
+func (ccp *CacheCallParams) GetFunctionName() string {
+	return ccp.fnname
+}
+
+func (ccp *CacheCallParams) GetFunction() any {
+	return ccp.fn
+}
+
+func (ccp *CacheCallParams) GetArgs() []any {
+	return ccp.args
+}
+
+func (ccp *CacheCallParams) GetArgsCtx() []any {
+	if ccp.ctx != nil {
+		return append([]any{ccp.ctx}, ccp.args...)
+	}
+
+	return ccp.args
+}
+
+func (ccp *CacheCallParams) GetArgsBgCtx() []any {
+	if ccp.ctx != nil {
+		return append([]any{context.Background()}, ccp.args...)
+	}
+
+	return ccp.args
+}
+
+func (ccp *CacheCallParams) GetTtl() time.Duration {
+	return ccp.ttl
+}
+
+func CallCached[T any](c Cache, ccparams *CacheCallParams) (T, error) {
+	var zero T
+	if ccparams == nil {
+		return zero, fmt.Errorf("cache: nil CacheCallParams")
+	}
+
+	if c == nil {
+		return callDisabled[T](ccparams)
+	}
+
+	return callEnabled[T](c, ccparams)
+}
+
+func callEnabled[T any](c Cache, ccparams *CacheCallParams) (T, error) {
 	var zero T
 
-	v, in, err := getCallParameters(fn, args...)
+	v, in, err := getCallParameters(ccparams.GetFunction(), ccparams.GetArgsCtx()...)
 	if err != nil {
 		return zero, fmt.Errorf("cache (param): Get call parameters failed: %w", err)
 	}
 
-	key, err := c.CacheKey(fnname, fn, args...)
+	key, err := c.CacheKey(ccparams.GetFunctionName(), ccparams.GetFunction(), ccparams.GetArgs()...)
 	if err != nil {
 		return zero, fmt.Errorf("cache (key): Could not create cache key")
 	}
@@ -124,9 +179,11 @@ func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn any, args 
 	if s, ok, err := c.Get(key); err == nil && ok {
 		val, err := decode[T](s)
 		if err == nil {
+			vBg, inBg, _ := getCallParameters(ccparams.GetFunction(), ccparams.GetArgsBgCtx()...)
+
 			c.IncHit()
 			c.LaunchRefresh(func() {
-				_, _ = callFn[T](c, ttl, key, v, in)
+				_, _ = callFn[T](c, ccparams.GetTtl(), key, vBg, inBg)
 			})
 
 			return val, nil
@@ -139,13 +196,13 @@ func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn any, args 
 
 	c.IncMiss()
 
-	return callFn[T](c, ttl, key, v, in)
+	return callFn[T](c, ccparams.GetTtl(), key, v, in)
 }
 
-func callDisabled[T any](fn any, args ...any) (T, error) {
+func callDisabled[T any](ccparams *CacheCallParams) (T, error) {
 	var zero T
 
-	v, in, err := getCallParameters(fn, args...)
+	v, in, err := getCallParameters(ccparams.GetFunction(), ccparams.GetArgsCtx()...)
 	if err != nil {
 		return zero, fmt.Errorf("noCache (param): Get call parameters failed: %w", err)
 	}

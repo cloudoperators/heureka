@@ -63,11 +63,14 @@ func (iv *issueVariantHandler) getIssueVariantResults(
 
 	ivResults, err := cache.CallCached[[]entity.IssueVariantResult](
 		iv.cache,
-		CacheTtlGetIssueVariants,
-		"GetIssueVariants",
-		cache.WrapContext2(ctx, iv.database.GetIssueVariants),
-		filter,
-		[]entity.Order{},
+		cache.NewCacheCallParams(
+			CacheTtlGetIssueVariants,
+			ctx,
+			"GetIssueVariants",
+			iv.database.GetIssueVariants,
+			filter,
+			[]entity.Order{},
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -103,11 +106,14 @@ func (iv *issueVariantHandler) ListIssueVariants(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				iv.cache,
-				CacheTtlGetAllIssueVariantCursors,
-				"GetAllIssueVariantCursors",
-				cache.WrapContext2(ctx, iv.database.GetAllIssueVariantCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllIssueVariantCursors,
+					ctx,
+					"GetAllIssueVariantCursors",
+					iv.database.GetAllIssueVariantCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				l.Error(err)
@@ -121,10 +127,13 @@ func (iv *issueVariantHandler) ListIssueVariants(
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			iv.cache,
-			CacheTtlCountIssueVariants,
-			"CountIssueVariants",
-			cache.WrapContext1(ctx, iv.database.CountIssueVariants),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountIssueVariants,
+				ctx,
+				"CountIssueVariants",
+				iv.database.CountIssueVariants,
+				filter,
+			),
 		)
 		if err != nil {
 			l.Error(err)

@@ -67,7 +67,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 
 	When("Insert query is called", func() {
 		Context("Two properties are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 				TableName: "DummyTable",
 				Properties: []*mariadb.Property[*dummyEntity]{
 					mariadb.NewProperty("id", func(de *dummyEntity) (any, bool) { return de.Id, anyVal }),
@@ -88,9 +88,9 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 	})
 	When("Filter query is called", func() {
 		Context("Two filters are there in the filter object", func() {
-			var testObject mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]
+			var testObject mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]
 			BeforeEach(func() {
-				testObject = mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+				testObject = mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 					TableName: "DummyTable",
 					FilterProperties: []*mariadb.FilterProperty[*dummyEntityFilter]{
 						mariadb.NewFilterProperty("DT.dummytable_id = ?", func(filter *dummyEntityFilter) any { return filter.Id }),
@@ -155,12 +155,12 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 	})
 	When("Joins query is build", func() {
 		Context("no joins are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 				TableName: "DummyTable",
 			}
 			It("gets no joins in query as there is no join defined", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
@@ -169,7 +169,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Two basic joins are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 				TableName: "DummyTable",
 				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
@@ -190,7 +190,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			}
 			It("gets no joins in query when there is an empty filter in use", func() {
 				def := dummyEntityFilter{}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
@@ -199,7 +199,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 			It("gets one join with X when A mapping condition is met (there is at least one element to filter)", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
@@ -208,7 +208,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 			It("gets one join with Y when B mapping condition is met (there is at least one element to filter)", func() {
 				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
@@ -217,7 +217,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 			It("gets two joins with X and Y when A and B mapping conditions are met (there are at least one element for each filter)", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}, B: []*int{lo.ToPtr(10)}}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
@@ -230,7 +230,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Join when dependency is there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 				TableName: "DummyTable",
 				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
@@ -252,7 +252,32 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			}
 			It("gets two joins with X (and dependent Y) when B mapping condition is met (there is at least one element to filter)", func() {
 				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
+				query, params, err := qb.ToSql()
+				Expect(err).To(BeNil())
+				Expect(params).To(BeEmpty())
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(
+					dummySelectQuery +
+						" LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id" +
+						" RIGHT JOIN Yabc Y ON X.xabc_yabc_id = Y.yabc_id",
+				))
+			})
+			It("gets one join with X when X is force joined even when no conditions are not met", func() {
+				def := dummyEntityFilter{}
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, []string{"X"})
+				query, params, err := qb.ToSql()
+				Expect(err).To(BeNil())
+				Expect(params).To(BeEmpty())
+				normalizedQuery := strings.Join(strings.Fields(query), " ")
+				Expect(normalizedQuery).To(BeEquivalentTo(
+					dummySelectQuery +
+						" LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id",
+				))
+			})
+			It("gets two joins with X (and dependent Y) when Y is force joined even when no conditions are not met", func() {
+				def := dummyEntityFilter{}
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, []string{"Y"})
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
@@ -265,7 +290,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Two joins when the same dependency are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 				TableName: "DummyTable",
 				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
@@ -295,7 +320,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			}
 			It("gets two joins and one dependent join when A and B mapping conditions are met (there is at least one element for each filter)", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}, B: []*int{lo.ToPtr(10)}}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
@@ -309,7 +334,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 		})
 		Context("Two joins when the same table are there in the object", func() {
-			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult]{
+			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 				TableName: "DummyTable",
 				JoinDefs: []*mariadb.JoinDef[*dummyEntityFilter]{
 					{
@@ -330,7 +355,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			}
 			It("gets one join even when both join defs have the same condition but only first one will be included to prevent join table name duplication", func() {
 				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
-				qb := testObject.AddJoins(dummySelectBuilder, &def, nil)
+				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())

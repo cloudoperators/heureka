@@ -9,7 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-var patchObject = DbObject[*entity.Patch, *entity.PatchFilter, entity.PatchResult]{
+var patchObject = DbObject[*entity.Patch, *entity.PatchFilter, entity.PatchResult, *any]{
 	Prefix:       "patch",
 	TableName:    "Patch",
 	TableKey:     "P",
@@ -29,7 +29,7 @@ var patchObject = DbObject[*entity.Patch, *entity.PatchFilter, entity.PatchResul
 
 		return &p, cursor
 	},
-	NewResult: func(p *entity.Patch, cursor string) entity.PatchResult {
+	NewResult: func(p *entity.Patch, _ *any, cursor string) entity.PatchResult {
 		return entity.PatchResult{
 			WithCursor: entity.WithCursor{
 				Value: cursor,

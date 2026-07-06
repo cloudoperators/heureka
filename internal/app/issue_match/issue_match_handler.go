@@ -206,11 +206,14 @@ func (im *issueMatchHandler) ListIssueMatches(
 
 	res, err := cache.CallCached[[]entity.IssueMatchResult](
 		im.cache,
-		CacheTtlGetIssueMatches,
-		"GetIssueMatches",
-		cache.WrapContext2(ctx, im.database.GetIssueMatches),
-		filter,
-		options.Order,
+		cache.NewCacheCallParams(
+			CacheTtlGetIssueMatches,
+			ctx,
+			"GetIssueMatches",
+			im.database.GetIssueMatches,
+			filter,
+			options.Order,
+		),
 	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueMatches", "", err)
@@ -225,11 +228,14 @@ func (im *issueMatchHandler) ListIssueMatches(
 		if len(res) > 0 {
 			cursors, err := cache.CallCached[[]string](
 				im.cache,
-				CacheTtlGetAllIssueMatchCursors,
-				"GetAllIssueMatchCursors",
-				cache.WrapContext2(ctx, im.database.GetAllIssueMatchCursors),
-				filter,
-				options.Order,
+				cache.NewCacheCallParams(
+					CacheTtlGetAllIssueMatchCursors,
+					ctx,
+					"GetAllIssueMatchCursors",
+					im.database.GetAllIssueMatchCursors,
+					filter,
+					options.Order,
+				),
 			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "IssueMatches", "", err)
@@ -246,10 +252,13 @@ func (im *issueMatchHandler) ListIssueMatches(
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
 			im.cache,
-			CacheTtlCountIssueMatches,
-			"CountIssueMatches",
-			cache.WrapContext1(ctx, im.database.CountIssueMatches),
-			filter,
+			cache.NewCacheCallParams(
+				CacheTtlCountIssueMatches,
+				ctx,
+				"CountIssueMatches",
+				im.database.CountIssueMatches,
+				filter,
+			),
 		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "IssueMatches", "", err)

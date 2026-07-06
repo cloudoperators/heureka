@@ -5,14 +5,11 @@ package mariadb
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/sirupsen/logrus"
 )
 
-var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.ServiceResult]{
+var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.ServiceResult, *entity.ServiceAggregations]{
 	Prefix:       "service",
 	TableName:    "Service",
 	TableKey:     "S",
@@ -141,35 +138,28 @@ var serviceObject = DbObject[*entity.Service, *entity.ServiceFilter, entity.Serv
 
 		return &s, cursor
 	},
-	NewResult: func(s *entity.Service, cursor string) entity.ServiceResult {
+	RowToAggregatedData: func(e RowComposite, order []entity.Order) (*entity.Service, *entity.ServiceAggregations, string) {
+		s := entity.Service{
+			BaseService: e.AsBaseService(),
+		}
+		sa := e.AsServiceAggregations()
+
+		var isc entity.IssueSeverityCounts
+		if e.RatingCount != nil {
+			isc = e.AsIssueSeverityCounts()
+		}
+
+		cursor, _ := EncodeCursor(WithService(order, s, isc))
+
+		return &s, &sa, cursor
+	},
+	NewResult: func(s *entity.Service, sa *entity.ServiceAggregations, cursor string) entity.ServiceResult {
 		return entity.ServiceResult{
-			WithCursor: entity.WithCursor{Value: cursor},
-			Service:    s,
+			WithCursor:          entity.WithCursor{Value: cursor},
+			Service:             s,
+			ServiceAggregations: sa,
 		}
 	},
-}
-
-func appendServiceColumns(s []string, filter *entity.ServiceFilter, order []entity.Order) []string {
-	if filter != nil && len(filter.IssueRepositoryId) > 0 {
-		s = append(s, "IRS.*")
-	}
-
-	for _, o := range order {
-		switch o.By {
-		case entity.CriticalCount:
-			s = append(s, "SIC.critical_count")
-		case entity.HighCount:
-			s = append(s, "SIC.high_count")
-		case entity.MediumCount:
-			s = append(s, "SIC.medium_count")
-		case entity.LowCount:
-			s = append(s, "SIC.low_count")
-		case entity.NoneCount:
-			s = append(s, "SIC.none_count")
-		}
-	}
-
-	return s
 }
 
 func (s *SqlDatabase) CountServices(ctx context.Context, filter *entity.ServiceFilter) (int64, error) {
@@ -180,129 +170,28 @@ func (s *SqlDatabase) GetServices(ctx context.Context, filter *entity.ServiceFil
 	return serviceObject.Get(ctx, s.db, filter, order)
 }
 
-// TODO use DbObject
 func (s *SqlDatabase) GetServicesWithAggregations(ctx context.Context, filter *entity.ServiceFilter, order []entity.Order) ([]entity.ServiceResult, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetServicesWithAggregations",
-	})
-
-	baseImQuery := `
-        SELECT %s, COUNT(IM.issuematch_id) AS service_agg_issue_matches FROM Service S
-        %s
-        LEFT JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id
-        %s
-        GROUP BY S.service_id %s ORDER BY %s LIMIT ?
-    `
-
-	baseCiQuery := `
-        SELECT %s, SUM(CI.componentinstance_count) AS service_agg_component_instances FROM Service S
-        %s
-        %s
-        GROUP BY S.service_id %s ORDER BY %s LIMIT ?
-    `
-
-	baseQuery := `
-        WITH IssueMatchCounts AS (
-            %s
-        ),
-        ComponentInstanceCounts AS (
-            %s
-        )
-        SELECT IMC.*, CIC.*
-        FROM ComponentInstanceCounts CIC
-        JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id
-        ORDER BY %s;
-    `
-	filter = EnsureFilter(filter)
-	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
-	joins := serviceObject.GetJoins_tmp(filter, ord)
-
-	// Ensure ComponentInstance is joined for aggregations
-	if !strings.Contains(joins, "ComponentInstance CI") {
-		joins = fmt.Sprintf("%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", joins)
-	}
-
-	columns := strings.Join(appendServiceColumns([]string{"S.*"}, filter, ord.Sequence()), ",")
-
-	cursorFields, err := DecodeCursor(filter.After)
-	if err != nil {
-		return nil, err
-	}
-
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	filterStr := serviceObject.GetFilterQuery_tmp(filter)
-
-	whereClause := ""
-	if filterStr != "" || cursorQuery != "" {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
-	}
-
-	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord.ToSql())
-	query := fmt.Sprintf(baseQuery, imQuery, ciQuery, ord.ToSqlWithPrefixAll("IMC"))
-
-	stmt, err := s.db.PreparexContext(ctx, query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
+	aggDef := AggregationDef{
+		Aggregations: []Aggregation{
+			{
+				Table:       "IssueMatchCounts",
+				TableKey:    "IMC",
+				Columns:     []string{"COUNT(IM.issuematch_id) AS service_agg_issue_matches"},
+				ForcedJoins: []string{"IM"},
 			},
-		).Error(msg)
-
-		return nil, fmt.Errorf("%s", msg)
+			{
+				Table:       "ComponentInstanceCounts",
+				TableKey:    "CIC",
+				Columns:     []string{"SUM(CI.componentinstance_count) AS service_agg_component_instances"},
+				ForcedJoins: []string{"CI"},
+			},
+		},
+		From:          "ComponentInstanceCounts CIC",
+		Joins:         []string{"JOIN IssueMatchCounts IMC on CIC.service_id = IMC.service_id"},
+		OrderByPrefix: "IMC",
 	}
 
-	// parameters for issue match query
-	filterParameters := serviceObject.GetFilterParameters_tmp(filter, true, cursorFields)
-	// parameters for component instance query
-	filterParameters = append(
-		filterParameters,
-		serviceObject.GetFilterParameters_tmp(filter, true, cursorFields)...,
-	)
-
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			logrus.Warnf("error during close stmt: %s", err)
-		}
-	}()
-
-	return performListScan(
-		ctx,
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.ServiceResult, e RowComposite) []entity.ServiceResult {
-			service := entity.Service{
-				BaseService: e.AsBaseService(),
-			}
-			aggregations := e.AsServiceAggregations()
-
-			var isc entity.IssueSeverityCounts
-			if e.RatingCount != nil {
-				isc = e.AsIssueSeverityCounts()
-			}
-
-			cursor, _ := EncodeCursor(WithService(order, service, isc))
-
-			sr := entity.ServiceResult{
-				WithCursor: entity.WithCursor{
-					Value: cursor,
-				},
-				Service:             &service,
-				ServiceAggregations: &aggregations,
-			}
-
-			return append(l, sr)
-		},
-	)
+	return serviceObject.GetWithAggregations(ctx, s.db, aggDef, filter, order)
 }
 
 func (s *SqlDatabase) GetAllServiceCursors(ctx context.Context, filter *entity.ServiceFilter, order []entity.Order) ([]string, error) {
