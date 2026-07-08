@@ -7,6 +7,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
@@ -1070,7 +1071,7 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
 			"CreateRemediationMutationResolver",
-			"Internal Error - when creating remediation - component id not found",
+			"Internal Error - when creating remediation - component not found",
 		)
 	}
 
@@ -1085,15 +1086,20 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 		if err != nil {
 			return nil, baseResolver.NewResolverError(
 				"CreateRemediationMutationResolver",
-				"Internal Error - when creating remediation - component id not found",
+				"Internal Error - when creating remediation - component not found",
 			)
 		}
 	}
 
 	if len(componentResult.Elements) != 1 {
+		componentKind := "component"
+		if len(componentResult.Elements) > 1 {
+			componentKind = model.ComponentFriendlyName(componentResult.Elements[0].Type)
+		}
+
 		return nil, baseResolver.NewResolverError(
 			"CreateRemediationMutationResolver",
-			"Internal Error - when creating remediation - component id not found",
+			fmt.Sprintf("Internal Error - when creating remediation - %s not found", componentKind),
 		)
 	}
 
@@ -1178,10 +1184,22 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 			&entity.ComponentFilter{Repository: []*string{input.Image}},
 			nil,
 		)
-		if err != nil || len(componentResult.Elements) != 1 {
+		if err != nil {
 			return nil, baseResolver.NewResolverError(
 				"UpdateRemediationMutationResolver",
-				"Internal Error - when updating remediation - component id not found",
+				"Internal Error - when updating remediation - component not found",
+			)
+		}
+
+		if len(componentResult.Elements) != 1 {
+			componentKind := "component"
+			if len(componentResult.Elements) > 1 {
+				componentKind = model.ComponentFriendlyName(componentResult.Elements[0].Type)
+			}
+
+			return nil, baseResolver.NewResolverError(
+				"UpdateRemediationMutationResolver",
+				fmt.Sprintf("Internal Error - when updating remediation - %s not found", componentKind),
 			)
 		}
 
