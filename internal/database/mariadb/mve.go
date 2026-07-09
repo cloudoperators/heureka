@@ -4,6 +4,8 @@
 package mariadb
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"sync"
@@ -11,34 +13,13 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/go-co-op/gocron"
-	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-var MVProcedures = []string{
-	"refresh_mvServiceIssueCounts_proc",
-	"refresh_mvSingleComponentByServiceVulnerabilityCounts_proc",
-	"refresh_mvAllComponentsByServiceVulnerabilityCounts_proc",
-	"refresh_mvCountIssueRatingsUniqueService_proc",
-	"refresh_mvCountIssueRatingsService_proc",
-	"refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc",
-	"refresh_mvCountIssueRatingsSupportGroup_proc",
-	"refresh_mvCountIssueRatingsComponentVersion_proc",
-	"refresh_mvCountIssueRatingsServiceId_proc",
-	"refresh_mvCountIssueRatingsOther_proc",
-	"refresh_mvVulnerabilityList_proc",
-	"refresh_mvVulnerabilityService_proc",
-	"refresh_mvComponentService_proc",
-}
-
 func TriggerMVE(cfg util.Config) error {
-	db, err := GetSqlxConnection(cfg)
+	db, err := NewDb(cfg)
 	if err != nil {
 		return fmt.Errorf("error while Creating Db: %w", err)
-	}
-
-	if err := checkProceduresExist(db, MVProcedures); err != nil {
-		return err
 	}
 
 	return runInBackground(db, MVProcedures).Wait()
@@ -145,59 +126,13 @@ func (mc *mveCtx) Wait() error {
 	return nil
 }
 
-func checkProceduresExist(db *sqlx.DB, procs []string) error {
-	exists, err := proceduresExist(db, procs)
-	if err != nil {
-		return fmt.Errorf("could not check procedures exist: %w", err)
-	} else if !exists {
-		return fmt.Errorf("some procedures [%s] do not exist", strings.Join(procs, ", "))
-	}
-
-	return nil
-}
-
-func proceduresExist(db *sqlx.DB, procedures []string) (bool, error) {
-	if len(procedures) == 0 {
-		return true, nil
-	}
-
-	placeholders := make([]string, len(procedures))
-	args := make([]any, len(procedures))
-
-	for i, p := range procedures {
-		placeholders[i] = "?"
-		args[i] = p
-	}
-
-	query := fmt.Sprintf(`
-        SELECT COUNT(*)
-        FROM information_schema.routines
-        WHERE routine_schema = DATABASE()
-          AND routine_type = 'PROCEDURE'
-          AND routine_name IN (%s);
-    `, strings.Join(placeholders, ","))
-
-	var count int
-
-	err := db.QueryRow(query, args...).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("could not check if procedures exist: %w", err)
-	}
-
-	if count == len(procedures) {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func runInBackground(db *sqlx.DB, procs []string) *mveCtx {
+func runInBackground(db Db, procs []MVProcedure) *mveCtx {
 	mc := &mveCtx{}
 
-	for _, p := range procs {
+	for i, p := range procs {
 		mc.wg.Go(func() {
-			if _, err := db.Exec(fmt.Sprintf("CALL %s();", p)); err != nil {
-				mc.appendErrorMessage(fmt.Sprintf("%s: %v", p, err))
+			if err := TxCall(p, context.Background(), db); err != nil {
+				mc.appendErrorMessage(fmt.Sprintf("(procIdx: %d): %v", i, err))
 			}
 		})
 	}
@@ -207,7 +142,22 @@ func runInBackground(db *sqlx.DB, procs []string) *mveCtx {
 	return mc
 }
 
-func runCleanupRoutineInBackground(db *sqlx.DB, mc *mveCtx) {
+func TxCall(p MVProcedure, ctx context.Context, db Db) error {
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return err
+	}
+
+	err = p(ctx, tx)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func runCleanupRoutineInBackground(db Db, mc *mveCtx) {
 	go func() {
 		if err := mc.Wait(); err != nil {
 			logrus.WithError(err).Error("MVE background execution failed")

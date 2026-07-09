@@ -4,6 +4,7 @@
 package e2e_test
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -68,7 +69,7 @@ func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
 }
 
 func setDbTestMigration(migrationFiles fs.FS) {
-	setMvProceduresInMVE([]string{})
+	setMvProceduresInMVE(nil)
 
 	mariadb.MigrationFs = migrationFiles
 }
@@ -85,12 +86,12 @@ func setDbMvTestTableMigration() {
 	setDbTestMigration(&migrationMvTestTableMigrationFiles)
 }
 
-func setMvProceduresInMVE(procs []string) {
+func setMvProceduresInMVE(procs []mariadb.MVProcedure) {
 	mariadb.MVProcedures = procs
 }
 
 func setMvTestTableInMVE() {
-	setMvProceduresInMVE([]string{"refresh_mvTestData_proc"})
+	setMvProceduresInMVE([]mariadb.MVProcedure{RefreshMVTestData})
 }
 
 func extractVersion(filename string) string {
@@ -233,6 +234,14 @@ func (dbmt *DbMigrationTest) dbShouldContainABMigrations() {
 	dbmt.dbShouldContainAMigrationTable()
 	dbmt.dbShouldContainBMigrationTable()
 	dbmt.dbVersionShouldBeB()
+}
+
+func RefreshMVTestData(ctx context.Context, db mariadb.DBTX) error {
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO mvTestData (test_id)
+		VALUES (10)`)
+
+	return err
 }
 
 func (dbmt *DbMigrationTest) dbShouldContainPostMigrationProcedureData() {
