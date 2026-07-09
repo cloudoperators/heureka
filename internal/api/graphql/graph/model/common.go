@@ -63,6 +63,24 @@ func SeverityValue(s string) (SeverityValues, error) {
 	return SeverityValuesNone, fmt.Errorf("invalid SeverityValues provided: %s", s)
 }
 
+// ComponentFriendlyName returns the user-facing name for a component type.
+func ComponentFriendlyName(componentType string) string {
+	switch componentType {
+	case ComponentTypeValuesContainerImage.String():
+		return "container image"
+	case ComponentTypeValuesVirtualMachineImage.String():
+		return "virtual machine image"
+	case ComponentTypeValuesRepository.String():
+		return "repository"
+	default:
+		if componentType != "" {
+			return componentType
+		}
+
+		return "component"
+	}
+}
+
 func ComponentTypeValue(s string) (ComponentTypeValues, error) {
 	switch s {
 	case ComponentTypeValuesContainerImage.String():
