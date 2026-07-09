@@ -618,6 +618,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 				im.ComponentInstanceId = sql.NullInt64{Int64: 3, Valid: true}
 				im.IssueId = sql.NullInt64{Int64: r.IssueId, Valid: true}
 				im.UserId = sql.NullInt64{Int64: util.SystemUserId, Valid: true}
+				im.Rating = sql.NullString{String: "Critical", Valid: true}
 				_, err := seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 				Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
