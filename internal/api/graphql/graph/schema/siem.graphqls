@@ -30,3 +30,48 @@ type SIEMAlert {
     container: String
     source: String
 }
+
+type SIEMAlertNode implements Node {
+    id: ID!
+    name: String
+    description: String
+    severity: SeverityValues
+    url: String
+    service: String
+    supportGroup: String
+    region: String
+    cluster: String
+    namespace: String
+    pod: String
+    container: String
+    source: String
+    status: IssueMatchStatusValues
+    discoveryDate: DateTime
+}
+
+type SIEMAlertConnection implements Connection {
+    totalCount: Int!
+    edges: [SIEMAlertEdge]
+    pageInfo: PageInfo
+}
+
+type SIEMAlertEdge implements Edge {
+    node: SIEMAlertNode!
+    cursor: String
+}
+
+input SIEMAlertFilter {
+    severity: [SeverityValues]
+    service: [String]
+    status: [IssueMatchStatusValues]
+    supportGroup: [String]
+}
+
+input SIEMAlertOrderBy {
+    by: SIEMAlertOrderByField
+    direction: OrderDirection
+}
+
+enum SIEMAlertOrderByField {
+    severity
+}

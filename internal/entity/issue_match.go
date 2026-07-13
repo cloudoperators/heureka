@@ -79,6 +79,8 @@ type IssueMatchFilter struct {
 	State                    []StateFilterType `json:"state"`
 	ServiceOwnerUsername     []*string         `json:"service_owner_username"`
 	ServiceOwnerUniqueUserId []*string         `json:"service_owner_unique_user_id"`
+	IncludeComponentInstance bool              `json:"include_component_instance"`
+	IncludeService           bool              `json:"include_service"`
 }
 
 func (f *IssueMatchFilter) Get() any {

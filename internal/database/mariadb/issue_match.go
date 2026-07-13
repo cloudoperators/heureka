@@ -71,11 +71,13 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool { return len(f.Search) > 0 },
 		},
 		{
-			Name:      "CI",
-			Type:      LeftJoin,
-			Table:     "ComponentInstance CI",
-			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
-			Condition: func(f *entity.IssueMatchFilter, order *Order) bool { return order.ByCiCcrn() || len(f.ServiceId) > 0 },
+			Name:  "CI",
+			Type:  LeftJoin,
+			Table: "ComponentInstance CI",
+			On:    "IM.issuematch_component_instance_id = CI.componentinstance_id",
+			Condition: func(f *entity.IssueMatchFilter, order *Order) bool {
+				return order.ByCiCcrn() || len(f.ServiceId) > 0 || f.IncludeComponentInstance
+			},
 		},
 		{
 			Name:      "CV",
@@ -99,7 +101,9 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI"},
-			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool { return len(f.ServiceCCRN) > 0 },
+			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool {
+				return len(f.ServiceCCRN) > 0 || f.IncludeService
+			},
 		},
 		{
 			Name:      "SGS",
@@ -115,7 +119,9 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			Table:     "SupportGroup SG",
 			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
 			DependsOn: []string{"SGS"},
-			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool { return len(f.SupportGroupCCRN) > 0 },
+			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool {
+				return len(f.SupportGroupCCRN) > 0 || f.IncludeService
+			},
 		},
 		{
 			Name:      "O",
@@ -136,16 +142,38 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			},
 		},
 	},
-	ExtraColumnsSelector: func(_ *entity.IssueMatchFilter, order *Order) []string {
+	ExtraColumnsSelector: func(f *entity.IssueMatchFilter, order *Order) []string {
 		s := []string{}
+
+		if f == nil {
+			return s
+		}
+
+		if len(f.IssueType) > 0 {
+			s = append(s, "I.*")
+		}
+
+		if f.IncludeComponentInstance {
+			s = append(s, "CI.*")
+		}
+
+		if f.IncludeService {
+			s = append(s, "S.*", "SG.*")
+		}
+
 		for _, o := range order.Sequence() {
 			switch o.By {
 			case entity.IssuePrimaryName:
-				s = append(s, "I.issue_primary_name")
+				if len(f.IssueType) == 0 {
+					s = append(s, "I.issue_primary_name")
+				}
 			case entity.ComponentInstanceCcrn:
-				s = append(s, "CI.componentinstance_ccrn")
+				if !f.IncludeComponentInstance {
+					s = append(s, "CI.componentinstance_ccrn")
+				}
 			}
 		}
+
 		return s
 	},
 	RowToData: func(e RowComposite, order []entity.Order) (*entity.IssueMatch, string) {
@@ -155,7 +183,16 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		}
 
 		if e.ComponentInstanceRow != nil {
-			im.ComponentInstance = lo.ToPtr(e.AsComponentInstance())
+			ci := e.AsComponentInstance()
+			if e.BaseServiceRow != nil {
+				svc := e.BaseServiceRow.AsService()
+				if e.SupportGroupRow != nil {
+					sg := e.AsSupportGroup()
+					svc.SupportGroup = &sg
+				}
+				ci.Service = &svc
+			}
+			im.ComponentInstance = &ci
 		}
 
 		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
