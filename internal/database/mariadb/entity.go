@@ -202,6 +202,7 @@ type RowComposite struct {
 	*RatingCount
 	*RemediationRow
 	*PatchRow
+	*CommentRow
 }
 
 type DatabaseRow interface {
@@ -229,7 +230,8 @@ type DatabaseRow interface {
 		ServiceIssueVariantRow |
 		RatingCount |
 		RowComposite |
-		PatchRow
+		PatchRow |
+		CommentRow
 }
 
 type RatingCount struct {
@@ -1255,4 +1257,41 @@ func (pr *PatchRow) FromPatch(p *entity.Patch) {
 	pr.DeletedAt = sql.NullTime{Time: p.DeletedAt, Valid: true}
 	pr.UpdatedAt = sql.NullTime{Time: p.UpdatedAt, Valid: true}
 	pr.UpdatedBy = sql.NullInt64{Int64: p.UpdatedBy, Valid: true}
+}
+
+type CommentRow struct {
+	Id           sql.NullInt64  `db:"comment_id"              json:"id"`
+	Text         sql.NullString `db:"comment_text"            json:"text"`
+	IssueMatchId sql.NullInt64  `db:"comment_issuematch_id"   json:"issue_match_id"`
+	CreatedAt    sql.NullTime   `db:"comment_created_at"      json:"created_at"`
+	CreatedBy    sql.NullInt64  `db:"comment_created_by"      json:"created_by"`
+	DeletedAt    sql.NullTime   `db:"comment_deleted_at"      json:"deleted_at"`
+	UpdatedAt    sql.NullTime   `db:"comment_updated_at"      json:"updated_at"`
+	UpdatedBy    sql.NullInt64  `db:"comment_updated_by"      json:"updated_by"`
+}
+
+func (cr CommentRow) AsComment() entity.Comment {
+	return entity.Comment{
+		Id:           GetInt64Value(cr.Id),
+		Text:         GetStringValue(cr.Text),
+		IssueMatchId: GetInt64Value(cr.IssueMatchId),
+		Metadata: entity.Metadata{
+			CreatedAt: GetTimeValue(cr.CreatedAt),
+			CreatedBy: GetInt64Value(cr.CreatedBy),
+			DeletedAt: GetTimeValue(cr.DeletedAt),
+			UpdatedAt: GetTimeValue(cr.UpdatedAt),
+			UpdatedBy: GetInt64Value(cr.UpdatedBy),
+		},
+	}
+}
+
+func (cr *CommentRow) FromComment(c *entity.Comment) {
+	cr.Id = sql.NullInt64{Int64: c.Id, Valid: true}
+	cr.Text = sql.NullString{String: c.Text, Valid: true}
+	cr.IssueMatchId = sql.NullInt64{Int64: c.IssueMatchId, Valid: true}
+	cr.CreatedAt = sql.NullTime{Time: c.CreatedAt, Valid: true}
+	cr.CreatedBy = sql.NullInt64{Int64: c.CreatedBy, Valid: true}
+	cr.DeletedAt = sql.NullTime{Time: c.DeletedAt, Valid: true}
+	cr.UpdatedAt = sql.NullTime{Time: c.UpdatedAt, Valid: true}
+	cr.UpdatedBy = sql.NullInt64{Int64: c.UpdatedBy, Valid: true}
 }

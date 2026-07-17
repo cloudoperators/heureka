@@ -921,6 +921,48 @@ func NewSIEMAlertNode(im *entity.IssueMatch) SIEMAlertNode {
 	return node
 }
 
+func NewSIEMAlertCommentNode(c *entity.Comment) SIEMAlertCommentNode {
+	createdAt := c.CreatedAt.Format(time.RFC3339)
+
+	return SIEMAlertCommentNode{
+		ID:           fmt.Sprintf("%d", c.Id),
+		Text:         c.Text,
+		AuthorID:     fmt.Sprintf("%d", c.CreatedBy),
+		IssueMatchID: fmt.Sprintf("%d", c.IssueMatchId),
+		CreatedAt:    &createdAt,
+	}
+}
+
+func NewSIEMAlertComment(c *entity.Comment) SIEMAlertComment {
+	createdAt := c.CreatedAt.Format(time.RFC3339)
+
+	return SIEMAlertComment{
+		ID:           fmt.Sprintf("%d", c.Id),
+		Text:         c.Text,
+		AuthorID:     fmt.Sprintf("%d", c.CreatedBy),
+		IssueMatchID: fmt.Sprintf("%d", c.IssueMatchId),
+		CreatedAt:    &createdAt,
+	}
+}
+
+func NewCommentEntity(alertId string, text string) (*entity.Comment, error) {
+	issueMatchId, err := strconv.ParseInt(alertId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid alertId: %w", err)
+	}
+
+	return &entity.Comment{
+		IssueMatchId: issueMatchId,
+		Text:         text,
+	}, nil
+}
+
+func NewCommentFilterEntity(filter *SIEMAlertCommentFilter, issueMatchId int64) *entity.CommentFilter {
+	return &entity.CommentFilter{
+		IssueMatchId: []*int64{&issueMatchId},
+	}
+}
+
 func (sao *SIEMAlertOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
 

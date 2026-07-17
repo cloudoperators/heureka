@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type SIEMAlertComment {
+    id: ID!
+    text: String!
+    authorId: ID!
+    issueMatchId: ID!
+    createdAt: DateTime
+}
+
+type SIEMAlertCommentNode implements Node {
+    id: ID!
+    text: String!
+    authorId: ID!
+    issueMatchId: ID!
+    createdAt: DateTime
+}
+
+type SIEMAlertCommentConnection implements Connection {
+    totalCount: Int!
+    edges: [SIEMAlertCommentEdge]
+    pageInfo: PageInfo
+}
+
+type SIEMAlertCommentEdge implements Edge {
+    node: SIEMAlertCommentNode!
+    cursor: String
+}
+
+input SIEMAlertCommentFilter {
+    issueMatchId: [ID]
+}

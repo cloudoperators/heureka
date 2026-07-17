@@ -47,6 +47,7 @@ const (
 
 	RemediationId
 	PatchId
+	CommentId
 
 	RemediationIssue
 	RemediationSeverity

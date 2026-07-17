@@ -1410,6 +1410,22 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 	return &res, nil
 }
 
+func (r *mutationResolver) CreateSIEMAlertComment(ctx context.Context, alertID string, text string) (*model.SIEMAlertComment, error) {
+	comment, err := model.NewCommentEntity(alertID, text)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("CreateSIEMAlertCommentMutationResolver", err.Error())
+	}
+
+	newComment, err := r.App.CreateComment(ctx, comment)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("CreateSIEMAlertCommentMutationResolver", err.Error())
+	}
+
+	result := model.NewSIEMAlertComment(newComment)
+
+	return &result, nil
+}
+
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
 
 type mutationResolver struct{ *Resolver }

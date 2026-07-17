@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/app/comment"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -46,6 +47,7 @@ type HeurekaApp struct {
 	user.UserHandler
 	remediation.RemediationHandler
 	patch.PatchHandler
+	comment.CommentHandler
 
 	authz openfga.Authorization
 
@@ -110,6 +112,7 @@ func NewHeurekaApp(
 		UserHandler:              user.NewUserHandler(handlerContext),
 		RemediationHandler:       remediationHandler,
 		PatchHandler:             patch.NewPatchHandler(handlerContext),
+		CommentHandler:           comment.NewCommentHandler(handlerContext),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
 		cache:                    handlerContext.Cache,

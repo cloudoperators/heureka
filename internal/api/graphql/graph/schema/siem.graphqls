@@ -47,6 +47,7 @@ type SIEMAlertNode implements Node {
     source: String
     status: IssueMatchStatusValues
     discoveryDate: DateTime
+    comments(filter: SIEMAlertCommentFilter, first: Int, after: String): SIEMAlertCommentConnection
 }
 
 type SIEMAlertConnection implements Connection {

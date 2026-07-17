@@ -4,6 +4,7 @@
 package app
 
 import (
+	"github.com/cloudoperators/heureka/internal/app/comment"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/component_version"
@@ -36,6 +37,7 @@ type Heureka interface {
 	user.UserHandler
 	remediation.RemediationHandler
 	patch.PatchHandler
+	comment.CommentHandler
 
 	Shutdown() error
 }
