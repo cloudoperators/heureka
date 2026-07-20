@@ -40,7 +40,7 @@ jobs:
           cat pr-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/new-schema.graphql
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '18'
 
