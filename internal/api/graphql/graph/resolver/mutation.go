@@ -1410,6 +1410,25 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 	return &res, nil
 }
 
+func (r *mutationResolver) DeleteSIEMAlert(ctx context.Context, id string) (string, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return "", baseResolver.NewResolverError(
+			"DeleteSIEMAlertMutationResolver",
+			"Internal Error - when deleting SIEM alert",
+		)
+	}
+
+	if err := r.App.DeleteSIEMAlert(ctx, *idInt); err != nil {
+		return "", baseResolver.NewResolverError(
+			"DeleteSIEMAlertMutationResolver",
+			"Internal Error - when deleting SIEM alert",
+		)
+	}
+
+	return id, nil
+}
+
 func (r *mutationResolver) CreateSIEMAlertComment(ctx context.Context, alertID string, text string) (*model.SIEMAlertComment, error) {
 	comment, err := model.NewCommentEntity(alertID, text)
 	if err != nil {
