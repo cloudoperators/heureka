@@ -70,8 +70,17 @@ func (h *siemAlertHandler) DeleteSIEMAlert(ctx context.Context, id int64) error 
 
 	if h.cache != nil {
 		_ = h.cache.InvalidateByMatch(func(decodedKey string) bool {
-			return strings.Contains(decodedKey, "GetIssueMatches") &&
-				strings.Contains(decodedKey, fmt.Sprintf("\"issue_id\":[%d]", issueId))
+			isIssueMatchQuery := strings.Contains(decodedKey, "GetIssueMatches") ||
+				strings.Contains(decodedKey, "GetAllIssueMatchCursors") ||
+				strings.Contains(decodedKey, "CountIssueMatches")
+
+			if !isIssueMatchQuery {
+				return false
+			}
+
+			return strings.Contains(decodedKey, fmt.Sprintf("\"issue_id\":[%d]", issueId)) ||
+				strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]", id)) ||
+				strings.Contains(decodedKey, "\"issue_type\":[\"SecurityEvent\"]")
 		})
 	}
 
