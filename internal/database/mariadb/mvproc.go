@@ -18,7 +18,7 @@ type DBTX interface {
 type MVProcedure func(ctx context.Context, db DBTX) error
 
 var MVProcedures []MVProcedure = []MVProcedure{
-	// r! grep -E 'func\s' internal/database/mariadb/mvproc.go | sed -e 's@func\s\(.*\)[(].*@\1@' | sed -e 's/$/,/'
+	// r! grep -E '^func\s' internal/database/mariadb/mvproc.go | sed -e 's@func\s\(.*\)[(].*@\1@' | sed -e 's/$/,/'
 	RefreshMVServiceIssueCounts,
 	RefreshMVCountIssueRatingsServiceId,
 	RefreshMVCountIssueRatingsUniqueService,
@@ -35,15 +35,7 @@ var MVProcedures []MVProcedure = []MVProcedure{
 }
 
 func RefreshMVServiceIssueCounts(ctx context.Context, db DBTX) error {
-	// Clean up any leftover tables.
-	if err := DropTableIfExists(ctx, db, "mvServiceIssueCounts_tmp", "mvServiceIssueCounts_old"); err != nil {
-		return err
-	}
-
-	// Create the temporary table.
-	if _, err := db.ExecContext(ctx, `
-		CREATE TABLE mvServiceIssueCounts_tmp
-		LIKE mvServiceIssueCounts`); err != nil {
+	if err := PrepareTmpTables(ctx, db, "mvServiceIssueCounts"); err != nil {
 		return err
 	}
 
@@ -118,20 +110,7 @@ func RefreshMVServiceIssueCounts(ctx context.Context, db DBTX) error {
 		return err
 	}
 
-	// Atomically swap the tables.
-	if _, err = db.ExecContext(ctx, `
-		RENAME TABLE
-			mvServiceIssueCounts TO mvServiceIssueCounts_old,
-			mvServiceIssueCounts_tmp TO mvServiceIssueCounts`); err != nil {
-		return err
-	}
-
-	// Remove the previous table.
-	if err := DropTableIfExists(ctx, db, "mvServiceIssueCounts_old"); err != nil {
-		return err
-	}
-
-	return nil
+	return SwapTmpTables(ctx, db, "mvServiceIssueCounts")
 }
 
 func RefreshMVCountIssueRatingsServiceId(ctx context.Context, db DBTX) error {
@@ -847,15 +826,7 @@ func RefreshMVCountIssueRatingsComponentVersion(ctx context.Context, db DBTX) er
 }
 
 func RefreshMVVulnerabilityList(ctx context.Context, db DBTX) error {
-	// Ensure clean state for atomic swap.
-	if err := DropTableIfExists(ctx, db, "mvVulnerabilityList_tmp", "mvVulnerabilityList_old"); err != nil {
-		return err
-	}
-
-	// Create temporary table.
-	if _, err := db.ExecContext(ctx, `
-		CREATE TABLE mvVulnerabilityList_tmp
-		LIKE mvVulnerabilityList`); err != nil {
+	if err := PrepareTmpTables(ctx, db, "mvVulnerabilityList"); err != nil {
 		return err
 	}
 
@@ -899,32 +870,11 @@ func RefreshMVVulnerabilityList(ctx context.Context, db DBTX) error {
 		return err
 	}
 
-	// Atomically swap the tables.
-	if _, err = db.ExecContext(ctx, `
-		RENAME TABLE
-			mvVulnerabilityList TO mvVulnerabilityList_old,
-			mvVulnerabilityList_tmp TO mvVulnerabilityList`); err != nil {
-		return err
-	}
-
-	// Remove the previous table.
-	if err := DropTableIfExists(ctx, db, "mvVulnerabilityList_old"); err != nil {
-		return err
-	}
-
-	return nil
+	return SwapTmpTables(ctx, db, "mvVulnerabilityList")
 }
 
 func RefreshMVVulnerabilityService(ctx context.Context, db DBTX) error {
-	// Ensure clean state for atomic swap.
-	if err := DropTableIfExists(ctx, db, "mvVulnerabilityService_tmp", "mvVulnerabilityService_old"); err != nil {
-		return err
-	}
-
-	// Create temporary table.
-	if _, err := db.ExecContext(ctx, `
-		CREATE TABLE mvVulnerabilityService_tmp
-		LIKE mvVulnerabilityService`); err != nil {
+	if err := PrepareTmpTables(ctx, db, "mvVulnerabilityService"); err != nil {
 		return err
 	}
 
@@ -953,32 +903,11 @@ func RefreshMVVulnerabilityService(ctx context.Context, db DBTX) error {
 		return err
 	}
 
-	// Atomically swap the tables.
-	if _, err = db.ExecContext(ctx, `
-		RENAME TABLE
-			mvVulnerabilityService TO mvVulnerabilityService_old,
-			mvVulnerabilityService_tmp TO mvVulnerabilityService`); err != nil {
-		return err
-	}
-
-	// Remove the previous table.
-	if err := DropTableIfExists(ctx, db, "mvVulnerabilityService_old"); err != nil {
-		return err
-	}
-
-	return nil
+	return SwapTmpTables(ctx, db, "mvVulnerabilityService")
 }
 
 func RefreshMVComponentService(ctx context.Context, db DBTX) error {
-	// Ensure clean state for atomic swap.
-	if err := DropTableIfExists(ctx, db, "mvComponentService_tmp", "mvComponentService_old"); err != nil {
-		return err
-	}
-
-	// Create temporary table.
-	if _, err := db.ExecContext(ctx, `
-		CREATE TABLE mvComponentService_tmp
-		LIKE mvComponentService`); err != nil {
+	if err := PrepareTmpTables(ctx, db, "mvComponentService"); err != nil {
 		return err
 	}
 
@@ -1009,20 +938,7 @@ func RefreshMVComponentService(ctx context.Context, db DBTX) error {
 		return err
 	}
 
-	// Atomically swap the tables.
-	if _, err = db.ExecContext(ctx, `
-		RENAME TABLE
-			mvComponentService TO mvComponentService_old,
-			mvComponentService_tmp TO mvComponentService`); err != nil {
-		return err
-	}
-
-	// Remove the previous table.
-	if err := DropTableIfExists(ctx, db, "mvComponentService_old"); err != nil {
-		return err
-	}
-
-	return nil
+	return SwapTmpTables(ctx, db, "mvComponentService")
 }
 
 func RefreshMVSingleComponentByServiceVulnerabilityCounts(ctx context.Context, db DBTX) error {
@@ -1221,4 +1137,32 @@ func DropTableIfExists(ctx context.Context, db DBTX, tables ...string) error {
 	}
 
 	return nil
+}
+
+func PrepareTmpTables(ctx context.Context, db DBTX, tableName string) error {
+	// Ensure clean state for atomic swap.
+	tmpTable := tableName + "_tmp"
+	oldTable := tableName + "_old"
+
+	if err := DropTableIfExists(ctx, db, tmpTable, oldTable); err != nil {
+		return err
+	}
+
+	// Create temporary table.
+	_, err := db.ExecContext(ctx, fmt.Sprintf("CREATE TABLE %s LIKE %s", tmpTable, tableName))
+
+	return err
+}
+
+func SwapTmpTables(ctx context.Context, db DBTX, tableName string) error {
+	tmpTable := tableName + "_tmp"
+	oldTable := tableName + "_old"
+
+	// Atomically swap the tables.
+	if _, err := db.ExecContext(ctx, fmt.Sprintf("RENAME TABLE %s TO %s, %s TO %s", tableName, oldTable, tmpTable, tableName)); err != nil {
+		return err
+	}
+
+	// Remove the previous table.
+	return DropTableIfExists(ctx, db, oldTable)
 }
