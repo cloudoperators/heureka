@@ -1,6 +1,6 @@
 module github.com/cloudoperators/heureka
 
-go 1.26.0
+go 1.26.3
 
 require (
 	github.com/99designs/gqlgen v0.17.90
