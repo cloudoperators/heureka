@@ -148,24 +148,24 @@ func RefreshMVCountIssueRatingsServiceId(ctx context.Context, db DBTX) error {
 			"S.service_id",
 			"S.service_ccrn",
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Critical'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'Critical'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'High'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'High'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Medium'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'Medium'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Low'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'Low'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'None'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'None'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			"1",
 		).
@@ -173,13 +173,15 @@ func RefreshMVCountIssueRatingsServiceId(ctx context.Context, db DBTX) error {
 		LeftJoin(`ComponentInstance CI
 			ON S.service_id = CI.componentinstance_service_id
 			AND CI.componentinstance_deleted_at IS NULL`).
+		LeftJoin(`ComponentVersion CV
+			ON CI.componentinstance_component_version_id = CV.componentversion_id
+			AND CV.componentversion_deleted_at IS NULL`).
 		LeftJoin(`IssueMatch IM
 			ON CI.componentinstance_id = IM.issuematch_component_instance_id
 			AND IM.issuematch_deleted_at IS NULL`).
 		LeftJoin(`Issue I
 			ON IM.issuematch_issue_id = I.issue_id
 			AND I.issue_deleted_at IS NULL`).
-		LeftJoin("IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id").
 		Where("S.service_deleted_at IS NULL").
 		Where("IM.issuematch_id IS NOT NULL").
 		Where(sq.Expr(`
