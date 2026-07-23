@@ -875,3 +875,65 @@ func NewPatch(p *entity.Patch) Patch {
 		Metadata:             getModelMetadata(p.Metadata),
 	}
 }
+
+func NewSIEMAlertNode(im *entity.IssueMatch) SIEMAlertNode {
+	status := IssueMatchStatusValue(im.Status.String())
+	discoveryDate := im.CreatedAt.Format(time.RFC3339)
+
+	node := SIEMAlertNode{
+		ID:            fmt.Sprintf("%d", im.Id),
+		Status:        &status,
+		DiscoveryDate: &discoveryDate,
+	}
+
+	sevVal, _ := SeverityValue(im.Severity.Value)
+	node.Severity = &sevVal
+
+	if im.Issue != nil {
+		node.Name = &im.Issue.PrimaryName
+		node.Description = &im.Issue.Description
+	}
+
+	if im.ComponentInstance != nil {
+		node.Region = &im.ComponentInstance.Region
+		node.Cluster = &im.ComponentInstance.Cluster
+		node.Namespace = &im.ComponentInstance.Namespace
+		node.Pod = &im.ComponentInstance.Pod
+		node.Container = &im.ComponentInstance.Container
+
+		if im.ComponentInstance.Service != nil {
+			node.Service = &im.ComponentInstance.Service.CCRN
+			if im.ComponentInstance.Service.SupportGroup != nil {
+				node.SupportGroup = &im.ComponentInstance.Service.SupportGroup.CCRN
+			}
+		}
+	}
+
+	if im.Issue != nil && len(im.Issue.IssueVariants) > 0 {
+		variant := im.Issue.IssueVariants[0]
+		node.URL = &variant.ExternalUrl
+
+		if variant.IssueRepository != nil {
+			node.Source = &variant.IssueRepository.Name
+		}
+	}
+
+	return node
+}
+
+func (sao *SIEMAlertOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+
+	if sao.By != nil {
+		switch *sao.By {
+		case SIEMAlertOrderByFieldSeverity:
+			order.By = entity.IssueMatchRating
+		}
+	}
+
+	if sao.Direction != nil {
+		order.Direction = sao.Direction.ToOrderDirectionEntity()
+	}
+
+	return order
+}

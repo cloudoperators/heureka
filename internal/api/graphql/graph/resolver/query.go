@@ -168,6 +168,10 @@ func (r *queryResolver) Patches(ctx context.Context, filter *model.PatchFilter, 
 	return baseResolver.PatchBaseResolver(r.App, ctx, filter, first, after)
 }
 
+func (r *queryResolver) SIEMAlerts(ctx context.Context, filter *model.SIEMAlertFilter, first *int, after *string, orderBy []*model.SIEMAlertOrderBy) (*model.SIEMAlertConnection, error) {
+	return baseResolver.SIEMAlertBaseResolver(r.App, ctx, filter, first, after, orderBy)
+}
+
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }

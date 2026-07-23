@@ -799,6 +799,57 @@ func (s *DatabaseSeeder) SeedVulnerabilities(num int) []mariadb.IssueRow {
 	return issues
 }
 
+func (s *DatabaseSeeder) SeedSecurityEvents(num int) []mariadb.IssueRow {
+	var issues []mariadb.IssueRow
+
+	for range num {
+		issue := NewFakeIssue()
+		issue.Type = sql.NullString{String: string(entity.IssueTypeSecurityEvent), Valid: true}
+
+		iId, err := s.InsertFakeIssue(issue)
+		if err != nil {
+			logrus.WithField("seed_type", "SecurityEvents").Debug(err)
+
+			continue
+		}
+
+		issue.Id = sql.NullInt64{Int64: iId, Valid: true}
+		issues = append(issues, issue)
+	}
+
+	return issues
+}
+
+func (s *DatabaseSeeder) SeedDbWithSecurityEvents(n int) *SeedCollection {
+	users := s.SeedUsers(1)
+	supportGroups := s.SeedSupportGroups(1)
+	services := s.SeedServices(1)
+	components := s.SeedComponents(1)
+	componentVersions := s.SeedComponentVersions(1, components)
+	componentInstances := s.SeedComponentInstances(n, componentVersions, services)
+	repos := s.SeedIssueRepositories()
+	issues := s.SeedSecurityEvents(n)
+	issueVariants := s.SeedIssueVariants(n, repos, issues)
+	owners := s.SeedOwners(1, services, users)
+	supportGroupServices := s.SeedSupportGroupServices(1, services, supportGroups)
+	issueMatches := s.SeedIssueMatches(n, issues, componentInstances, users)
+
+	return &SeedCollection{
+		IssueVariantRows:        issueVariants,
+		IssueRepositoryRows:     repos,
+		UserRows:                users,
+		IssueRows:               issues,
+		IssueMatchRows:          issueMatches,
+		ComponentInstanceRows:   componentInstances,
+		ComponentVersionRows:    componentVersions,
+		ComponentRows:           components,
+		ServiceRows:             services,
+		SupportGroupRows:        supportGroups,
+		SupportGroupServiceRows: supportGroupServices,
+		OwnerRows:               owners,
+	}
+}
+
 func (s *DatabaseSeeder) SeedIssueVariants(
 	num int,
 	repos []mariadb.BaseIssueRepositoryRow,
