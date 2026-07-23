@@ -17,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/app/siem_alert"
 	"github.com/cloudoperators/heureka/internal/app/support_group"
 	"github.com/cloudoperators/heureka/internal/app/user"
 )
@@ -38,6 +39,7 @@ type Heureka interface {
 	remediation.RemediationHandler
 	patch.PatchHandler
 	comment.CommentHandler
+	siem_alert.SIEMAlertHandler
 
 	Shutdown() error
 }

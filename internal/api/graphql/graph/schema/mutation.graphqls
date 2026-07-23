@@ -62,6 +62,7 @@ type Mutation {
 
     # Create SIEM alert received from external SIEM system. This will create the Issue/IssueVariant and match it to a ComponentInstance.
     createSIEMAlert(input: SIEMAlertInput!): SIEMAlert!
+    deleteSIEMAlert(id: ID!): String!
 
     createSIEMAlertComment(alertId: ID!, text: String!): SIEMAlertComment!
 }
