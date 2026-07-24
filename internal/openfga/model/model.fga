@@ -30,7 +30,7 @@ type service
 relations
     # Operations
     define can_view: [user] or member or owner or admin from role or component_scanner from role or issue_scanner from role
-    define can_write: [user] or owner or admin from role
+    define can_write: [user] or member or owner or admin from role
 
     # Roles
     define member: [user] or member from support_group
