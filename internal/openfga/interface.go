@@ -46,6 +46,7 @@ const (
 // Relations (shared across relations tuple definitions)
 const (
 	RelCanView           = "can_view"
+	RelCanWrite          = "can_write"
 	RelRole              = "role"
 	RelSupportGroup      = "support_group"
 	RelRelatedService    = "related_service"
@@ -97,7 +98,11 @@ func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {
 	l := newLogger(enablelog)
 
 	if cfg.AuthzOpenFgaApiUrl != "" {
-		return NewAuthz(l, cfg)
+		if authz := NewAuthz(l, cfg); authz != nil {
+			return authz
+		}
+
+		l.Warn("OpenFGA unavailable; falling back to no-op authorization")
 	}
 
 	return NewNoAuthz(cfg)

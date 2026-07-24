@@ -39,6 +39,8 @@ var (
 )
 
 var _ = BeforeSuite(func() {
+	cfg := common.GetTestConfig(false)
+	authz = openfga.NewAuthorizationHandler(cfg, false)
 	db := mocks.NewMockDatabase(GinkgoT())
 	er = event.NewEventRegistry(db, authz)
 })
@@ -430,6 +432,57 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 			Expect(err).To(BeNil())
 			Expect(newRemediation).ToNot(BeNil())
+		})
+	})
+
+	Context("when the caller lacks can_write permission on the target service", func() {
+		var mockAuthz *mocks.MockAuthorization
+
+		BeforeEach(func() {
+			mockAuthz = mocks.NewMockAuthorization(GinkgoT())
+			handlerContext = common.HandlerContext{
+				DB:       db,
+				EventReg: er,
+				Authz:    mockAuthz,
+				Cache:    cache.NewInMemoryCache(context.Background(), &sync.WaitGroup{}, cache.InMemoryCacheConfig{}),
+			}
+		})
+
+		It("returns PermissionDenied error and does not create the remediation", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			mockAuthz.On("CheckPermission", mock.Anything).Return(false, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.PermissionDenied))
+		})
+
+		It("returns Internal error when the authz check itself fails", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			mockAuthz.On("CheckPermission", mock.Anything).
+				Return(false, errors.New("openfga unavailable"))
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.Internal))
 		})
 	})
 })
