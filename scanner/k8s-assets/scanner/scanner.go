@@ -183,10 +183,13 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 		UID:              string(pod.UID),
 		Namespace:        pod.Namespace,
 		Labels:           s.GetRelevantLabels(pod),
-		Containers:       make([]ContainerInfo, 0, len(pod.Spec.Containers)),
+		Containers:       make([]ContainerInfo, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers)),
 	}
 
-	for _, containerStatus := range pod.Status.ContainerStatuses {
+	allStatuses := make([]v1.ContainerStatus, 0, len(pod.Status.ContainerStatuses)+len(pod.Status.InitContainerStatuses))
+	allStatuses = append(allStatuses, pod.Status.ContainerStatuses...)
+	allStatuses = append(allStatuses, pod.Status.InitContainerStatuses...)
+	for _, containerStatus := range allStatuses {
 		imageInfo, err := s.extractImageInfo(containerStatus.Image)
 		if err != nil {
 			log.WithFields(log.Fields{
