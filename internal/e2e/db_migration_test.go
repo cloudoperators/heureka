@@ -86,12 +86,16 @@ func setDbMvTestTableMigration() {
 	setDbTestMigration(&migrationMvTestTableMigrationFiles)
 }
 
-func setMvProceduresInMVE(procs []mariadb.MVProcedure) {
+func setMvProceduresInMVE(procs [][]mariadb.MVProcedure) {
+	prev := mariadb.MVProcedures
+
+	DeferCleanup(func() { mariadb.MVProcedures = prev })
+
 	mariadb.MVProcedures = procs
 }
 
 func setMvTestTableInMVE() {
-	setMvProceduresInMVE([]mariadb.MVProcedure{RefreshMVTestData})
+	setMvProceduresInMVE([][]mariadb.MVProcedure{{RefreshMVTestData}})
 }
 
 func extractVersion(filename string) string {

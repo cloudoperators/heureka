@@ -17,21 +17,26 @@ type DBTX interface {
 
 type MVProcedure func(ctx context.Context, db DBTX) error
 
-var MVProcedures []MVProcedure = []MVProcedure{
-	// r! grep -E '^func\s' internal/database/mariadb/mvproc.go | sed -e 's@func\s\(.*\)[(].*@\1@' | sed -e 's/$/,/'
-	RefreshMVServiceIssueCounts,
-	RefreshMVCountIssueRatingsServiceId,
-	RefreshMVCountIssueRatingsUniqueService,
-	RefreshMVCountIssueRatingsOther, // 4 - this one is not tested in database nor in e2e
-	RefreshMVCountIssueRatingsService,
-	RefreshMVCountIssueRatingsServiceWithoutSupportGroup,
-	RefreshMVCountIssueRatingsSupportGroup,
-	RefreshMVCountIssueRatingsComponentVersion,
-	RefreshMVVulnerabilityList,
-	RefreshMVVulnerabilityService, // 10 - this one is not tested in database nor in e2e
-	RefreshMVComponentService,
-	RefreshMVSingleComponentByServiceVulnerabilityCounts,
-	RefreshMVAllComponentsByServiceVulnerabilityCounts,
+var MVProcedures [][]MVProcedure = [][]MVProcedure{
+	// Keep this list in sync with the Refresh* functions in this file.
+	//   vim helper:
+	//      r! grep -E '^func\s' internal/database/mariadb/mvproc.go | sed -e 's@func\s\(.*\)[(].*@\1@' | sed -e 's/$/,/'
+	{RefreshMVServiceIssueCounts},
+	{RefreshMVCountIssueRatingsServiceId},
+	{RefreshMVCountIssueRatingsUniqueService},
+	{RefreshMVCountIssueRatingsOther}, // 4 - this one is not tested in database nor in e2e
+	{RefreshMVCountIssueRatingsService},
+	{RefreshMVCountIssueRatingsServiceWithoutSupportGroup},
+	{RefreshMVCountIssueRatingsSupportGroup},
+	{RefreshMVCountIssueRatingsComponentVersion},
+	// The following two have to be called in sequence
+	{
+		RefreshMVVulnerabilityList,
+		RefreshMVVulnerabilityService, // 10 - this one is not tested in database nor in e2e
+	},
+	{RefreshMVComponentService},
+	{RefreshMVSingleComponentByServiceVulnerabilityCounts},
+	{RefreshMVAllComponentsByServiceVulnerabilityCounts},
 }
 
 func RefreshMVServiceIssueCounts(ctx context.Context, db DBTX) error {

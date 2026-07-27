@@ -7,7 +7,6 @@ DROP PROCEDURE IF EXISTS add_post_migration_procedure;
 DROP PROCEDURE IF EXISTS remove_post_migration_procedure;
 
 DROP PROCEDURE IF EXISTS refresh_mvServiceIssueCounts_proc;
-DROP PROCEDURE IF EXISTS refresh_mvServiceIssueCounts_proc;
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsServiceId_proc;
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsUniqueService_proc;
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsOther_proc;

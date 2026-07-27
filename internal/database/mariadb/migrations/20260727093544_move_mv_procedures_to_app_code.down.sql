@@ -601,7 +601,7 @@ BEGIN
 END;
 
 DROP PROCEDURE IF EXISTS refresh_mvAllComponentsByServiceVulnerabilityCounts_proc;
-CREATE PROCEDURE refreshAllComponentsByServiceVulnerabilityCounts_proc()
+CREATE PROCEDURE refresh_mvAllComponentsByServiceVulnerabilityCounts_proc()
 BEGIN
     SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
 

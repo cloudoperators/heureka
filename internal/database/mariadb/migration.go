@@ -128,7 +128,3 @@ func RunMigrations(cfg util.Config) error {
 
 	return nil
 }
-
-func (s *SqlDatabase) WaitPostMigrations() {
-	WaitMVEForFirstRun()
-}

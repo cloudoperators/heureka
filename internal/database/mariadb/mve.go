@@ -16,6 +16,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type MvEngine struct {
+	scheduler    *gocron.Scheduler
+	firstRunDone chan struct{}
+	once         sync.Once
+	cfg          util.Config
+}
+
+func NewMvEngine(cfg util.Config) *MvEngine {
+	return &MvEngine{
+		scheduler:    gocron.NewScheduler(time.UTC),
+		firstRunDone: make(chan struct{}),
+		cfg:          cfg,
+	}
+}
+
 func TriggerMVE(cfg util.Config) error {
 	db, err := NewDb(cfg)
 	if err != nil {
@@ -25,10 +40,8 @@ func TriggerMVE(cfg util.Config) error {
 	return runInBackground(db, MVProcedures).Wait()
 }
 
-func StartMVEScheduler(cfg util.Config) {
-	mve := getMVE()
-
-	periodMinutes := cfg.DBMvCalcPeriodMinutes
+func (mve *MvEngine) Start() {
+	periodMinutes := mve.cfg.DBMvCalcPeriodMinutes
 	if periodMinutes <= 0 {
 		periodMinutes = 200
 	}
@@ -36,7 +49,7 @@ func StartMVEScheduler(cfg util.Config) {
 	logrus.Debugf("MVE scheduling period set to %d minutes", periodMinutes)
 
 	_, err := mve.scheduler.Every(periodMinutes).Minutes().SingletonMode().Do(func() {
-		err := TriggerMVE(cfg)
+		err := TriggerMVE(mve.cfg)
 		if err != nil {
 			logrus.WithError(err).Error("MVE Trigger error")
 		}
@@ -55,46 +68,17 @@ func StartMVEScheduler(cfg util.Config) {
 	mve.scheduler.StartAsync()
 }
 
-func StopMVEScheduler() {
-	mve := getMVE()
-	mve.Shutdown()
+func (mve *MvEngine) Stop() {
+	mve.scheduler.Clear()
+	// The following method is not advisory as it may hang for a long time:
+	// mve.scheduler.Stop()
 }
 
-func WaitMVEForFirstRun() {
-	mve := getMVE()
+func (mve *MvEngine) WaitForFirstRun() {
 	<-mve.firstRunDone
 }
 
 ////////// Internals
-
-var mvEngine *MvEngine
-
-type MvEngine struct {
-	scheduler    *gocron.Scheduler
-	firstRunDone chan struct{}
-	once         sync.Once
-}
-
-func NewMvEngine() *MvEngine {
-	return &MvEngine{
-		scheduler:    gocron.NewScheduler(time.UTC),
-		firstRunDone: make(chan struct{}),
-	}
-}
-
-func getMVE() *MvEngine {
-	if mvEngine == nil {
-		mvEngine = NewMvEngine()
-	}
-
-	return mvEngine
-}
-
-func (mve *MvEngine) Shutdown() {
-	mve.scheduler.Clear()
-	// This is not advisory as it may hang for a long time:
-	// mve.scheduler.Stop()
-}
 
 type mveCtx struct {
 	wg   sync.WaitGroup
@@ -126,13 +110,16 @@ func (mc *mveCtx) Wait() error {
 	return nil
 }
 
-func runInBackground(db Db, procs []MVProcedure) *mveCtx {
+func runInBackground(db Db, procs [][]MVProcedure) *mveCtx {
 	mc := &mveCtx{}
 
-	for i, p := range procs {
+	for i, pl := range procs {
 		mc.wg.Go(func() {
-			if err := TxCall(p, context.Background(), db); err != nil {
-				mc.appendErrorMessage(fmt.Sprintf("(procIdx: %d): %v", i, err))
+			for j, p := range pl {
+				if err := TxCall(p, context.Background(), db); err != nil {
+					mc.appendErrorMessage(fmt.Sprintf("(procIdx: %d:%d): %v", i, j, err))
+					break
+				}
 			}
 		})
 	}
