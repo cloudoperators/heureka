@@ -53,13 +53,12 @@ func startTimeWindow(scanner *s.Scanner, processor *p.Processor, config s.Config
 	for endTime.Before(absoluteEnd) {
 		startYear, startMonth, startDay := startTime.Date()
 		endYear, endMonth, endDay := endTime.Date()
-		start := fmt.Sprintf("%d-%02d-%02dT23:59:59.000", startYear, startMonth, startDay)
+		start := fmt.Sprintf("%d-%02d-%02dT00:00:00.000", startYear, startMonth, startDay)
 		end := fmt.Sprintf("%d-%02d-%02dT23:59:59.000", endYear, endMonth, endDay)
 
 		scanAndProcess(scanner, processor, start, end)
-
-		startTime = startTime.AddDate(0, 2, 0)
-		endTime = endTime.AddDate(0, 2, 0)
+		startTime = endTime.AddDate(0, 0, 1)
+		endTime = startTime.AddDate(0, 2, 0)
 	}
 	return nil
 }
@@ -75,10 +74,37 @@ func scanAndProcess(scanner *s.Scanner, processor *p.Processor, yesterday string
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Couldn't get CVEs")
+		return
 	}
 
-	contextWithTimeout, _ := context.WithTimeout(context.Background(), time.Duration(2)*time.Hour)
-	processCVESConcurrently(contextWithTimeout, processor, cves)
+	contextWithTimeout, cancel := context.WithTimeout(context.Background(), time.Duration(2)*time.Hour)
+	defer cancel()
+	processCVESConcurrently(contextWithTimeout, processor, cves, false)
+}
+
+func updateAndProcess(scanner *s.Scanner, processor *p.Processor, modStart string, modEnd string) {
+	filter := models.CveFilter{
+		ModStartDate: modStart,
+		ModEndDate:   modEnd,
+	}
+
+	cves, err := scanner.GetCVEs(filter)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Couldn't get CVEs for update check")
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"count":    len(cves),
+		"modStart": modStart,
+		"modEnd":   modEnd,
+	}).Info("Starting update check for modified CVEs")
+
+	contextWithTimeout, cancel := context.WithTimeout(context.Background(), time.Duration(2)*time.Hour)
+	defer cancel()
+	processCVESConcurrently(contextWithTimeout, processor, cves, true)
 }
 
 type WorkerResult struct {
@@ -86,7 +112,7 @@ type WorkerResult struct {
 	CveId string
 }
 
-func processCVESConcurrently(ctx context.Context, processor *p.Processor, cves []models.CveItem) {
+func processCVESConcurrently(ctx context.Context, processor *p.Processor, cves []models.CveItem, updateMode bool) {
 	maxConcurrency := runtime.GOMAXPROCS(0)
 
 	// sem is an unbuffered channel meaning that sending onto it will block
@@ -120,7 +146,12 @@ func processCVESConcurrently(ctx context.Context, processor *p.Processor, cves [
 		go func(c models.CveItem) {
 			defer wg.Done()
 			<-sem // Wait for an available slot
-			err := processor.Process(&c.Cve)
+			var err error
+			if updateMode {
+				err = processor.ProcessOrUpdate(ctx, &c.Cve)
+			} else {
+				err = processor.Process(ctx, &c.Cve)
+			}
 			results <- WorkerResult{
 				Error: err,
 				CveId: c.Cve.Id,
@@ -144,7 +175,7 @@ func processCVESConcurrently(ctx context.Context, processor *p.Processor, cves [
 		} else {
 			log.WithFields(log.Fields{
 				"cve": result.CveId,
-			}).Error("Successfully processed CVE.")
+			}).Info("Successfully processed CVE.")
 		}
 	}
 }
@@ -183,9 +214,18 @@ func main() {
 				"error": err,
 			}).Error("Couldn't fetch CVEs for time window")
 		}
+	} else if scannerCfg.UpdateMode {
+		t := time.Now()
+		yearEnd, monthEnd, dayEnd := t.Date()
+		modEnd := fmt.Sprintf("%d-%02d-%02dT23:59:59.000", yearEnd, monthEnd, dayEnd)
+
+		yearStart, monthStart, dayStart := t.AddDate(0, 0, -scannerCfg.ReviewIntervalDays).Date()
+		modStart := fmt.Sprintf("%d-%02d-%02dT00:00:00.000", yearStart, monthStart, dayStart)
+
+		updateAndProcess(scanner, processor, modStart, modEnd)
 	} else {
 		t := time.Now()
-		yearToday, monthToday, dayToday := time.Now().Date()
+		yearToday, monthToday, dayToday := t.Date()
 		today := fmt.Sprintf("%d-%02d-%02dT23:59:59.000", yearToday, monthToday, dayToday)
 
 		yearYesterday, monthYesterday, dayYesterday := t.AddDate(0, 0, -2).Date()
