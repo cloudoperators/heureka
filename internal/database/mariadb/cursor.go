@@ -524,6 +524,17 @@ func WithPatch(order []entity.Order, p entity.Patch) NewCursor {
 	}
 }
 
+func WithComment(c entity.Comment) NewCursor {
+	return func(cursors *cursors) error {
+		cursors.fields = append(
+			cursors.fields,
+			Field{Name: entity.CommentId, Value: c.Id, Order: entity.OrderDirectionAsc},
+		)
+
+		return nil
+	}
+}
+
 func GetCursorQueryParameters(pagFirst *int, cursorFields []Field) []any {
 	var cursorParameters []any
 

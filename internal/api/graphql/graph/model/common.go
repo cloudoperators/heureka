@@ -25,6 +25,7 @@ const (
 	VulnerabilityNodeName     NodeName = "Vulnerability"
 	ImageNodeName             NodeName = "Image"
 	ImageVersionNodeName      NodeName = "ImageVersion"
+	SIEMAlertNodeName         NodeName = "SIEMAlert"
 )
 
 type NodeParent struct {

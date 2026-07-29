@@ -169,6 +169,11 @@ type Database interface {
 	GetAllPatchCursors(context.Context, *entity.PatchFilter, []entity.Order) ([]string, error)
 	CountPatches(context.Context, *entity.PatchFilter) (int64, error)
 
+	GetComments(context.Context, *entity.CommentFilter, []entity.Order) ([]entity.CommentResult, error)
+	GetAllCommentCursors(context.Context, *entity.CommentFilter, []entity.Order) ([]string, error)
+	CountComments(context.Context, *entity.CommentFilter) (int64, error)
+	CreateComment(*entity.Comment) (*entity.Comment, error)
+
 	CloseConnection() error
 
 	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error

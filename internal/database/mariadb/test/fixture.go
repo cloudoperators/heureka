@@ -40,6 +40,7 @@ type SeedCollection struct {
 	IssueRepositoryServiceRows []mariadb.IssueRepositoryServiceRow
 	RemediationRows            []mariadb.RemediationRow
 	PatchRows                  []mariadb.PatchRow
+	CommentRows                []mariadb.CommentRow
 }
 
 func (s *SeedCollection) GetComponentInstanceById(id int64) (mariadb.ComponentInstanceRow, bool) {
@@ -500,6 +501,7 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 	issueRepositoryServices := s.SeedIssueRepositoryServices(n, services, repos)
 	remediations := s.SeedRemediations(n, services, components, issues)
 	patches := s.SeedPatches(n, services, componentVersions)
+	comments := s.SeedComments(n, issueMatches, users)
 
 	return &SeedCollection{
 		IssueVariantRows:           issueVariants,
@@ -519,6 +521,7 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 		IssueRepositoryServiceRows: issueRepositoryServices,
 		RemediationRows:            remediations,
 		PatchRows:                  patches,
+		CommentRows:                comments,
 	}
 }
 
@@ -540,6 +543,7 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 	issueRepositoryServices := s.SeedIssueRepositoryServices(n/2, services, repos)
 	remediations := s.SeedRemediations(n, services, components, issues)
 	patches := s.SeedPatches(n, services, componentVersions)
+	comments := s.SeedComments(n, issueMatches, users)
 
 	return &SeedCollection{
 		IssueVariantRows:           issueVariants,
@@ -559,6 +563,7 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 		IssueRepositoryServiceRows: issueRepositoryServices,
 		RemediationRows:            remediations,
 		PatchRows:                  patches,
+		CommentRows:                comments,
 	}
 }
 
@@ -833,6 +838,7 @@ func (s *DatabaseSeeder) SeedDbWithSecurityEvents(n int) *SeedCollection {
 	owners := s.SeedOwners(1, services, users)
 	supportGroupServices := s.SeedSupportGroupServices(1, services, supportGroups)
 	issueMatches := s.SeedIssueMatches(n, issues, componentInstances, users)
+	comments := s.SeedComments(n, issueMatches, users)
 
 	return &SeedCollection{
 		IssueVariantRows:        issueVariants,
@@ -847,6 +853,7 @@ func (s *DatabaseSeeder) SeedDbWithSecurityEvents(n int) *SeedCollection {
 		SupportGroupRows:        supportGroups,
 		SupportGroupServiceRows: supportGroupServices,
 		OwnerRows:               owners,
+		CommentRows:             comments,
 	}
 }
 
@@ -1209,6 +1216,63 @@ func (s *DatabaseSeeder) SeedPatches(
 	}
 
 	return rows
+}
+
+func (s *DatabaseSeeder) SeedComments(
+	num int,
+	issueMatches []mariadb.IssueMatchRow,
+	users []mariadb.UserRow,
+) []mariadb.CommentRow {
+	var rows []mariadb.CommentRow
+
+	for i := range num {
+		issueMatch := issueMatches[i%len(issueMatches)]
+		user := users[i%len(users)]
+		c := mariadb.CommentRow{
+			Text:         sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+			IssueMatchId: issueMatch.Id,
+			CreatedBy:    user.Id,
+			UpdatedBy:    user.Id,
+		}
+
+		id, err := s.InsertFakeComment(c)
+		if err != nil {
+			logrus.WithField("seed_type", "Comment").Debug(err)
+			continue
+		}
+
+		c.Id = sql.NullInt64{Int64: id, Valid: true}
+		rows = append(rows, c)
+	}
+
+	return rows
+}
+
+func (s *DatabaseSeeder) InsertFakeComment(c mariadb.CommentRow) (int64, error) {
+	query := `
+		INSERT INTO Comment (
+			comment_text,
+			comment_issuematch_id,
+			comment_created_by,
+			comment_updated_by
+		) VALUES (
+			:comment_text,
+			:comment_issuematch_id,
+			:comment_created_by,
+			:comment_updated_by
+		)
+	`
+
+	return s.ExecPreparedNamed(query, c)
+}
+
+func NewFakeComment(issueMatchId, createdBy sql.NullInt64) mariadb.CommentRow {
+	return mariadb.CommentRow{
+		Text:         sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+		IssueMatchId: issueMatchId,
+		CreatedBy:    createdBy,
+		UpdatedBy:    createdBy,
+	}
 }
 
 func (s *DatabaseSeeder) InsertFakeIssue(issue mariadb.IssueRow) (int64, error) {

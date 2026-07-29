@@ -270,3 +270,7 @@ models:
     fields:
       componentCcrn:
         resolver: true
+  SIEMAlertNode:
+    fields:
+      comments:
+        resolver: true
