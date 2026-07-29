@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/app/comment"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -23,6 +24,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/app/siem_alert"
 	"github.com/cloudoperators/heureka/internal/app/support_group"
 	"github.com/cloudoperators/heureka/internal/app/user"
 	"github.com/cloudoperators/heureka/internal/cache"
@@ -46,6 +48,8 @@ type HeurekaApp struct {
 	user.UserHandler
 	remediation.RemediationHandler
 	patch.PatchHandler
+	comment.CommentHandler
+	siem_alert.SIEMAlertHandler
 
 	authz openfga.Authorization
 
@@ -95,12 +99,15 @@ func NewHeurekaApp(
 
 	er.Run(ctx)
 
+	ih := issue.NewIssueHandler(handlerContext)
+	imh := issue_match.NewIssueMatchHandler(handlerContext, sh)
+
 	heureka := &HeurekaApp{
 		ComponentHandler:         component.NewComponentHandler(handlerContext),
 		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(handlerContext),
 		ComponentVersionHandler:  component_version.NewComponentVersionHandler(handlerContext),
-		IssueHandler:             issue.NewIssueHandler(handlerContext),
-		IssueMatchHandler:        issue_match.NewIssueMatchHandler(handlerContext, sh),
+		IssueHandler:             ih,
+		IssueMatchHandler:        imh,
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
 		ScannerRunHandler:        scanner_run.NewScannerRunHandler(handlerContext),
@@ -110,6 +117,8 @@ func NewHeurekaApp(
 		UserHandler:              user.NewUserHandler(handlerContext),
 		RemediationHandler:       remediationHandler,
 		PatchHandler:             patch.NewPatchHandler(handlerContext),
+		CommentHandler:           comment.NewCommentHandler(handlerContext),
+		SIEMAlertHandler:         siem_alert.NewSIEMAlertHandler(handlerContext, imh, ivh, ih),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
 		cache:                    handlerContext.Cache,
