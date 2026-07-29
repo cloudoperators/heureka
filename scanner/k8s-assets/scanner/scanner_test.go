@@ -18,6 +18,79 @@ var _ = Describe("Scanner", func() {
 		s = scanner.Scanner{}
 	})
 
+	Describe("GetPodInfo", func() {
+		Context("pod with both regular and init containers (sidecar pattern)", func() {
+			It("returns ContainerInfo entries for all containers including init sidecars", func() {
+				pod := v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:         "unbound2-5546bc894-kwdjr",
+						GenerateName: "unbound2-5546bc894-",
+						OwnerReferences: []metav1.OwnerReference{
+							{Kind: "ReplicaSet", Name: "unbound2-5546bc894"},
+						},
+					},
+					Status: v1.PodStatus{
+						ContainerStatuses: []v1.ContainerStatus{
+							{
+								Name:    "unbound",
+								Image:   "keppel.eu-de-1.cloud.sap/ccloud/unbound:20260625084743",
+								ImageID: "keppel.eu-de-1.cloud.sap/ccloud/unbound@sha256:af51ddd94eb85b2e380eaca8e443ece1e08a3ebb5f1a5faba871e0ba8c787ce8",
+							},
+						},
+						InitContainerStatuses: []v1.ContainerStatus{
+							{
+								Name:    "metric",
+								Image:   "keppel.eu-de-1.cloud.sap/ccloud/unbound_exporter:20260615060514",
+								ImageID: "keppel.eu-de-1.cloud.sap/ccloud/unbound_exporter@sha256:6128f0d64f4299873b6f0c3b05a5dd1c95272be21d27b0594043d1021a3c94ec",
+							},
+							{
+								Name:    "dnstap",
+								Image:   "keppel.eu-de-1.cloud.sap/ccloud/dnstap:20260615060514",
+								ImageID: "keppel.eu-de-1.cloud.sap/ccloud/dnstap@sha256:40d567e3ca6d80ebaead2c4c0672f597a1aad0243e7ca38b23e375233ff8c204",
+							},
+							{
+								Name:    "bind-rpz-proxy",
+								Image:   "keppel.eu-de-1.cloud.sap/ccloud/bind-rpz-proxy:20260615060514",
+								ImageID: "keppel.eu-de-1.cloud.sap/ccloud/bind-rpz-proxy@sha256:2200d68991754ae04ff1096add2af78be164f9c6328eba90ccb81e610f3e6e9d",
+							},
+						},
+					},
+				}
+
+				podInfo := s.GetPodInfo(pod)
+
+				Expect(podInfo.Containers).To(HaveLen(4))
+
+				names := make([]string, 0, len(podInfo.Containers))
+				for _, c := range podInfo.Containers {
+					names = append(names, c.Name)
+				}
+				Expect(names).To(ConsistOf("unbound", "metric", "dnstap", "bind-rpz-proxy"))
+			})
+		})
+
+		Context("pod with only regular containers", func() {
+			It("returns ContainerInfo entries for all regular containers", func() {
+				pod := v1.Pod{
+					Status: v1.PodStatus{
+						ContainerStatuses: []v1.ContainerStatus{
+							{
+								Name:    "app",
+								Image:   "keppel.eu-de-1.cloud.sap/ccloud/app:latest",
+								ImageID: "keppel.eu-de-1.cloud.sap/ccloud/app@sha256:aabbcc",
+							},
+						},
+					},
+				}
+
+				podInfo := s.GetPodInfo(pod)
+
+				Expect(podInfo.Containers).To(HaveLen(1))
+				Expect(podInfo.Containers[0].Name).To(Equal("app"))
+			})
+		})
+	})
+
 	Describe("GroupPodsByGenerateName", func() {
 		Context("standalone pod (no controller, empty GenerateName)", func() {
 			It("uses Name as the group key", func() {
