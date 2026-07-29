@@ -41,6 +41,7 @@ type Db interface {
 	Query(query string, args ...any) (SqlRows, error)
 	QueryContext(ctx context.Context, query string, args ...any) (SqlRows, error)
 	QueryRow(query string, args ...any) *sql.Row
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
 func NewDb(cfg util.Config) (Db, error) {

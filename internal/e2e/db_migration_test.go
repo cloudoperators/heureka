@@ -4,6 +4,7 @@
 package e2e_test
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -33,9 +34,6 @@ var migrationABFiles embed.FS
 
 //go:embed migrations/*_mvTestTable.*.sql
 var migrationMvTestTableMigrationFiles embed.FS
-
-//go:embed migrations/*_add_post_migration.*.sql
-var migrationAddPostMigrationMigrationFiles embed.FS
 
 // Merge multiple fs.FS into one MapFS with "migrations/" prefix
 func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
@@ -71,6 +69,8 @@ func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
 }
 
 func setDbTestMigration(migrationFiles fs.FS) {
+	setMvProceduresInMVE(nil)
+
 	mariadb.MigrationFs = migrationFiles
 }
 
@@ -82,20 +82,20 @@ func setDbABMigration() {
 	setDbTestMigration(&migrationABFiles)
 }
 
-func addDbMvTestTableMigration() {
-	mapFS, err := MergeToMapFS(mariadb.MigrationFs, migrationMvTestTableMigrationFiles)
-	Expect(err).To(BeNil())
-	setDbTestMigration(&mapFS)
+func setDbMvTestTableMigration() {
+	setDbTestMigration(&migrationMvTestTableMigrationFiles)
 }
 
-func addDbMvTestTableAndAddPostMigrationMigration() {
-	mapFS, err := MergeToMapFS(
-		mariadb.MigrationFs,
-		migrationMvTestTableMigrationFiles,
-		migrationAddPostMigrationMigrationFiles,
-	)
-	Expect(err).To(BeNil())
-	setDbTestMigration(&mapFS)
+func setMvProceduresInMVE(procs [][]mariadb.MVProcedure) {
+	prev := mariadb.MVProcedures
+
+	DeferCleanup(func() { mariadb.MVProcedures = prev })
+
+	mariadb.MVProcedures = procs
+}
+
+func setMvTestTableInMVE() {
+	setMvProceduresInMVE([][]mariadb.MVProcedure{{RefreshMVTestData}})
 }
 
 func extractVersion(filename string) string {
@@ -224,11 +224,10 @@ func (dbmt *DbMigrationTest) dbVersionIsB() {
 func (dbmt *DbMigrationTest) dbVersionIsMvTestTable() {
 	dbmt.dbVersionShouldBeZero()
 	dbmt.dbShouldNotContainPostMigrationProcedureRefreshTable()
-	addDbMvTestTableMigration()
+	setDbMvTestTableMigration()
 	dbmt.createHeurekaServer()
 	dbmt.dbShouldNotContainPostMigrationProcedureData()
 	dbmt.dbVersionShouldBeMvTestTable()
-	addDbMvTestTableAndAddPostMigrationMigration()
 }
 
 func (dbmt *DbMigrationTest) createHeurekaServer() {
@@ -239,6 +238,14 @@ func (dbmt *DbMigrationTest) dbShouldContainABMigrations() {
 	dbmt.dbShouldContainAMigrationTable()
 	dbmt.dbShouldContainBMigrationTable()
 	dbmt.dbVersionShouldBeB()
+}
+
+func RefreshMVTestData(ctx context.Context, db mariadb.DBTX) error {
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO mvTestData (test_id)
+		VALUES (10)`)
+
+	return err
 }
 
 func (dbmt *DbMigrationTest) dbShouldContainPostMigrationProcedureData() {
@@ -367,6 +374,7 @@ var _ = Describe(
 			func() {
 				It("executes post migration procedure after successful migration", func() {
 					migrationTest.dbVersionIsMvTestTable()
+					setMvTestTableInMVE()
 					migrationTest.createHeurekaServer()
 					waitForPostMigration()
 					migrationTest.dbShouldContainPostMigrationProcedureData()

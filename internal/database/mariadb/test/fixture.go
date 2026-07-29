@@ -4,6 +4,7 @@
 package test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"math/rand"
@@ -17,7 +18,6 @@ import (
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/util"
-	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -366,11 +366,11 @@ func (s *SeedCollection) FindMatchingSupportGroupAndIssueMatch() (mariadb.Suppor
 }
 
 type DatabaseSeeder struct {
-	db *sqlx.DB
+	db mariadb.Db
 }
 
 func NewDatabaseSeeder(cfg util.Config) (*DatabaseSeeder, error) {
-	db, err := mariadb.Connect(cfg)
+	db, err := mariadb.NewDb(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -2212,44 +2212,97 @@ func (s *DatabaseSeeder) Clear() error {
 }
 
 func (s *DatabaseSeeder) RefreshServiceIssueCounters() error {
-	_, err := s.db.Exec(`
-		CALL refresh_mvServiceIssueCounts_proc();
-	`)
+	// 1
+	return mariadb.TxCall(mariadb.RefreshMVServiceIssueCounts, context.Background(), s.db)
+}
 
-	return err
+func (s *DatabaseSeeder) RefreshCountIssueRatingsServiceId() error {
+	// 2
+	return mariadb.TxCall(mariadb.RefreshMVCountIssueRatingsServiceId, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshCountIssueRatingsUniqueService() error {
+	// 3
+	return mariadb.TxCall(mariadb.RefreshMVCountIssueRatingsUniqueService, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshCountIssueRatingsOther() error {
+	// 4
+	return mariadb.TxCall(mariadb.RefreshMVCountIssueRatingsOther, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshCountIssueRatingsService() error {
+	// 5
+	return mariadb.TxCall(mariadb.RefreshMVCountIssueRatingsService, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshCountIssueRatingsServiceWithoutSupportGroup() error {
+	// 6
+	return mariadb.TxCall(mariadb.RefreshMVCountIssueRatingsServiceWithoutSupportGroup, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshCountIssueRatingsSupportGroup() error {
+	// 7
+	return mariadb.TxCall(mariadb.RefreshMVCountIssueRatingsSupportGroup, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshCountIssueRatingsComponentVersion() error {
+	// 8
+	return mariadb.TxCall(mariadb.RefreshMVCountIssueRatingsComponentVersion, context.Background(), s.db)
 }
 
 func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
-	_, err := s.db.Exec(`
-		CALL refresh_mvCountIssueRatingsUniqueService_proc();
-		CALL refresh_mvCountIssueRatingsService_proc();
-		CALL refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc();
-		CALL refresh_mvCountIssueRatingsSupportGroup_proc();
-		CALL refresh_mvCountIssueRatingsComponentVersion_proc();
-		CALL refresh_mvCountIssueRatingsServiceId_proc();
-		CALL refresh_mvCountIssueRatingsOther_proc();
-	`)
+	if err := s.RefreshCountIssueRatingsUniqueService(); err != nil {
+		return err
+	}
 
-	return err
+	if err := s.RefreshCountIssueRatingsOther(); err != nil {
+		return err
+	}
+
+	if err := s.RefreshCountIssueRatingsService(); err != nil {
+		return err
+	}
+
+	if err := s.RefreshCountIssueRatingsServiceWithoutSupportGroup(); err != nil {
+		return err
+	}
+
+	if err := s.RefreshCountIssueRatingsSupportGroup(); err != nil {
+		return err
+	}
+
+	if err := s.RefreshCountIssueRatingsComponentVersion(); err != nil {
+		return err
+	}
+
+	return s.RefreshCountIssueRatingsServiceId()
 }
 
 func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
-	_, err := s.db.Exec(`
-		CALL refresh_mvSingleComponentByServiceVulnerabilityCounts_proc();
-		CALL refresh_mvAllComponentsByServiceVulnerabilityCounts_proc();
-	`)
+	if err := s.RefreshSingleComponentByServiceVulnerabilityCounts(); err != nil {
+		return err
+	}
 
-	return err
+	return s.RefreshAllComponentsByServiceVulnerabilityCounts()
 }
 
-func (s *DatabaseSeeder) RefreshMvVulnerabilityList() error {
-	_, err := s.db.Exec(`CALL refresh_mvVulnerabilityList_proc();`)
-
-	return err
+func (s *DatabaseSeeder) RefreshMVVulnerabilityList() error {
+	// 9
+	return mariadb.TxCall(mariadb.RefreshMVVulnerabilityList, context.Background(), s.db)
 }
 
-func (s *DatabaseSeeder) RefreshMvComponentService() error {
-	_, err := s.db.Exec(`CALL refresh_mvComponentService_proc();`)
+func (s *DatabaseSeeder) RefreshMVComponentService() error {
+	// 11
+	return mariadb.TxCall(mariadb.RefreshMVComponentService, context.Background(), s.db)
+}
 
-	return err
+func (s *DatabaseSeeder) RefreshSingleComponentByServiceVulnerabilityCounts() error {
+	// 12a
+	return mariadb.TxCall(mariadb.RefreshMVSingleComponentByServiceVulnerabilityCounts, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshAllComponentsByServiceVulnerabilityCounts() error {
+	// 12b
+	return mariadb.TxCall(mariadb.RefreshMVAllComponentsByServiceVulnerabilityCounts, context.Background(), s.db)
 }

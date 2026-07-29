@@ -710,7 +710,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 			err = seeder.RefreshComponentVulnerabilityCounts()
 			Expect(err).To(BeNil())
 
-			err = seeder.RefreshMvComponentService()
+			err = seeder.RefreshMVComponentService()
 			Expect(err).To(BeNil())
 		})
 		It("returns the same results as the legacy path when ordering desc", func() {

@@ -517,10 +517,10 @@ func (it *imageTest) seed10Entries() {
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
 
-	err = it.seeder.RefreshMvComponentService()
+	err = it.seeder.RefreshMVComponentService()
 	Expect(err).To(BeNil())
 
-	err = it.seeder.RefreshMvVulnerabilityList()
+	err = it.seeder.RefreshMVVulnerabilityList()
 	Expect(err).To(BeNil())
 }
 
@@ -574,7 +574,7 @@ func (it *imageTest) seedTieBreakerData() {
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
 
-	err = it.seeder.RefreshMvComponentService()
+	err = it.seeder.RefreshMVComponentService()
 	Expect(err).To(BeNil())
 }
 
@@ -705,10 +705,10 @@ func (it *imageTest) seedServiceScopedVulnData() string {
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
 
-	err = it.seeder.RefreshMvComponentService()
+	err = it.seeder.RefreshMVComponentService()
 	Expect(err).To(BeNil())
 
-	err = it.seeder.RefreshMvVulnerabilityList()
+	err = it.seeder.RefreshMVVulnerabilityList()
 	Expect(err).To(BeNil())
 
 	return svcA.CCRN.String
@@ -767,10 +767,10 @@ func (it *imageTest) seedRatingMismatchData() string {
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
 
-	err = it.seeder.RefreshMvComponentService()
+	err = it.seeder.RefreshMVComponentService()
 	Expect(err).To(BeNil())
 
-	err = it.seeder.RefreshMvVulnerabilityList()
+	err = it.seeder.RefreshMVVulnerabilityList()
 	Expect(err).To(BeNil())
 
 	return svc.CCRN.String

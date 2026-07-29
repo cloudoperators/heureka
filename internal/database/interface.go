@@ -180,8 +180,6 @@ type Database interface {
 
 	Autopatch(context.Context) (bool, error)
 
-	WaitPostMigrations() error
-
 	// Batch pre-load methods for GetVulnerabilities query optimization
 	GetMaxSeverityByIssueIDs(context.Context, []int64) (map[int64]string, error)
 	GetEarliestRemediationByIssueIDs(context.Context, []int64) (map[int64]time.Time, error)

@@ -177,3 +177,8 @@ func (tdb *TraceDb) QueryContext(ctx context.Context, query string, args ...any)
 	defer NewTrace("QueryContext", query).exitTrace()
 	return tdb.db.QueryContext(ctx, query, args...)
 }
+
+func (tdb *TraceDb) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	defer NewTrace("BeginTx", "").exitTrace()
+	return tdb.db.BeginTx(ctx, opts)
+}

@@ -29,6 +29,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/user"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 )
@@ -62,6 +63,8 @@ type HeurekaApp struct {
 	wg  *sync.WaitGroup
 
 	profiler *profiler.Profiler
+
+	mve *mariadb.MvEngine
 }
 
 func NewHeurekaApp(
@@ -69,6 +72,7 @@ func NewHeurekaApp(
 	wg *sync.WaitGroup,
 	db database.Database,
 	cfg util.Config,
+	mve *mariadb.MvEngine,
 ) *HeurekaApp {
 	cache := NewAppCache(ctx, wg, cfg)
 	enableLogs := true
@@ -126,6 +130,7 @@ func NewHeurekaApp(
 		authz:                    handlerContext.Authz,
 		wg:                       wg,
 		profiler:                 profiler,
+		mve:                      mve,
 	}
 
 	heureka.SubscribeHandlers()
@@ -298,6 +303,6 @@ func (h HeurekaApp) GetCache() cache.Cache {
 	return h.cache
 }
 
-func (h HeurekaApp) WaitPostMigrations() error {
-	return h.database.WaitPostMigrations()
+func (h HeurekaApp) WaitPostMigrations() {
+	h.mve.WaitForFirstRun()
 }

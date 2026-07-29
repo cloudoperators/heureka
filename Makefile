@@ -108,6 +108,9 @@ install-golangci-lint:
 lint: install-golangci-lint
 	golangci-lint run
 
+lint-fix: install-golangci-lint
+	golangci-lint run --fix
+
 install-pre-commit:
 	@echo "Checking pre-commit installation..."
 

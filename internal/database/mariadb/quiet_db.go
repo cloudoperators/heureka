@@ -57,3 +57,7 @@ func (qdb *QuietDb) QueryContext(ctx context.Context, query string, args ...any)
 func (qdb *QuietDb) QueryRow(query string, args ...any) *sql.Row {
 	return qdb.db.QueryRow(query, args...)
 }
+
+func (qdb *QuietDb) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	return qdb.db.BeginTx(ctx, opts)
+}

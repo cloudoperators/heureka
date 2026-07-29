@@ -51,6 +51,8 @@ type Server struct {
 
 	app  *app.HeurekaApp
 	sigs chan os.Signal
+
+	mve *mariadb.MvEngine
 }
 
 func NewServer(cfg util.Config) *Server {
@@ -63,12 +65,15 @@ func NewServer(cfg util.Config) *Server {
 		logrus.WithError(err).Fatalln("Error while Migrating Db")
 	}
 
+	mve := mariadb.NewMvEngine(cfg)
+	mve.Start()
+
 	db, err := mariadb.NewSqlDatabase(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
 
-	application := app.NewHeurekaApp(ctx, &wg, db, cfg)
+	application := app.NewHeurekaApp(ctx, &wg, db, cfg, mve)
 
 	var ai *aiapi.AIAPI
 
@@ -95,6 +100,7 @@ func NewServer(cfg util.Config) *Server {
 		shutdownFunc: cancel,
 		wg:           &wg,
 		sigs:         make(chan os.Signal, 1),
+		mve:          mve,
 	}
 
 	// kill (no param) default send syscanll.SIGTERM
@@ -217,6 +223,8 @@ func (s *Server) BlockingStop() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
+
+	s.mve.Stop()
 
 	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)

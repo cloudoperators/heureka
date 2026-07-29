@@ -10,6 +10,7 @@ require (
 	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-co-op/gocron v1.37.0
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/goark/go-cvss v1.6.7
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -52,9 +53,11 @@ require (
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/urfave/cli/v3 v3.8.0 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260319201613-d00831a3d3e7 // indirect
