@@ -48,37 +48,39 @@ func RefreshMVServiceIssueCounts(ctx context.Context, db DBTX) error {
 		Select(
 			"S.service_id",
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Critical'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'Critical'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'High'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'High'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Medium'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'Medium'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Low'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'Low'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'None'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id)
+				WHEN IM.issuematch_rating = 'None'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id)
 			END)`,
 		).
 		From("Service S").
 		LeftJoin(`ComponentInstance CI
 			ON S.service_id = CI.componentinstance_service_id
 			AND CI.componentinstance_deleted_at IS NULL`).
+		LeftJoin(`ComponentVersion CV
+			ON CI.componentinstance_component_version_id = CV.componentversion_id
+			AND CV.componentversion_deleted_at IS NULL`).
 		LeftJoin(`IssueMatch IM
 			ON CI.componentinstance_id = IM.issuematch_component_instance_id
 			AND IM.issuematch_deleted_at IS NULL`).
 		LeftJoin(`Issue I
 			ON IM.issuematch_issue_id = I.issue_id
 			AND I.issue_deleted_at IS NULL`).
-		LeftJoin("IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id").
 		Where("S.service_deleted_at IS NULL").
 		Where(`
 			NOT EXISTS (
@@ -396,35 +398,35 @@ func RefreshMVCountIssueRatingsService(ctx context.Context, db DBTX) error {
 		Select(
 			`COALESCE(SG.supportgroup_ccrn, 'UNKNOWN')`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Critical'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'Critical'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'High'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'High'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Medium'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'Medium'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Low'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'Low'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'None'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'None'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			"1",
 		).
-		From("Issue I").
-		LeftJoin("IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id").
-		RightJoin("IssueMatch IM ON I.issue_id = IM.issuematch_issue_id").
-		LeftJoin("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id").
-		LeftJoin("Service S ON S.service_id = CI.componentinstance_service_id").
-		LeftJoin("SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id").
-		LeftJoin("SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id").
-		Where("I.issue_deleted_at IS NULL").
+		From("Service S").
+		LeftJoin("ComponentInstance CI ON S.service_id = CI.componentinstance_service_id AND CI.componentinstance_deleted_at IS NULL").
+		LeftJoin("ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id AND CV.componentversion_deleted_at IS NULL").
+		LeftJoin("IssueMatch IM ON CI.componentinstance_id = IM.issuematch_component_instance_id AND IM.issuematch_deleted_at IS NULL").
+		LeftJoin("Issue I ON IM.issuematch_issue_id = I.issue_id AND I.issue_deleted_at IS NULL").
+		LeftJoin("SupportGroupService SGS ON SGS.supportgroupservice_service_id = S.service_id AND SGS.supportgroupservice_deleted_at IS NULL").
+		LeftJoin("SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id AND SG.supportgroup_deleted_at IS NULL").
+		Where("S.service_deleted_at IS NULL").
 		Where(sq.Expr(`
 			NOT EXISTS (
 				SELECT 1
@@ -493,33 +495,33 @@ func RefreshMVCountIssueRatingsServiceWithoutSupportGroup(ctx context.Context, d
 		Select(
 			"1",
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Critical'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'Critical'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'High'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'High'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Medium'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'Medium'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Low'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'Low'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'None'
-				THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)
+				WHEN IM.issuematch_rating = 'None'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			"1",
 		).
-		From("Issue I").
-		LeftJoin("IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id").
-		RightJoin("IssueMatch IM ON I.issue_id = IM.issuematch_issue_id").
-		LeftJoin("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id").
-		LeftJoin("Service S ON S.service_id = CI.componentinstance_service_id").
-		Where("I.issue_deleted_at IS NULL").
+		From("Service S").
+		LeftJoin("ComponentInstance CI ON S.service_id = CI.componentinstance_service_id AND CI.componentinstance_deleted_at IS NULL").
+		LeftJoin("ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id AND CV.componentversion_deleted_at IS NULL").
+		LeftJoin("IssueMatch IM ON CI.componentinstance_id = IM.issuematch_component_instance_id AND IM.issuematch_deleted_at IS NULL").
+		LeftJoin("Issue I ON IM.issuematch_issue_id = I.issue_id AND I.issue_deleted_at IS NULL").
+		Where("S.service_deleted_at IS NULL").
 		Where(sq.Expr(`
 			NOT EXISTS (
 				SELECT 1
@@ -587,80 +589,41 @@ func RefreshMVCountIssueRatingsSupportGroup(ctx context.Context, db DBTX) error 
 		Select(
 			`COALESCE(SG.supportgroup_ccrn, 'UNKNOWN')`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Critical'
-				THEN CONCAT(
-					CI.componentinstance_component_version_id,
-					',',
-					I.issue_id,
-					',',
-					SGS.supportgroupservice_service_id,
-					',',
-					SG.supportgroup_id
-				)
+				WHEN IM.issuematch_rating = 'Critical'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'High'
-				THEN CONCAT(
-					CI.componentinstance_component_version_id,
-					',',
-					I.issue_id,
-					',',
-					SGS.supportgroupservice_service_id,
-					',',
-					SG.supportgroup_id
-				)
+				WHEN IM.issuematch_rating = 'High'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Medium'
-				THEN CONCAT(
-					CI.componentinstance_component_version_id,
-					',',
-					I.issue_id,
-					',',
-					SGS.supportgroupservice_service_id,
-					',',
-					SG.supportgroup_id
-				)
+				WHEN IM.issuematch_rating = 'Medium'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Low'
-				THEN CONCAT(
-					CI.componentinstance_component_version_id,
-					',',
-					I.issue_id,
-					',',
-					SGS.supportgroupservice_service_id,
-					',',
-					SG.supportgroup_id
-				)
+				WHEN IM.issuematch_rating = 'Low'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'None'
-				THEN CONCAT(
-					CI.componentinstance_component_version_id,
-					',',
-					I.issue_id,
-					',',
-					SGS.supportgroupservice_service_id,
-					',',
-					SG.supportgroup_id
-				)
+				WHEN IM.issuematch_rating = 'None'
+				THEN CONCAT(CV.componentversion_component_id, ',', I.issue_id, ',', S.service_id)
 			END)`,
 			"1",
 		).
-		From("Issue I").
-		LeftJoin("IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id").
-		LeftJoin("IssueMatch IM ON I.issue_id = IM.issuematch_issue_id").
-		LeftJoin("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id").
-		LeftJoin("SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id").
-		LeftJoin("SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id").
-		Where("I.issue_deleted_at IS NULL").
-		Where("CI.componentinstance_deleted_at IS NULL").
+		From("Service S").
+		LeftJoin("ComponentInstance CI ON S.service_id = CI.componentinstance_service_id AND CI.componentinstance_deleted_at IS NULL").
+		LeftJoin("ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id AND CV.componentversion_deleted_at IS NULL").
+		LeftJoin("IssueMatch IM ON CI.componentinstance_id = IM.issuematch_component_instance_id AND IM.issuematch_deleted_at IS NULL").
+		LeftJoin("Issue I ON IM.issuematch_issue_id = I.issue_id AND I.issue_deleted_at IS NULL").
+		LeftJoin("SupportGroupService SGS ON SGS.supportgroupservice_service_id = S.service_id AND SGS.supportgroupservice_deleted_at IS NULL").
+		LeftJoin("SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id AND SG.supportgroup_deleted_at IS NULL").
+		Where("S.service_deleted_at IS NULL").
+		Where("IM.issuematch_id IS NOT NULL").
 		Where(sq.Expr(`
 			NOT EXISTS (
 				SELECT 1
 				FROM Remediation R
-				WHERE R.remediation_service_id = SGS.supportgroupservice_service_id
+				WHERE R.remediation_service_id = S.service_id
 				  AND R.remediation_issue_id = I.issue_id
 				  AND R.remediation_deleted_at IS NULL
 				  AND (
