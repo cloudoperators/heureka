@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -345,6 +346,16 @@ func (r *mutationResolver) createIssueMatchIfCI(
 			"CreateSIEMAlertMutationResolver",
 			"Internal Error - when creating issue match",
 		)
+	}
+
+	if ci.ComponentVersionId != 0 {
+		_, err = r.App.AddComponentVersionToIssue(ctx, issue.Id, ci.ComponentVersionId)
+		if err != nil && !appErrors.IsAlreadyExists(err) {
+			return baseResolver.NewResolverError(
+				"CreateSIEMAlertMutationResolver",
+				"Internal Error - when linking issue to component version",
+			)
+		}
 	}
 
 	return nil

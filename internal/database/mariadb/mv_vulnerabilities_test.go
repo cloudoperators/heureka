@@ -394,6 +394,16 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			componentInstance := ci.AsComponentInstance()
 			newCi, err := db.CreateComponentInstance(&componentInstance)
 			Expect(err).To(BeNil())
+
+			existingIM := seedCollection.IssueMatchRows[0]
+			newIM := test.NewFakeIssueMatch()
+			newIM.IssueId = existingIM.IssueId
+			newIM.Rating = existingIM.Rating
+			newIM.UserId = existingIM.UserId
+			newIM.ComponentInstanceId = sql.NullInt64{Int64: newCi.Id, Valid: true}
+			_, err = seeder.InsertFakeIssueMatch(newIM)
+			Expect(err).To(BeNil())
+
 			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 
 			counts, err := db.CountIssueRatings(context.Background(),
