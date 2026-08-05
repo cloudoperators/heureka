@@ -43,6 +43,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		NewFilterProperty("I.issue_primary_name = ?", func(filter *entity.IssueMatchFilter) any { return filter.PrimaryName }),
 		NewFilterProperty("C.component_ccrn = ?", func(filter *entity.IssueMatchFilter) any { return filter.ComponentCCRN }),
 		NewFilterProperty("I.issue_type = ?", func(filter *entity.IssueMatchFilter) any { return filter.IssueType }),
+		NewFilterProperty("CI.componentinstance_region = ?", func(filter *entity.IssueMatchFilter) any { return filter.Region }),
 		NewFilterProperty("U.user_name = ?", func(filter *entity.IssueMatchFilter) any { return filter.ServiceOwnerUsername }),
 		NewFilterProperty("U.user_unique_user_id = ?", func(filter *entity.IssueMatchFilter) any { return filter.ServiceOwnerUniqueUserId }),
 		NewNFilterProperty(
