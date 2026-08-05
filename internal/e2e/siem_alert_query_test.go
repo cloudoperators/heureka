@@ -276,6 +276,86 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				Expect(respData.SIEMAlerts.TotalCount).To(Equal(len(seedCollection.GetValidIssueMatchRows())))
 			})
 		})
+
+		Context("sorting by discoveryDate", func() {
+			It("returns all alerts ordered by discoveryDate ascending", func() {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/withOrder.graphql",
+					map[string]any{
+						"filter": map[string]any{},
+						"first":  20,
+						"after":  "",
+						"orderBy": []any{
+							map[string]any{
+								"by":        "discoveryDate",
+								"direction": "asc",
+							},
+						},
+					},
+					nil,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respData.SIEMAlerts.TotalCount).To(Equal(len(seedCollection.GetValidIssueMatchRows())))
+				Expect(len(respData.SIEMAlerts.Edges)).To(BeNumerically(">", 0))
+
+				for _, edge := range respData.SIEMAlerts.Edges {
+					Expect(edge.Node.DiscoveryDate).ToNot(BeNil(), "SIEMAlertNode has a discoveryDate")
+				}
+			})
+
+			It("returns all alerts ordered by discoveryDate descending", func() {
+				respAsc, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/withOrder.graphql",
+					map[string]any{
+						"filter": map[string]any{},
+						"first":  20,
+						"after":  "",
+						"orderBy": []any{
+							map[string]any{
+								"by":        "discoveryDate",
+								"direction": "asc",
+							},
+						},
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				respDesc, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/withOrder.graphql",
+					map[string]any{
+						"filter": map[string]any{},
+						"first":  20,
+						"after":  "",
+						"orderBy": []any{
+							map[string]any{
+								"by":        "discoveryDate",
+								"direction": "desc",
+							},
+						},
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respDesc.SIEMAlerts.TotalCount).To(Equal(respAsc.SIEMAlerts.TotalCount))
+
+				if len(respAsc.SIEMAlerts.Edges) > 1 {
+					firstAsc := *respAsc.SIEMAlerts.Edges[0].Node.DiscoveryDate
+					firstDesc := *respDesc.SIEMAlerts.Edges[0].Node.DiscoveryDate
+					Expect(firstAsc <= firstDesc).To(BeTrue(), "asc first entry should be <= desc first entry")
+				}
+			})
+		})
 	})
 
 	When("the database has SecurityEvent IssueMatches split across two distinct services", func() {
