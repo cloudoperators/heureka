@@ -972,6 +972,8 @@ func (sao *SIEMAlertOrderBy) ToOrderEntity() entity.Order {
 		switch *sao.By {
 		case SIEMAlertOrderByFieldSeverity:
 			order.By = entity.IssueMatchRating
+		case SIEMAlertOrderByFieldDiscoveryDate:
+			order.By = entity.IssueMatchCreatedAt
 		}
 	}
 
