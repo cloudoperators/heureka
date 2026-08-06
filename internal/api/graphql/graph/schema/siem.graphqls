@@ -75,4 +75,5 @@ input SIEMAlertOrderBy {
 
 enum SIEMAlertOrderByField {
     severity
+    discoveryDate
 }

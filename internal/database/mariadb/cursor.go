@@ -138,6 +138,15 @@ func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
 						Order: o.Direction,
 					},
 				)
+			case entity.IssueMatchCreatedAt:
+				cursors.fields = append(
+					cursors.fields,
+					Field{
+						Name:  entity.IssueMatchCreatedAt,
+						Value: im.CreatedAt,
+						Order: o.Direction,
+					},
+				)
 			case entity.ComponentInstanceCcrn:
 				if im.ComponentInstance != nil {
 					cursors.fields = append(cursors.fields, Field{
