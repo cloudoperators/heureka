@@ -40,6 +40,7 @@ func SIEMAlertBaseResolver(
 		IncludeService:           true,
 		ServiceCCRN:              filter.Service,
 		SupportGroupCCRN:         filter.SupportGroup,
+		Region:                   filter.Region,
 		SeverityValue: lo.FilterMap(
 			filter.Severity,
 			func(item *model.SeverityValues, _ int) (*string, bool) {

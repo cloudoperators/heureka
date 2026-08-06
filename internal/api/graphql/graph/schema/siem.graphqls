@@ -66,6 +66,7 @@ input SIEMAlertFilter {
     service: [String]
     status: [IssueMatchStatusValues]
     supportGroup: [String]
+    region: [String]
 }
 
 input SIEMAlertOrderBy {

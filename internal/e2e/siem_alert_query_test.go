@@ -4,6 +4,8 @@
 package e2e_test
 
 import (
+	"database/sql"
+
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -502,6 +504,91 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				Expect(respSg2.SIEMAlerts.TotalCount).To(Equal(matchesPerService))
 
 				Expect(respSg1.SIEMAlerts.TotalCount + respSg2.SIEMAlerts.TotalCount).
+					To(Equal(respAll.SIEMAlerts.TotalCount))
+			})
+		})
+	})
+
+	When("the database has SecurityEvent IssueMatches split across two distinct regions", func() {
+		var region1, region2 string
+		const matchesPerRegion = 3
+
+		BeforeEach(func() {
+			users := seeder.SeedUsers(1)
+			svcRows := seeder.SeedServices(2)
+			components := seeder.SeedComponents(1)
+			cvRows := seeder.SeedComponentVersions(2, components)
+			issues := seeder.SeedSecurityEvents(matchesPerRegion * 2)
+			repos := seeder.SeedIssueRepositories()
+			seeder.SeedIssueVariants(len(issues), repos, issues)
+
+			region1 = "region-a"
+			region2 = "region-b"
+
+			for i, region := range []string{region1, region2} {
+				ci := test.NewFakeComponentInstance()
+				ci.Region = sql.NullString{String: region, Valid: true}
+				ci.ComponentVersionId = cvRows[i].Id
+				ci.ServiceId = svcRows[i].Id
+				ciId, err := seeder.InsertFakeComponentInstance(ci)
+				Expect(err).To(BeNil())
+				ci.Id = sql.NullInt64{Int64: ciId, Valid: true}
+				seeder.SeedIssueMatches(matchesPerRegion, issues, []mariadb.ComponentInstanceRow{ci}, users)
+			}
+		})
+
+		Context("filtering by region", func() {
+			It("returns only alerts for the requested region and excludes the other", func() {
+				respAll, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/minimal.graphql",
+					map[string]any{
+						"filter": map[string]any{},
+						"first":  100,
+						"after":  "",
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respAll.SIEMAlerts.TotalCount).To(Equal(matchesPerRegion * 2))
+
+				respR1, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/minimal.graphql",
+					map[string]any{
+						"filter": map[string]any{
+							"region": []string{region1},
+						},
+						"first": 100,
+						"after": "",
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respR1.SIEMAlerts.TotalCount).To(Equal(matchesPerRegion))
+
+				respR2, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/minimal.graphql",
+					map[string]any{
+						"filter": map[string]any{
+							"region": []string{region2},
+						},
+						"first": 100,
+						"after": "",
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respR2.SIEMAlerts.TotalCount).To(Equal(matchesPerRegion))
+
+				Expect(respR1.SIEMAlerts.TotalCount + respR2.SIEMAlerts.TotalCount).
 					To(Equal(respAll.SIEMAlerts.TotalCount))
 			})
 		})
