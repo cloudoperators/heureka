@@ -105,6 +105,7 @@ func NewHeurekaApp(
 
 	ih := issue.NewIssueHandler(handlerContext)
 	imh := issue_match.NewIssueMatchHandler(handlerContext, sh)
+	ch := comment.NewCommentHandler(handlerContext)
 
 	heureka := &HeurekaApp{
 		ComponentHandler:         component.NewComponentHandler(handlerContext),
@@ -121,8 +122,8 @@ func NewHeurekaApp(
 		UserHandler:              user.NewUserHandler(handlerContext),
 		RemediationHandler:       remediationHandler,
 		PatchHandler:             patch.NewPatchHandler(handlerContext),
-		CommentHandler:           comment.NewCommentHandler(handlerContext),
-		SIEMAlertHandler:         siem_alert.NewSIEMAlertHandler(handlerContext, imh, ivh, ih),
+		CommentHandler:           ch,
+		SIEMAlertHandler:         siem_alert.NewSIEMAlertHandler(handlerContext, imh, ivh, ih, ch),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
 		cache:                    handlerContext.Cache,
