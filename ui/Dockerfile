@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-FROM node:20-bullseye AS builder
+FROM node:22.13-bullseye AS builder
 
 # Install jq and pnpm
 RUN apt-get update && apt-get install -y jq git && \
@@ -33,7 +33,7 @@ RUN cd "$UI_GIT_DIR" && \
     pnpm run build
 
 # Runtime stage
-FROM node:20-bullseye
+FROM node:22.13-bullseye
 RUN npm install -g pnpm turbo
 
 # Set Runtime environment variables

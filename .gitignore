@@ -33,3 +33,11 @@ build/
 internal/mocks/*.go
 internal/api/graphql/graph/model/models_gen.go
 internal/api/graphql/graph/generated.go
+
+# python venv and compiled files
+.venv/
+*.pyc
+__pycache__/
+
+# e2e reports
+e2e/out/
