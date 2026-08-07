@@ -85,6 +85,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 	},
 	ExtraColumnsSelector: func(_ *entity.ComponentVersionFilter, order *Order) []string {
 		s := []string{}
+
 		for _, o := range order.Sequence() {
 			switch o.By {
 			case entity.CriticalCount:
@@ -99,6 +100,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 				s = append(s, "COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) as none_count")
 			}
 		}
+
 		return s
 	},
 	RowToData: func(e RowComposite, order []entity.Order) (*entity.ComponentVersion, string) {
