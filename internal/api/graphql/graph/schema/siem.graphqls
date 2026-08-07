@@ -6,6 +6,11 @@ input SIEMAlertLinkInput {
     url: String! @constraint(format: "url")
 }
 
+input SIEMAlertUpdateInput {
+    status: IssueMatchStatusValues
+    assigneeId: ID
+}
+
 input SIEMAlertInput {
     name: String
     description: String
