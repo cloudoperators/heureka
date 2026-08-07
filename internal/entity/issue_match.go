@@ -39,6 +39,12 @@ var AllIssueMatchStatusValues = []string{
 	IssueMatchStatusValuesMitigated.String(),
 }
 
+type UpdateIssueMatchInput struct {
+	Status  *IssueMatchStatusValue
+	UserId  *int64
+	Comment string
+}
+
 type IssueMatch struct {
 	Metadata
 	Id                    int64                 `json:"id"`

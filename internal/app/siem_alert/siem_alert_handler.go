@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/app/comment"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/app/issue_match"
@@ -21,6 +22,7 @@ type siemAlertHandler struct {
 	issueMatchHandler   issue_match.IssueMatchHandler
 	issueVariantHandler issue_variant.IssueVariantHandler
 	issueHandler        issue.IssueHandler
+	commentHandler      comment.CommentHandler
 	cache               cache.Cache
 }
 
@@ -29,11 +31,13 @@ func NewSIEMAlertHandler(
 	imh issue_match.IssueMatchHandler,
 	ivh issue_variant.IssueVariantHandler,
 	ih issue.IssueHandler,
+	ch comment.CommentHandler,
 ) SIEMAlertHandler {
 	return &siemAlertHandler{
 		issueMatchHandler:   imh,
 		issueVariantHandler: ivh,
 		issueHandler:        ih,
+		commentHandler:      ch,
 		cache:               handlerContext.Cache,
 	}
 }
@@ -152,6 +156,66 @@ func (h *siemAlertHandler) AcknowledgeSIEMAlert(ctx context.Context, id int64) (
 	if err != nil {
 		l.Error(err)
 		return nil, NewSIEMAlertHandlerError("Internal error while acknowledging SIEM alert.")
+	}
+
+	return updated, nil
+}
+
+func (h *siemAlertHandler) UpdateSIEMAlert(ctx context.Context, id int64, input entity.UpdateIssueMatchInput) (*entity.IssueMatch, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"siemAlertId": id,
+	})
+
+	if input.Comment == "" {
+		return nil, NewSIEMAlertHandlerError("A comment is required when updating a SIEM alert.")
+	}
+
+	matches, err := h.issueMatchHandler.ListIssueMatches(ctx, &entity.IssueMatchFilter{Id: []*int64{&id}}, entity.NewListOptions())
+	if err != nil || matches == nil || len(matches.Elements) == 0 {
+		l.Error(err)
+		return nil, NewSIEMAlertHandlerError("Internal error while resolving SIEM alert.")
+	}
+
+	if matches.Elements[0].IssueMatch == nil {
+		return nil, NewSIEMAlertHandlerError("Internal error while resolving SIEM alert.")
+	}
+
+	issueMatch := *matches.Elements[0].IssueMatch
+	if input.Status != nil {
+		issueMatch.Status = *input.Status
+	}
+
+	if input.UserId != nil {
+		issueMatch.UserId = *input.UserId
+	}
+
+	_, err = h.commentHandler.CreateComment(ctx, &entity.Comment{
+		IssueMatchId: id,
+		Text:         input.Comment,
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, NewSIEMAlertHandlerError("Internal error while creating comment for SIEM alert.")
+	}
+
+	updated, err := h.issueMatchHandler.UpdateIssueMatch(ctx, &issueMatch)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSIEMAlertHandlerError("Internal error while updating SIEM alert.")
+	}
+
+	if h.cache != nil {
+		_ = h.cache.InvalidateByMatch(func(decodedKey string) bool {
+			isIssueMatchQuery := strings.Contains(decodedKey, "GetIssueMatches") ||
+				strings.Contains(decodedKey, "GetAllIssueMatchCursors") ||
+				strings.Contains(decodedKey, "CountIssueMatches")
+
+			if !isIssueMatchQuery {
+				return false
+			}
+
+			return strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]", id))
+		})
 	}
 
 	return updated, nil
