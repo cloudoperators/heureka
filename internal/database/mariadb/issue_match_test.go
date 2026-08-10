@@ -543,6 +543,38 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
+				It("can filter by a single issue primary name that does exist", func() {
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
+					issueRow, ok := seedCollection.GetIssueById(issueMatch.IssueId.Int64)
+					Expect(ok).To(BeTrue())
+
+					filter := &entity.IssueMatchFilter{
+						PrimaryName: []*string{&issueRow.PrimaryName.String},
+					}
+
+					var imIds []int64
+					for _, e := range seedCollection.IssueMatchRows {
+						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
+							imIds = append(imIds, e.Id.Int64)
+						}
+					}
+
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
+						}
+					})
+				})
 				Context("and and we use Pagination", func() {
 					DescribeTable(
 						"can correctly paginate ", func(pageSize int) {

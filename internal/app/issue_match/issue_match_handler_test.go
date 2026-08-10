@@ -220,6 +220,30 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 	})
 
+	When("filtering by PrimaryName", Label("app", "ListIssueMatches", "PrimaryName"), func() {
+		var primaryName string
+
+		BeforeEach(func() {
+			primaryName = "CVE-2024-12345"
+			filter.PrimaryName = []*string{&primaryName}
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).
+				Return([]entity.IssueMatchResult{}, nil)
+		})
+
+		It("passes the PrimaryName filter down to the database", func() {
+			issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+			_, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			db.AssertCalled(GinkgoT(), "GetIssueMatches", mock.Anything,
+				mock.MatchedBy(func(f *entity.IssueMatchFilter) bool {
+					return len(f.PrimaryName) == 1 && *f.PrimaryName[0] == primaryName
+				}),
+				mock.Anything,
+			)
+		})
+	})
+
 	Context("when authz is enabled", func() {
 		BeforeEach(func() {
 			authEnabled := true
