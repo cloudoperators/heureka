@@ -24,6 +24,7 @@ enum RemediationTypeValues {
     risk_accepted
     mitigation
     rescore
+    filtered
 }
 
 type RemediationConnection implements Connection {
