@@ -884,6 +884,7 @@ func NewSIEMAlertNode(im *entity.IssueMatch) SIEMAlertNode {
 		ID:            fmt.Sprintf("%d", im.Id),
 		Status:        &status,
 		DiscoveryDate: &discoveryDate,
+		Acknowledged:  &im.Acknowledged,
 	}
 
 	sevVal, _ := SeverityValue(im.Severity.Value)

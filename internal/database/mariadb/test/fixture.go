@@ -1346,6 +1346,7 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 	query := `
 		INSERT INTO IssueMatch (
 			issuematch_status,
+			issuematch_acknowledged,
 			issuematch_component_instance_id,
 			issuematch_vector,
 			issuematch_rating,
@@ -1358,6 +1359,7 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 			issuematch_updated_by
 		) VALUES (
 			:issuematch_status,
+			:issuematch_acknowledged,
 			:issuematch_component_instance_id,
 			:issuematch_vector,
 			:issuematch_rating,
@@ -1695,6 +1697,7 @@ func NewFakeIssueMatch() mariadb.IssueMatchRow {
 			String: gofakeit.RandomString(entity.AllIssueMatchStatusValues),
 			Valid:  true,
 		},
+		Acknowledged:          sql.NullBool{Bool: gofakeit.Bool(), Valid: true},
 		Vector:                sql.NullString{String: v, Valid: true},
 		Rating:                sql.NullString{String: rating, Valid: true},
 		RemediationDate:       sql.NullTime{Time: gofakeit.Date(), Valid: true},

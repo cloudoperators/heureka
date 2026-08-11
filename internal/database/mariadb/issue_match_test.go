@@ -795,6 +795,107 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 		})
 	})
+	When("Filter IssueMatch by Acknowledged", Label("FilterIssueMatchAcknowledged"), func() {
+		Context("and we have IssueMatches with mixed acknowledged values", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(20)
+			})
+
+			It("can filter to only acknowledged IssueMatches", func() {
+				acknowledged := true
+				filter := &entity.IssueMatchFilter{
+					Acknowledged: &acknowledged,
+				}
+
+				expectedIds := []int64{}
+				for _, im := range seedCollection.IssueMatchRows {
+					if im.Acknowledged.Bool {
+						expectedIds = append(expectedIds, im.Id.Int64)
+					}
+				}
+
+				if len(expectedIds) == 0 || len(expectedIds) == len(seedCollection.IssueMatchRows) {
+					Skip("Seed data has no variation in acknowledged; cannot test filter exclusion")
+				}
+
+				entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning only acknowledged entries", func() {
+					Expect(len(entries)).To(BeEquivalentTo(len(expectedIds)))
+					for _, entry := range entries {
+						Expect(entry.Acknowledged).To(BeTrue())
+					}
+				})
+			})
+
+			It("can filter to only unacknowledged IssueMatches", func() {
+				acknowledged := false
+				filter := &entity.IssueMatchFilter{
+					Acknowledged: &acknowledged,
+				}
+
+				expectedIds := []int64{}
+				for _, im := range seedCollection.IssueMatchRows {
+					if !im.Acknowledged.Bool {
+						expectedIds = append(expectedIds, im.Id.Int64)
+					}
+				}
+
+				if len(expectedIds) == 0 || len(expectedIds) == len(seedCollection.IssueMatchRows) {
+					Skip("Seed data has no variation in acknowledged; cannot test filter exclusion")
+				}
+
+				entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning only unacknowledged entries", func() {
+					Expect(len(entries)).To(BeEquivalentTo(len(expectedIds)))
+					for _, entry := range entries {
+						Expect(entry.Acknowledged).To(BeFalse())
+					}
+				})
+			})
+		})
+	})
+	When("Update IssueMatch Acknowledged", Label("UpdateIssueMatchAcknowledged"), func() {
+		Context("and we have 10 IssueMatches in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+			It("can update issueMatch acknowledged correctly", func() {
+				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
+				issueMatch.Acknowledged = !issueMatch.Acknowledged
+
+				err := db.UpdateIssueMatch(&issueMatch)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueMatchFilter := &entity.IssueMatchFilter{
+					Id: []*int64{&issueMatch.Id},
+				}
+
+				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning issueMatch", func() {
+					Expect(len(im)).To(BeEquivalentTo(1))
+				})
+				By("setting acknowledged field", func() {
+					Expect(im[0].Acknowledged).To(BeEquivalentTo(issueMatch.Acknowledged))
+				})
+			})
+		})
+	})
 })
 
 var _ = Describe("Ordering IssueMatches", func() {

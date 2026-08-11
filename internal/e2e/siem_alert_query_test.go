@@ -253,6 +253,64 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 			})
 		})
 
+		Context("filtering by acknowledged", func() {
+			It("returns only alerts matching the requested acknowledged value", func() {
+				acknowledgedCount := 0
+				for _, im := range seedCollection.GetValidIssueMatchRows() {
+					if im.Acknowledged.Bool {
+						acknowledgedCount++
+					}
+				}
+
+				if acknowledgedCount == 0 || acknowledgedCount == len(seedCollection.GetValidIssueMatchRows()) {
+					Skip("Seed data has no variation in acknowledged; cannot test filter exclusion")
+				}
+
+				respAck, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/withOrder.graphql",
+					map[string]any{
+						"filter":  map[string]any{"acknowledged": true},
+						"first":   100,
+						"after":   "",
+						"orderBy": []any{},
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respAck.SIEMAlerts.TotalCount).To(Equal(acknowledgedCount))
+				for _, edge := range respAck.SIEMAlerts.Edges {
+					Expect(edge.Node.Acknowledged).NotTo(BeNil())
+					Expect(*edge.Node.Acknowledged).To(BeTrue())
+				}
+
+				respUnack, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/withOrder.graphql",
+					map[string]any{
+						"filter":  map[string]any{"acknowledged": false},
+						"first":   100,
+						"after":   "",
+						"orderBy": []any{},
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respUnack.SIEMAlerts.TotalCount).To(Equal(len(seedCollection.GetValidIssueMatchRows()) - acknowledgedCount))
+				for _, edge := range respUnack.SIEMAlerts.Edges {
+					Expect(edge.Node.Acknowledged).NotTo(BeNil())
+					Expect(*edge.Node.Acknowledged).To(BeFalse())
+				}
+
+				Expect(respAck.SIEMAlerts.TotalCount + respUnack.SIEMAlerts.TotalCount).
+					To(Equal(len(seedCollection.GetValidIssueMatchRows())))
+			})
+		})
+
 		Context("sorting by severity", func() {
 			It("returns alerts ordered by severity descending", func() {
 				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {

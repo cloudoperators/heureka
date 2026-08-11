@@ -14,6 +14,7 @@ input SIEMAlertInput {
     pod: String
     container: String
     source: String
+    acknowledged: Boolean
 }
 
 type SIEMAlert {
@@ -47,6 +48,7 @@ type SIEMAlertNode implements Node {
     source: String
     status: IssueMatchStatusValues
     discoveryDate: DateTime
+    acknowledged: Boolean
     comments(filter: SIEMAlertCommentFilter, first: Int, after: String): SIEMAlertCommentConnection
 }
 
@@ -67,6 +69,7 @@ input SIEMAlertFilter {
     status: [IssueMatchStatusValues]
     supportGroup: [String]
     region: [String]
+    acknowledged: Boolean
 }
 
 input SIEMAlertOrderBy {
