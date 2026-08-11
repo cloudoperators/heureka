@@ -171,9 +171,13 @@ func (h *siemAlertHandler) UpdateSIEMAlert(ctx context.Context, id int64, input 
 	}
 
 	matches, err := h.issueMatchHandler.ListIssueMatches(ctx, &entity.IssueMatchFilter{Id: []*int64{&id}}, entity.NewListOptions())
-	if err != nil || matches == nil || len(matches.Elements) == 0 {
+	if err != nil {
 		l.Error(err)
 		return nil, NewSIEMAlertHandlerError("Internal error while resolving SIEM alert.")
+	}
+
+	if matches == nil || len(matches.Elements) == 0 {
+		return nil, NewSIEMAlertHandlerError("SIEM alert not found.")
 	}
 
 	if matches.Elements[0].IssueMatch == nil {

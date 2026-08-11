@@ -1426,6 +1426,13 @@ func (r *mutationResolver) UpdateSIEMAlert(ctx context.Context, id string, input
 
 	var assigneeId *int64
 
+	if comment == "" {
+		return nil, baseResolver.NewResolverError(
+			"UpdateSIEMAlertMutationResolver",
+			"Invalid Input - comment is required",
+		)
+	}
+
 	if input.AssigneeID != nil {
 		assigneeId, err = baseResolver.ParseCursor(input.AssigneeID)
 		if err != nil {
