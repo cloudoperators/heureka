@@ -237,6 +237,11 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		remediation = test.NewFakeRemediationEntity()
+
+		if remediation.Type == entity.RemediationTypeFiltered {
+			remediation.Type = entity.RemediationTypeFalsePositive
+		}
+
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
@@ -435,6 +440,72 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 		})
 	})
 
+	Context("when creating a filtered remediation", func() {
+		BeforeEach(func() {
+			remediation.Type = entity.RemediationTypeFiltered
+			remediation.Description = "Filtered because out of scope"
+		})
+
+		It("returns InvalidArgument error when description is empty", func() {
+			remediation.Description = ""
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("returns InvalidArgument when issue is not a SIEM alert", func() {
+			nonSIEMIssue := test.NewFakeIssueResult()
+
+			nonSIEMIssue.Type = entity.IssueTypeVulnerability
+			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.IssueResult{nonSIEMIssue}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("creates remediation when issue is a SIEM alert and description is provided", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			siemIssue := test.NewFakeIssueResult()
+			siemIssue.Type = entity.IssueTypeSecurityEvent
+			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.IssueResult{siemIssue}, nil)
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{}, nil)
+			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
+				Return(&remediation, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(err).To(BeNil())
+			Expect(newRemediation).ToNot(BeNil())
+		})
+	})
+
 	Context("when the caller lacks can_write permission on the target service", func() {
 		var mockAuthz *mocks.MockAuthorization
 
@@ -536,6 +607,82 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 				Expect(updatedRemediation.Component).To(BeEquivalentTo(remediation.Component))
 				Expect(updatedRemediation.Issue).To(BeEquivalentTo(remediation.Issue))
 			})
+		})
+	})
+
+	Context("when updating a filtered remediation", func() {
+		BeforeEach(func() {
+			remediation.Type = entity.RemediationTypeFiltered
+		})
+
+		It("returns InvalidArgument when clearing description leaves it empty", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			existing := remediation
+			existing.Description = ""
+			remediation.Description = ""
+			filter.Id = []*int64{&remediation.Id}
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
+				Return([]entity.RemediationResult{existing}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(
+				common.NewAdminContext(),
+				remediation.Remediation,
+			)
+
+			Expect(updatedRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("returns InvalidArgument when issue is not a SIEM alert", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			remediation.Description = "Filtered: out of scope"
+			filter.Id = []*int64{&remediation.Id}
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
+				Return([]entity.RemediationResult{remediation}, nil)
+			nonSIEMIssue := test.NewFakeIssueResult()
+			nonSIEMIssue.Type = entity.IssueTypeVulnerability
+			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.IssueResult{nonSIEMIssue}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(
+				common.NewAdminContext(),
+				remediation.Remediation,
+			)
+
+			Expect(updatedRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("updates successfully when issue is a SIEM alert and description is present", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			remediation.Description = "Filtered: out of scope"
+			filter.Id = []*int64{&remediation.Id}
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
+				Return([]entity.RemediationResult{remediation}, nil)
+			siemIssue := test.NewFakeIssueResult()
+			siemIssue.Type = entity.IssueTypeSecurityEvent
+			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.IssueResult{siemIssue}, nil)
+			db.On("UpdateRemediation", remediation.Remediation).Return(nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(
+				common.NewAdminContext(),
+				remediation.Remediation,
+			)
+
+			Expect(err).To(BeNil())
+			Expect(updatedRemediation).ToNot(BeNil())
 		})
 	})
 })
