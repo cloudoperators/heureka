@@ -69,7 +69,9 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			Table:     "IssueVariant IV",
 			On:        "I.issue_id = IV.issuevariant_issue_id",
 			DependsOn: []string{"I"},
-			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool { return len(f.Search) > 0 },
+			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool {
+				return len(f.Search) > 0 || f.IncludeIssueVariants
+			},
 		},
 		{
 			Name:  "CI",
@@ -158,6 +160,10 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			s = append(s, "CI.*")
 		}
 
+		if f.IncludeIssueVariants {
+			s = append(s, "IV.*")
+		}
+
 		if f.IncludeService {
 			s = append(s, "S.*", "SG.*")
 		}
@@ -181,6 +187,10 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		im := e.AsIssueMatch()
 		if e.IssueRow != nil {
 			im.Issue = lo.ToPtr(e.IssueRow.AsIssue())
+			if e.IssueVariantRow != nil {
+				iv := e.AsIssueVariant()
+				im.Issue.IssueVariants = []entity.IssueVariant{iv}
+			}
 		}
 
 		if e.ComponentInstanceRow != nil {
@@ -191,8 +201,10 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 					sg := e.AsSupportGroup()
 					svc.SupportGroup = &sg
 				}
+
 				ci.Service = &svc
 			}
+
 			im.ComponentInstance = &ci
 		}
 

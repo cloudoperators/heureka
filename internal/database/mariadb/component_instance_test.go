@@ -23,6 +23,7 @@ import (
 var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
+
 	BeforeEach(func() {
 		var err error
 		db = dbm.NewTestSchema()
