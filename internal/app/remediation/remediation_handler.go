@@ -141,6 +141,34 @@ func (rh *remediationHandler) ListRemediations(
 	return result, nil
 }
 
+func validateFilteredRemediationDescription(description string, op appErrors.Op) error {
+	if description == "" {
+		return appErrors.E(op, "Remediation", appErrors.InvalidArgument, "Description is required for filtered remediation")
+	}
+
+	return nil
+}
+
+func (rh *remediationHandler) validateFilteredRemediationIssue(
+	ctx context.Context,
+	issueID int64,
+	id string,
+	op appErrors.Op,
+) error {
+	issues, err := rh.database.GetIssues(ctx, &entity.IssueFilter{
+		Id: []*int64{&issueID},
+	}, nil)
+	if err != nil {
+		return appErrors.InternalError(string(op), "Remediation", id, err)
+	}
+
+	if len(issues) != 1 || issues[0].Type != entity.IssueTypeSecurityEvent {
+		return appErrors.E(op, "Remediation", appErrors.InvalidArgument, "filtered remediation can only be applied to SIEM alerts")
+	}
+
+	return nil
+}
+
 func (rh *remediationHandler) CreateRemediation(
 	ctx context.Context,
 	remediation *entity.Remediation,
@@ -173,6 +201,18 @@ func (rh *remediationHandler) CreateRemediation(
 		applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
 
 		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, err.Error())
+	}
+
+	if remediation.Type == entity.RemediationTypeFiltered {
+		if err := validateFilteredRemediationDescription(remediation.Description, op); err != nil {
+			applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
+			return nil, err
+		}
+
+		if err := rh.validateFilteredRemediationIssue(ctx, remediation.IssueId, "", op); err != nil {
+			applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
+			return nil, err
+		}
 	}
 
 	// Get current user for audit fields
@@ -480,6 +520,23 @@ func (rh *remediationHandler) UpdateRemediation(
 		applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
 
 		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, err.Error())
+	}
+
+	if finalType == entity.RemediationTypeFiltered {
+		finalDescription := existingRemediation.Description
+		if remediation.Description != "" {
+			finalDescription = remediation.Description
+		}
+
+		if err := validateFilteredRemediationDescription(finalDescription, op); err != nil {
+			applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
+			return nil, err
+		}
+
+		if err := rh.validateFilteredRemediationIssue(ctx, existingRemediation.IssueId, strconv.FormatInt(remediation.Id, 10), op); err != nil {
+			applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
+			return nil, err
+		}
 	}
 
 	remediation.URL = finalURL
