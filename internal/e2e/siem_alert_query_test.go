@@ -594,6 +594,88 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 		})
 	})
 
+	When("the database has SecurityEvent IssueMatches with distinct names", func() {
+		var name1, name2 string
+		const matchesPerName = 2
+
+		BeforeEach(func() {
+			users := seeder.SeedUsers(1)
+			svcRows := seeder.SeedServices(1)
+			components := seeder.SeedComponents(1)
+			cvRows := seeder.SeedComponentVersions(1, components)
+			ciRows := seeder.SeedComponentInstances(1, cvRows, svcRows)
+			repos := seeder.SeedIssueRepositories()
+
+			// One issue per group so all matches for that group share the same PrimaryName.
+			issues1 := seeder.SeedSecurityEvents(1)
+			issues2 := seeder.SeedSecurityEvents(1)
+			name1 = issues1[0].PrimaryName.String
+			name2 = issues2[0].PrimaryName.String
+
+			seeder.SeedIssueVariants(len(issues1), repos, issues1)
+			seeder.SeedIssueVariants(len(issues2), repos, issues2)
+			seeder.SeedIssueMatches(matchesPerName, issues1, ciRows, users)
+			seeder.SeedIssueMatches(matchesPerName, issues2, ciRows, users)
+		})
+
+		Context("filtering by name", func() {
+			It("returns only alerts matching the requested name and excludes others", func() {
+				respAll, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/minimal.graphql",
+					map[string]any{
+						"filter": map[string]any{},
+						"first":  100,
+						"after":  "",
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respAll.SIEMAlerts.TotalCount).To(Equal(matchesPerName * 2))
+
+				respName1, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/minimal.graphql",
+					map[string]any{
+						"filter": map[string]any{
+							"name": []string{name1},
+						},
+						"first": 100,
+						"after": "",
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respName1.SIEMAlerts.TotalCount).To(Equal(matchesPerName))
+				Expect(respName1.SIEMAlerts.TotalCount).To(BeNumerically("<", respAll.SIEMAlerts.TotalCount))
+
+				respName2, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SIEMAlerts model.SIEMAlertConnection `json:"SIEMAlerts"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/minimal.graphql",
+					map[string]any{
+						"filter": map[string]any{
+							"name": []string{name2},
+						},
+						"first": 100,
+						"after": "",
+					},
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respName2.SIEMAlerts.TotalCount).To(Equal(matchesPerName))
+
+				Expect(respName1.SIEMAlerts.TotalCount + respName2.SIEMAlerts.TotalCount).
+					To(Equal(respAll.SIEMAlerts.TotalCount))
+			})
+		})
+	})
+
 	When("the database has mixed issue types", func() {
 		BeforeEach(func() {
 			_ = seeder.SeedDbWithNFakeData(5)
