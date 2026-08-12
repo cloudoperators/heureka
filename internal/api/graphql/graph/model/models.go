@@ -4,6 +4,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -913,7 +914,15 @@ func NewSIEMAlertNode(im *entity.IssueMatch) SIEMAlertNode {
 
 	if im.Issue != nil && len(im.Issue.IssueVariants) > 0 {
 		variant := im.Issue.IssueVariants[0]
-		node.URL = &variant.ExternalUrl
+
+		if variant.ExternalUrl != "" {
+			var links []*SIEMAlertLink
+			if err := json.Unmarshal([]byte(variant.ExternalUrl), &links); err == nil {
+				node.Links = links
+			} else {
+				node.Links = []*SIEMAlertLink{{Name: variant.ExternalUrl, URL: variant.ExternalUrl}}
+			}
+		}
 
 		if variant.IssueRepository != nil {
 			node.Source = &variant.IssueRepository.Name

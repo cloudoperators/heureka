@@ -183,6 +183,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		It("filters results correctly", func() {
 			// Create test data with a specific tag
 			testTag := "test-filter-tag"
+
 			componentVersions := test.NNewFakeComponentVersionResults(3)
 			for i := range componentVersions {
 				componentVersions[i].Tag = testTag
@@ -196,6 +197,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", mock.Anything, tagFilter, []entity.Order{}).
 				Return(componentVersions, nil)
+
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", mock.Anything, tagFilter).
 					Return(int64(len(componentVersions)), nil)
@@ -219,6 +221,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		It("filters results correctly", func() {
 			// Create test data with a specific repository
 			testRepo := "test-filter-repo"
+
 			componentVersions := test.NNewFakeComponentVersionResults(3)
 			for i := range componentVersions {
 				componentVersions[i].Repository = testRepo
@@ -232,6 +235,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", mock.Anything, repoFilter, []entity.Order{}).
 				Return(componentVersions, nil)
+
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", mock.Anything, repoFilter).
 					Return(int64(len(componentVersions)), nil)
@@ -255,6 +259,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		It("filters results correctly", func() {
 			// Create test data with a specific organization
 			testOrg := "test-filter-org"
+
 			componentVersions := test.NNewFakeComponentVersionResults(3)
 			for i := range componentVersions {
 				componentVersions[i].Organization = testOrg
@@ -268,6 +273,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", mock.Anything, orgFilter, []entity.Order{}).
 				Return(componentVersions, nil)
+
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", mock.Anything, orgFilter).
 					Return(int64(len(componentVersions)), nil)
