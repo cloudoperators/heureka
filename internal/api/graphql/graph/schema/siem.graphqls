@@ -1,11 +1,16 @@
 # SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+input SIEMAlertLinkInput {
+    name: String!
+    url: String! @constraint(format: "url")
+}
+
 input SIEMAlertInput {
     name: String
     description: String
     severity: SeverityValues
-    url: String
+    links: [SIEMAlertLinkInput]
     service: String
     supportGroup: String
     region: String
@@ -17,11 +22,16 @@ input SIEMAlertInput {
     acknowledged: Boolean
 }
 
+type SIEMAlertLink {
+    name: String!
+    url: String!
+}
+
 type SIEMAlert {
     name: String
     description: String
     severity: SeverityValues
-    url: String
+    links: [SIEMAlertLink]
     service: String
     supportGroup: String
     region: String
@@ -37,7 +47,7 @@ type SIEMAlertNode implements Node {
     name: String
     description: String
     severity: SeverityValues
-    url: String
+    links: [SIEMAlertLink]
     service: String
     supportGroup: String
     region: String
@@ -64,6 +74,7 @@ type SIEMAlertEdge implements Edge {
 }
 
 input SIEMAlertFilter {
+    name: [String]
     severity: [SeverityValues]
     service: [String]
     status: [IssueMatchStatusValues]

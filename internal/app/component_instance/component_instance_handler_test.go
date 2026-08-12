@@ -148,6 +148,7 @@ var _ = Describe(
 						)
 						cursors = append(cursors, c)
 					}
+
 					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 					db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 						Return(componentInstances, nil)
@@ -937,6 +938,7 @@ var _ = Describe(
 
 									relCountBefore += len(relations)
 								}
+
 								Expect(
 									relCountBefore,
 								).To(Equal(len(relations)), "all relations should exist before deletion")

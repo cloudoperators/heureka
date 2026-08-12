@@ -7,6 +7,7 @@ package resolver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -1327,11 +1328,15 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 		severity = input.Severity
 	}
 
-	var url *string
+	var links []*model.SIEMAlertLink
 	if issueVariant != nil && issueVariant.ExternalUrl != "" {
-		url = &issueVariant.ExternalUrl
-	} else if input.URL != nil {
-		url = input.URL
+		_ = json.Unmarshal([]byte(issueVariant.ExternalUrl), &links)
+	} else if len(input.Links) > 0 {
+		for _, l := range input.Links {
+			if l != nil {
+				links = append(links, &model.SIEMAlertLink{Name: l.Name, URL: l.URL})
+			}
+		}
 	}
 
 	var servicePtr *string
@@ -1396,7 +1401,7 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 		Name:         name,
 		Description:  description,
 		Severity:     severity,
-		URL:          url,
+		Links:        links,
 		Service:      servicePtr,
 		SupportGroup: supportGroupPtr,
 		Region:       regionPtr,

@@ -6,6 +6,7 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -55,6 +56,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					alertDescription := "some description"
 					alertSeverity := "High"
 					alertURL := "https://example.test/alert/123"
+					alertLinkName := "Alert Link"
 					region := "eu-de-1"
 					clusterName := "eu-de-1"
 					namespace := "vault"
@@ -68,7 +70,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 						"name":         alertName,
 						"description":  alertDescription,
 						"severity":     alertSeverity,
-						"url":          alertURL,
+						"links":        []map[string]any{{"name": alertLinkName, "url": alertURL}},
 						"region":       region,
 						"cluster":      clusterName,
 						"namespace":    namespace,
@@ -91,7 +93,9 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 
 					Expect(*respData.SIEM.Name).To(Equal(alertName))
 					Expect(*respData.SIEM.Severity).To(Equal(model.SeverityValues(alertSeverity)))
-					Expect(*respData.SIEM.URL).To(Equal(alertURL))
+					Expect(respData.SIEM.Links).To(HaveLen(1))
+					Expect(respData.SIEM.Links[0].Name).To(Equal(alertLinkName))
+					Expect(respData.SIEM.Links[0].URL).To(Equal(alertURL))
 
 					issues, err := db.GetIssues(
 						context.Background(),
@@ -111,12 +115,12 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					Expect(len(ivs)).To(BeNumerically(">=", 1))
 
 					Expect(ivs).To(ContainElement(
-						HaveField("ExternalUrl", Equal(alertURL)),
+						HaveField("ExternalUrl", ContainSubstring(alertURL)),
 					))
 
 					issueVariantWithSeverity := false
 					for _, v := range ivs {
-						if v.ExternalUrl == alertURL && v.Severity.Value == alertSeverity {
+						if strings.Contains(v.ExternalUrl, alertURL) && v.Severity.Value == alertSeverity {
 							issueVariantWithSeverity = true
 							break
 						}
@@ -185,7 +189,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					"name":         alertName,
 					"description":  alertDescription,
 					"severity":     alertSeverity,
-					"url":          alertURL,
+					"links":        []map[string]any{{"name": "Alert Link", "url": alertURL}},
 					"region":       region,
 					"cluster":      clusterName,
 					"namespace":    namespace,
@@ -256,7 +260,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					"name":         alertName,
 					"description":  alertDescription,
 					"severity":     alertSeverity,
-					"url":          alertURL,
+					"links":        []map[string]any{{"name": "Alert Link", "url": alertURL}},
 					"region":       region,
 					"cluster":      clusterName,
 					"namespace":    namespace,
