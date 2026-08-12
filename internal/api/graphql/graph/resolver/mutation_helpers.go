@@ -5,7 +5,9 @@ package resolver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -174,7 +176,21 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 		issueVariant *entity.IssueVariant
 	)
 
-	if input.URL != nil && *input.URL != "" {
+	if len(input.Links) > 0 {
+		for _, link := range input.Links {
+			if link == nil {
+				continue
+			}
+
+			parsed, err := url.ParseRequestURI(link.URL)
+			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+				return nil, nil, baseResolver.NewResolverError(
+					"CreateSIEMAlertMutationResolver",
+					fmt.Sprintf("Invalid Input - invalid URL in links: %s", link.URL),
+				)
+			}
+		}
+
 		if input.Name != nil && *input.Name != "" {
 			ivs, err := r.App.ListIssueVariants(
 				ctx,
@@ -182,8 +198,9 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 				&entity.ListOptions{},
 			)
 			if err == nil {
+				linksJSON, _ := json.Marshal(input.Links)
 				for _, v := range ivs.Elements {
-					if v.ExternalUrl == *input.URL {
+					if v.ExternalUrl == string(linksJSON) {
 						issueVariant = v.IssueVariant
 						break
 					}
@@ -283,11 +300,13 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 				return ""
 			}(),
 			ExternalUrl: func() string {
-				if input.URL != nil {
-					return *input.URL
+				if len(input.Links) == 0 {
+					return ""
 				}
 
-				return ""
+				linksJSON, _ := json.Marshal(input.Links)
+
+				return string(linksJSON)
 			}(),
 		}
 

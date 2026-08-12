@@ -144,6 +144,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 					)
 					cursors = append(cursors, c)
 				}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetComponents", mock.Anything, filter, []entity.Order{}).Return(components, nil)
 				db.On("GetAllComponentCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
