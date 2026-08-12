@@ -62,6 +62,7 @@ type SIEMAlertEdge implements Edge {
 }
 
 input SIEMAlertFilter {
+    name: [String]
     severity: [SeverityValues]
     service: [String]
     status: [IssueMatchStatusValues]

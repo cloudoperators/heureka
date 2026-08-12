@@ -38,6 +38,7 @@ func SIEMAlertBaseResolver(
 		IssueType:                []*string{&securityEvent},
 		IncludeComponentInstance: true,
 		IncludeService:           true,
+		PrimaryName:              filter.Name,
 		ServiceCCRN:              filter.Service,
 		SupportGroupCCRN:         filter.SupportGroup,
 		Region:                   filter.Region,
