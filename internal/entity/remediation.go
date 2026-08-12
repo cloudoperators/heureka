@@ -12,6 +12,7 @@ const (
 	RemediationTypeRiskAccepted  RemediationType = "risk_accepted"
 	RemediationTypeMitigation    RemediationType = "mitigation"
 	RemediationTypeRescore       RemediationType = "rescore"
+	RemediationTypeFiltered      RemediationType = "filtered"
 	RemediationTypeUnknown       RemediationType = "unknown"
 )
 
@@ -29,6 +30,8 @@ func NewRemediationType(s string) RemediationType {
 		return RemediationTypeMitigation
 	case RemediationTypeRescore.String():
 		return RemediationTypeRescore
+	case RemediationTypeFiltered.String():
+		return RemediationTypeFiltered
 	}
 
 	return RemediationTypeUnknown
@@ -39,6 +42,7 @@ var AllRemediationTypes = []string{
 	RemediationTypeRiskAccepted.String(),
 	RemediationTypeMitigation.String(),
 	RemediationTypeRescore.String(),
+	RemediationTypeFiltered.String(),
 }
 
 type Remediation struct {
