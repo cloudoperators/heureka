@@ -3,8 +3,13 @@
 
 package siem_alert
 
-import "context"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type SIEMAlertHandler interface {
 	DeleteSIEMAlert(ctx context.Context, id int64) error
+	AcknowledgeSIEMAlert(ctx context.Context, id int64) (*entity.IssueMatch, error)
 }

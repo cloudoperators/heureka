@@ -374,6 +374,7 @@ func (ir *IssueRow) FromIssue(i *entity.Issue) {
 type IssueMatchRow struct {
 	Id                    sql.NullInt64  `db:"issuematch_id"                      json:"id"`
 	Status                sql.NullString `db:"issuematch_status"                  json:"status"`
+	Acknowledged          sql.NullBool   `db:"issuematch_acknowledged"            json:"acknowledged"`
 	Vector                sql.NullString `db:"issuematch_vector"                  json:"vector"`
 	Rating                sql.NullString `db:"issuematch_rating"                  json:"rating"`
 	UserId                sql.NullInt64  `db:"issuematch_user_id"                 json:"user_id"`
@@ -399,6 +400,7 @@ func (imr IssueMatchRow) AsIssueMatch() entity.IssueMatch {
 	return entity.IssueMatch{
 		Id:                    GetInt64Value(imr.Id),
 		Status:                entity.NewIssueMatchStatusValue(GetStringValue(imr.Status)),
+		Acknowledged:          imr.Acknowledged.Bool,
 		User:                  nil,
 		UserId:                GetInt64Value(imr.UserId),
 		ComponentInstance:     nil,
@@ -421,6 +423,7 @@ func (imr IssueMatchRow) AsIssueMatch() entity.IssueMatch {
 func (imr *IssueMatchRow) FromIssueMatch(im *entity.IssueMatch) {
 	imr.Id = sql.NullInt64{Int64: im.Id, Valid: true}
 	imr.Status = sql.NullString{String: im.Status.String(), Valid: true}
+	imr.Acknowledged = sql.NullBool{Bool: im.Acknowledged, Valid: true}
 	imr.Vector = sql.NullString{String: im.Severity.Cvss.Vector, Valid: true}
 	imr.Rating = sql.NullString{String: im.Severity.Value, Valid: true}
 	imr.UserId = sql.NullInt64{Int64: im.UserId, Valid: true}

@@ -4,6 +4,7 @@
 package siem_alert_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -162,6 +163,124 @@ var _ = Describe("When deleting a SIEMAlert", Label("app", "DeleteSIEMAlert"), f
 
 			err := siemAlertHandler.DeleteSIEMAlert(ctx, missingId)
 			Expect(err).NotTo(BeNil())
+		})
+	})
+})
+
+var _ = Describe("When acknowledging a SIEMAlert", Label("app", "AcknowledgeSIEMAlert"), func() {
+	var (
+		db               *mocks.MockDatabase
+		er               event.EventRegistry
+		authz            openfga.Authorization
+		siemAlertHandler sa.SIEMAlertHandler
+		hc               common.HandlerContext
+		ctx              = common.NewAdminContext()
+	)
+
+	BeforeEach(func() {
+		authEnabled := false
+		cfg := common.GetTestConfig(authEnabled)
+		enableLogs := false
+		authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, authz)
+		hc = common.HandlerContext{DB: db, EventReg: er, Authz: authz}
+		imh, ivh, ih := newHandlers(db, er, authz)
+		siemAlertHandler = sa.NewSIEMAlertHandler(hc, imh, ivh, ih)
+	})
+
+	isSecurityEventFilter := func(id int64) func(*entity.IssueMatchFilter) bool {
+		return func(f *entity.IssueMatchFilter) bool {
+			return len(f.Id) == 1 && *f.Id[0] == id &&
+				len(f.IssueType) == 1 && *f.IssueType[0] == string(entity.IssueTypeSecurityEvent)
+		}
+	}
+
+	Context("when the IssueMatch exists and is a SecurityEvent", func() {
+		It("returns the acknowledged IssueMatch", func() {
+			im := test.NewFakeIssueMatch()
+			imResult := entity.IssueMatchResult{IssueMatch: &im}
+
+			updatedIm := im
+			updatedIm.Acknowledged = true
+			updatedImResult := entity.IssueMatchResult{IssueMatch: &updatedIm}
+
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On(
+				"GetIssueMatches", mock.Anything,
+				mock.MatchedBy(isSecurityEventFilter(im.Id)),
+				mock.Anything,
+			).Return([]entity.IssueMatchResult{imResult}, nil).Once()
+
+			db.On("UpdateIssueMatch", mock.Anything).Return(nil)
+
+			db.On(
+				"GetIssueMatches", mock.Anything,
+				mock.MatchedBy(func(f *entity.IssueMatchFilter) bool {
+					return len(f.Id) == 1 && *f.Id[0] == im.Id
+				}),
+				mock.Anything,
+			).Return([]entity.IssueMatchResult{updatedImResult}, nil).Once()
+
+			result, err := siemAlertHandler.AcknowledgeSIEMAlert(ctx, im.Id)
+			Expect(err).To(BeNil())
+			Expect(result.Acknowledged).To(BeTrue())
+		})
+	})
+
+	Context("when the IssueMatch does not exist", func() {
+		It("returns an error", func() {
+			missingId := int64(9999)
+
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On(
+				"GetIssueMatches", mock.Anything,
+				mock.MatchedBy(isSecurityEventFilter(missingId)),
+				mock.Anything,
+			).Return([]entity.IssueMatchResult{}, nil)
+
+			result, err := siemAlertHandler.AcknowledgeSIEMAlert(ctx, missingId)
+			Expect(err).NotTo(BeNil())
+			Expect(result).To(BeNil())
+		})
+	})
+
+	Context("when the IssueMatch exists but is not a SecurityEvent", func() {
+		It("returns an error", func() {
+			im := test.NewFakeIssueMatch()
+
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			// The IssueType-filtered query returns nothing because the record is not a SecurityEvent.
+			// The handler treats this identically to a missing ID — both result in an empty filtered list.
+			db.On(
+				"GetIssueMatches", mock.Anything,
+				mock.MatchedBy(isSecurityEventFilter(im.Id)),
+				mock.Anything,
+			).Return([]entity.IssueMatchResult{}, nil)
+
+			result, err := siemAlertHandler.AcknowledgeSIEMAlert(ctx, im.Id)
+			Expect(err).NotTo(BeNil())
+			Expect(result).To(BeNil())
+		})
+	})
+
+	Context("when UpdateIssueMatch fails", func() {
+		It("returns an error", func() {
+			im := test.NewFakeIssueMatch()
+			imResult := entity.IssueMatchResult{IssueMatch: &im}
+
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On(
+				"GetIssueMatches", mock.Anything,
+				mock.MatchedBy(isSecurityEventFilter(im.Id)),
+				mock.Anything,
+			).Return([]entity.IssueMatchResult{imResult}, nil)
+
+			db.On("UpdateIssueMatch", mock.Anything).Return(errors.New("db error"))
+
+			result, err := siemAlertHandler.AcknowledgeSIEMAlert(ctx, im.Id)
+			Expect(err).NotTo(BeNil())
+			Expect(result).To(BeNil())
 		})
 	})
 })
