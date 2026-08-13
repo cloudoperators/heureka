@@ -127,3 +127,32 @@ func (h *siemAlertHandler) DeleteSIEMAlert(ctx context.Context, id int64) error 
 
 	return nil
 }
+
+func (h *siemAlertHandler) AcknowledgeSIEMAlert(ctx context.Context, id int64) (*entity.IssueMatch, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"siemAlertId": id,
+	})
+
+	securityEvent := entity.IssueTypeSecurityEvent.String()
+
+	matches, err := h.issueMatchHandler.ListIssueMatches(ctx, &entity.IssueMatchFilter{
+		Id:        []*int64{&id},
+		IssueType: []*string{&securityEvent},
+	}, entity.NewListOptions())
+	if err != nil || matches == nil || len(matches.Elements) == 0 {
+		l.Error(err)
+
+		return nil, NewSIEMAlertHandlerError("Internal error while resolving SIEM alert.")
+	}
+
+	im := matches.Elements[0].IssueMatch
+	im.Acknowledged = true
+
+	updated, err := h.issueMatchHandler.UpdateIssueMatch(ctx, im)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSIEMAlertHandlerError("Internal error while acknowledging SIEM alert.")
+	}
+
+	return updated, nil
+}

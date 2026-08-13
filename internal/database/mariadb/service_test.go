@@ -1185,6 +1185,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 
 						_, err := seeder.InsertFakeIssueMatch(mariadb.IssueMatchRow{
 							Status:              sql.NullString{String: "Discovery", Valid: true},
+							Acknowledged:        sql.NullBool{Bool: false, Valid: true},
 							Rating:              sql.NullString{String: rating, Valid: true},
 							UserId:              sql.NullInt64{Int64: 1, Valid: true},
 							IssueId:             sql.NullInt64{Int64: cvi.IssueId.Int64, Valid: true},

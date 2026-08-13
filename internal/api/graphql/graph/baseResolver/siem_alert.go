@@ -43,6 +43,7 @@ func SIEMAlertBaseResolver(
 		ServiceCCRN:              filter.Service,
 		SupportGroupCCRN:         filter.SupportGroup,
 		Region:                   filter.Region,
+		Acknowledged:             filter.Acknowledged,
 		SeverityValue: lo.FilterMap(
 			filter.Severity,
 			func(item *model.SeverityValues, _ int) (*string, bool) {

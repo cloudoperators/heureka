@@ -19,6 +19,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		NewProperty("issuematch_status", func(im *entity.IssueMatch) (any, bool) {
 			return im.Status, im.Status != "" && im.Status != entity.IssueMatchStatusValuesNone
 		}),
+		NewProperty("issuematch_acknowledged", func(im *entity.IssueMatch) (any, bool) { return im.Acknowledged, true }),
 		NewProperty("issuematch_remediation_date", func(im *entity.IssueMatch) (any, bool) { return im.RemediationDate, !im.RemediationDate.IsZero() }),
 		NewProperty("issuematch_target_remediation_date", func(im *entity.IssueMatch) (any, bool) {
 			return im.TargetRemediationDate, !im.TargetRemediationDate.IsZero()
@@ -39,6 +40,12 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		NewFilterProperty("CI.componentinstance_service_id = ?", func(filter *entity.IssueMatchFilter) any { return filter.ServiceId }),
 		NewFilterProperty("IM.issuematch_rating = ?", func(filter *entity.IssueMatchFilter) any { return filter.SeverityValue }),
 		NewFilterProperty("IM.issuematch_status = ?", func(filter *entity.IssueMatchFilter) any { return filter.Status }),
+		NewFilterProperty("IM.issuematch_acknowledged = ?", func(filter *entity.IssueMatchFilter) any {
+			if filter.Acknowledged == nil {
+				return []*bool{}
+			}
+			return []*bool{filter.Acknowledged}
+		}),
 		NewFilterProperty("SG.supportgroup_ccrn = ?", func(filter *entity.IssueMatchFilter) any { return filter.SupportGroupCCRN }),
 		NewFilterProperty("I.issue_primary_name = ?", func(filter *entity.IssueMatchFilter) any { return filter.PrimaryName }),
 		NewFilterProperty("C.component_ccrn = ?", func(filter *entity.IssueMatchFilter) any { return filter.ComponentCCRN }),

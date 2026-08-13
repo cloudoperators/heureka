@@ -297,3 +297,84 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 		})
 	})
 })
+
+var _ = Describe("Acknowledging SIEMAlert via API", Label("e2e", "SIEMAlert"), func() {
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+	var db *mariadb.SqlDatabase
+	var seedCollection *test.SeedCollection
+
+	BeforeEach(func() {
+		var err error
+		db = dbm.NewTestSchemaWithoutMigration()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
+		s = e2e_common.NewRunningServer(cfg)
+	})
+
+	AfterEach(func() {
+		e2e_common.ServerTeardown(s)
+		dbm.TestTearDown(db)
+	})
+
+	When("the database has seeded SecurityEvent IssueMatches", func() {
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithSecurityEvents(10)
+		})
+
+		Context("and we acknowledge an existing SIEM alert", func() {
+			It("sets acknowledged to true and returns the updated node", func() {
+				im := seedCollection.GetValidIssueMatchRows()[0]
+				id := fmt.Sprintf("%d", im.Id.Int64)
+
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Alert model.SIEMAlertNode `json:"acknowledgeSIEMAlert"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/acknowledge.graphql",
+					map[string]any{"id": id},
+				)
+
+				Expect(err).To(BeNil())
+				Expect(respData.Alert.ID).To(Equal(id))
+				Expect(respData.Alert.Acknowledged).NotTo(BeNil())
+				Expect(*respData.Alert.Acknowledged).To(BeTrue())
+			})
+		})
+
+		Context("and we acknowledge a non-existent SIEM alert", func() {
+			It("returns an error", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Alert model.SIEMAlertNode `json:"acknowledgeSIEMAlert"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/acknowledge.graphql",
+					map[string]any{"id": "999999999"},
+				)
+
+				Expect(err).NotTo(BeNil())
+			})
+		})
+	})
+
+	When("the database is empty", func() {
+		Context("and we acknowledge a SIEM alert", func() {
+			It("returns an error", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Alert model.SIEMAlertNode `json:"acknowledgeSIEMAlert"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/acknowledge.graphql",
+					map[string]any{"id": "1"},
+				)
+
+				Expect(err).NotTo(BeNil())
+			})
+		})
+	})
+})
