@@ -154,6 +154,7 @@ func LoadIssueMatches(filename string) ([]mariadb.IssueMatchRow, error) {
 	for i, tm := range tempMatches {
 		matches[i] = mariadb.IssueMatchRow{
 			Status:                sql.NullString{String: tm.Status, Valid: true},
+			Acknowledged:          sql.NullBool{Bool: false, Valid: true},
 			Rating:                sql.NullString{String: tm.Rating, Valid: true},
 			Vector:                sql.NullString{String: tm.Vector, Valid: true},
 			UserId:                sql.NullInt64{Int64: tm.UserID, Valid: true},

@@ -1434,6 +1434,28 @@ func (r *mutationResolver) DeleteSIEMAlert(ctx context.Context, id string) (stri
 	return id, nil
 }
 
+func (r *mutationResolver) AcknowledgeSIEMAlert(ctx context.Context, id string) (*model.SIEMAlertNode, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return nil, baseResolver.NewResolverError(
+			"AcknowledgeSIEMAlertMutationResolver",
+			"Internal Error - when acknowledging SIEM alert",
+		)
+	}
+
+	im, err := r.App.AcknowledgeSIEMAlert(ctx, *idInt)
+	if err != nil {
+		return nil, baseResolver.NewResolverError(
+			"AcknowledgeSIEMAlertMutationResolver",
+			"Internal Error - when acknowledging SIEM alert",
+		)
+	}
+
+	node := model.NewSIEMAlertNode(im)
+
+	return &node, nil
+}
+
 func (r *mutationResolver) CreateSIEMAlertComment(ctx context.Context, alertID string, text string) (*model.SIEMAlertComment, error) {
 	comment, err := model.NewCommentEntity(alertID, text)
 	if err != nil {

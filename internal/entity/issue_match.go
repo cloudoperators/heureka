@@ -43,6 +43,7 @@ type IssueMatch struct {
 	Metadata
 	Id                    int64                 `json:"id"`
 	Status                IssueMatchStatusValue `json:"status"`
+	Acknowledged          bool                  `json:"acknowledged"`
 	User                  *User                 `json:"user,omitempty"`
 	UserId                int64                 `json:"user_id"`
 	Severity              Severity              `json:"severity"`
@@ -77,6 +78,7 @@ type IssueMatchFilter struct {
 	ComponentCCRN            []*string         `json:"component_ccrn"`
 	PrimaryName              []*string         `json:"primary_name"`
 	IssueType                []*string         `json:"issue_type"`
+	Acknowledged             *bool             `json:"acknowledged"`
 	State                    []StateFilterType `json:"state"`
 	ServiceOwnerUsername     []*string         `json:"service_owner_username"`
 	ServiceOwnerUniqueUserId []*string         `json:"service_owner_unique_user_id"`
