@@ -1153,6 +1153,8 @@ type RemediationRow struct {
 	Severity        sql.NullString `db:"remediation_severity"         json:"severity"`
 	RemediatedBy    sql.NullString `db:"remediation_remediated_by"    json:"remediated_by"`
 	RemediatedById  sql.NullInt64  `db:"remediation_remediated_by_id" json:"remediated_by_id"`
+	Assignee        sql.NullString `db:"remediation_assignee"         json:"assignee"`
+	AssigneeId      sql.NullInt64  `db:"remediation_assignee_id"      json:"assignee_id"`
 	Service         sql.NullString `db:"remediation_service"          json:"service"`
 	ServiceId       sql.NullInt64  `db:"remediation_service_id"       json:"service_id"`
 	Component       sql.NullString `db:"remediation_component"        json:"component"`
@@ -1183,6 +1185,8 @@ func (rr RemediationRow) AsRemediation() entity.Remediation {
 		ExpirationDate:  GetTimeValue(rr.ExpirationDate),
 		RemediatedBy:    GetStringValue(rr.RemediatedBy),
 		RemediatedById:  GetInt64Value(rr.RemediatedById),
+		Assignee:        GetStringValue(rr.Assignee),
+		AssigneeId:      GetInt64Value(rr.AssigneeId),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(rr.CreatedAt),
 			CreatedBy: GetInt64Value(rr.CreatedBy),
@@ -1209,6 +1213,8 @@ func (rr *RemediationRow) FromRemediation(r *entity.Remediation) {
 	rr.Severity = sql.NullString{String: r.Severity.String(), Valid: true}
 	rr.RemediatedBy = sql.NullString{String: r.RemediatedBy, Valid: true}
 	rr.RemediatedById = sql.NullInt64{Int64: r.RemediatedById, Valid: IsValidId(r.RemediatedById)}
+	rr.Assignee = sql.NullString{String: r.Assignee, Valid: r.Assignee != ""}
+	rr.AssigneeId = sql.NullInt64{Int64: r.AssigneeId, Valid: IsValidId(r.AssigneeId)}
 	rr.CreatedAt = sql.NullTime{Time: r.CreatedAt, Valid: true}
 	rr.CreatedBy = sql.NullInt64{Int64: r.CreatedBy, Valid: true}
 	rr.DeletedAt = sql.NullTime{Time: r.DeletedAt, Valid: true}

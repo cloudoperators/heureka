@@ -169,15 +169,10 @@ func (rh *remediationHandler) CreateRemediation(
 		return nil, err
 	}
 
-	if remediation.Type == entity.RemediationTypeRiskAccepted {
-		if remediation.URL == "" {
-			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation": remediation,
-			})
+	if err := validateByType(remediation); err != nil {
+		applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
 
-			return nil, err
-		}
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, err.Error())
 	}
 
 	// Get current user for audit fields
@@ -245,6 +240,31 @@ func (rh *remediationHandler) CreateRemediation(
 		})
 
 		return nil, wrappedErr
+	}
+
+	if remediation.Assignee != "" {
+		remediation.AssigneeId, err = common.GetUserIdByUniqueId(
+			ctx,
+			rh.database,
+			remediation.Assignee,
+		)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
+			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, wrappedErr
+		}
+
+		if remediation.AssigneeId == 0 {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument,
+				fmt.Sprintf("assignee %q not found", remediation.Assignee),
+			)
+			applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
+
+			return nil, err
+		}
 	}
 
 	// Check for existing remediation
@@ -426,6 +446,19 @@ func (rh *remediationHandler) UpdateRemediation(
 
 	existingRemediation := existingRemediations.Elements[0].Remediation
 
+	if existingRemediation == nil {
+		err := appErrors.E(
+			op,
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			appErrors.Internal,
+			"existing remediation record has a nil pointer",
+		)
+		applog.LogError(rh.logger, err, logrus.Fields{"id": remediation.Id})
+
+		return nil, err
+	}
+
 	finalType := existingRemediation.Type
 	if remediation.Type != "" {
 		finalType = remediation.Type
@@ -436,28 +469,50 @@ func (rh *remediationHandler) UpdateRemediation(
 		finalURL = remediation.URL
 	}
 
-	if finalType == entity.RemediationTypeRiskAccepted {
-		if finalURL == "" {
-			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation": remediation,
-			})
+	finalDescription := existingRemediation.Description
+	if remediation.Description != "" {
+		finalDescription = remediation.Description
+	}
 
-			return nil, err
-		}
+	scratch := &entity.Remediation{Type: finalType, URL: finalURL, Description: finalDescription}
 
-		if parsedURL, err := url.Parse(finalURL); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "invalid external URL for risk accepted remediation")
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation": remediation,
-			})
+	if err := validateByType(scratch); err != nil {
+		applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
 
-			return nil, err
-		}
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, err.Error())
 	}
 
 	remediation.URL = finalURL
 	remediation.Type = finalType
+	remediation.Description = finalDescription
+
+	if remediation.Assignee != "" {
+		remediation.AssigneeId, err = common.GetUserIdByUniqueId(
+			ctx,
+			rh.database,
+			remediation.Assignee,
+		)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(
+				string(op),
+				"Remediation",
+				strconv.FormatInt(remediation.Id, 10),
+				err,
+			)
+			applog.LogError(rh.logger, wrappedErr, logrus.Fields{"remediation": remediation})
+
+			return nil, wrappedErr
+		}
+
+		if remediation.AssigneeId == 0 {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument,
+				fmt.Sprintf("assignee %q not found", remediation.Assignee),
+			)
+			applog.LogError(rh.logger, err, logrus.Fields{"remediation": remediation})
+
+			return nil, err
+		}
+	}
 
 	// Update the component instance in database
 	err = rh.database.UpdateRemediation(remediation)
@@ -574,6 +629,46 @@ func (rh *remediationHandler) DeleteRemediation(ctx context.Context, id int64) e
 	rh.eventRegistry.PushEvent(&DeleteRemediationEvent{
 		RemediationID: id,
 	})
+
+	return nil
+}
+
+func validateExternalURL(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return fmt.Errorf("invalid external URL: %q", rawURL)
+	}
+
+	return nil
+}
+
+func validateRiskAccepted(r *entity.Remediation) error {
+	if r.URL == "" {
+		return fmt.Errorf("URL is required for risk_accepted remediation")
+	}
+
+	return validateExternalURL(r.URL)
+}
+
+func validateEscalation(r *entity.Remediation) error {
+	if r.Description == "" {
+		return fmt.Errorf("description is required for escalation remediation")
+	}
+
+	if r.URL == "" {
+		return fmt.Errorf("URL is required for escalation remediation")
+	}
+
+	return validateExternalURL(r.URL)
+}
+
+func validateByType(r *entity.Remediation) error {
+	switch r.Type {
+	case entity.RemediationTypeRiskAccepted:
+		return validateRiskAccepted(r)
+	case entity.RemediationTypeEscalation:
+		return validateEscalation(r)
+	}
 
 	return nil
 }

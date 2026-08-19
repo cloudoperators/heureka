@@ -835,6 +835,7 @@ func NewRemediationEntity(r *RemediationInput) entity.Remediation {
 		Type:            rType,
 		URL:             lo.FromPtr(r.URL),
 		RemediatedBy:    lo.FromPtr(r.RemediatedBy),
+		Assignee:        lo.FromPtr(r.Assignee),
 		RemediationDate: remediationDate,
 		ExpirationDate:  expirationDate,
 	}
@@ -861,6 +862,7 @@ func NewRemediation(r *entity.Remediation) Remediation {
 		RemediationDate: &remediationDate,
 		ExpirationDate:  &expirationDate,
 		RemediatedBy:    &r.RemediatedBy,
+		Assignee:        &r.Assignee,
 		Metadata:        getModelMetadata(r.Metadata),
 	}
 }
