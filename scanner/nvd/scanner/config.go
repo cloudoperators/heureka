@@ -9,7 +9,10 @@ type Config struct {
 	NvdApiUrl string `envconfig:"NVD_API_URL"               json:"-" required:"true"`
 	NvdApiKey string `envconfig:"NVD_API_KEY"               json:"-" required:"true"`
 	// default value and maximum allowable limit is 2,000
-	NvdResultsPerPage string  `envconfig:"NVD_RESULTS_PER_PAGE" default:"2000"  json:"-"`
-	NvdRateLimit      float64 `envconfig:"NVD_RATE_LIMIT"       default:"1.666" json:"-"`
-	NvdRateBurst      int     `envconfig:"NVD_RATE_BURST"       default:"50"    json:"-"`
+	NvdResultsPerPage string  `envconfig:"NVD_RESULTS_PER_PAGE"       default:"2000"  json:"-"`
+	NvdRateLimit      float64 `envconfig:"NVD_RATE_LIMIT"             default:"1.666" json:"-"`
+	NvdRateBurst      int     `envconfig:"NVD_RATE_BURST"             default:"50"    json:"-"`
+	// UpdateMode switches from publication-date ingestion to last-modified update checking
+	UpdateMode          bool `envconfig:"NVD_UPDATE_MODE"          default:"false" json:"-"`
+	ReviewIntervalDays  int  `envconfig:"NVD_REVIEW_INTERVAL_DAYS" default:"7"     json:"-"`
 }

@@ -23,7 +23,7 @@ spec:
                   key: api_token
             - name: HEUREKA_URL
               value: {{ .Values.scanner.heureka_url }}
-            - name: NVDSERVER_URL
+            - name: NVD_API_URL
               value: {{ .Values.scanner.nvd.api_url }}
             - name: NVD_API_KEY
               valueFrom:
@@ -37,3 +37,43 @@ spec:
             - name: NVD_END_DATE
               value: {{ .Values.scanner.nvd.end_date }}
           restartPolicy: OnFailure
+{{- if .Values.updateScanner.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-update-cronjob
+spec:
+  schedule: "{{ .Values.updateScanner.schedule }}"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Release.Name }}-update
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            env:
+            - name: HEUREKA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: api_token
+            - name: HEUREKA_URL
+              value: {{ .Values.scanner.heureka_url }}
+            - name: NVD_API_URL
+              value: {{ .Values.scanner.nvd.api_url }}
+            - name: NVD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: nvd_api_key
+            - name: NVD_RESULTS_PER_PAGE
+              value: {{ .Values.scanner.nvd.results_per_page }}
+            - name: NVD_UPDATE_MODE
+              value: "true"
+            - name: NVD_REVIEW_INTERVAL_DAYS
+              value: "{{ .Values.updateScanner.reviewIntervalDays }}"
+          restartPolicy: OnFailure
+{{- end }}
