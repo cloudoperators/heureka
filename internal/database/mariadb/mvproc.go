@@ -685,68 +685,55 @@ func RefreshMVCountIssueRatingsComponentVersion(ctx context.Context, db DBTX) er
 
 	selectBuilder := sq.
 		Select(
-			"CVI.componentversionissue_component_version_id",
+			"CV.componentversion_id",
 			"CI.componentinstance_service_id",
 			"S.service_ccrn",
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Critical'
-				THEN CONCAT(
-					CVI.componentversionissue_component_version_id,
-					',',
-					CVI.componentversionissue_issue_id
-				)
+				WHEN IM.issuematch_rating = 'Critical'
+				THEN CONCAT(CV.componentversion_id, ',', IM.issuematch_issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'High'
-				THEN CONCAT(
-					CVI.componentversionissue_component_version_id,
-					',',
-					CVI.componentversionissue_issue_id
-				)
+				WHEN IM.issuematch_rating = 'High'
+				THEN CONCAT(CV.componentversion_id, ',', IM.issuematch_issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Medium'
-				THEN CONCAT(
-					CVI.componentversionissue_component_version_id,
-					',',
-					CVI.componentversionissue_issue_id
-				)
+				WHEN IM.issuematch_rating = 'Medium'
+				THEN CONCAT(CV.componentversion_id, ',', IM.issuematch_issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'Low'
-				THEN CONCAT(
-					CVI.componentversionissue_component_version_id,
-					',',
-					CVI.componentversionissue_issue_id
-				)
+				WHEN IM.issuematch_rating = 'Low'
+				THEN CONCAT(CV.componentversion_id, ',', IM.issuematch_issue_id)
 			END)`,
 			`COUNT(DISTINCT CASE
-				WHEN IV.issuevariant_rating = 'None'
-				THEN CONCAT(
-					CVI.componentversionissue_component_version_id,
-					',',
-					CVI.componentversionissue_issue_id
-				)
+				WHEN IM.issuematch_rating = 'None'
+				THEN CONCAT(CV.componentversion_id, ',', IM.issuematch_issue_id)
 			END)`,
 			"1",
 		).
-		From("ComponentVersionIssue CVI").
-		LeftJoin("IssueVariant IV ON IV.issuevariant_issue_id = CVI.componentversionissue_issue_id").
-		Join("ComponentInstance CI ON CVI.componentversionissue_component_version_id = CI.componentinstance_component_version_id").
-		Join("Service S ON CI.componentinstance_service_id = S.service_id").
+		From("IssueMatch IM").
+		Join("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id").
+		Join("ComponentVersion CV ON CV.componentversion_id = CI.componentinstance_component_version_id").
+		Join("Issue I ON I.issue_id = IM.issuematch_issue_id").
+		Join("Service S ON S.service_id = CI.componentinstance_service_id").
+		Where("IM.issuematch_status = 'new'").
+		Where("I.issue_type = 'Vulnerability'").
+		Where("IM.issuematch_deleted_at IS NULL").
+		Where("I.issue_deleted_at IS NULL").
+		Where("CI.componentinstance_deleted_at IS NULL").
+		Where("CV.componentversion_deleted_at IS NULL").
 		Where(sq.Expr(`
 			NOT EXISTS (
 				SELECT 1
 				FROM Remediation R
 				WHERE R.remediation_service_id = CI.componentinstance_service_id
-				  AND R.remediation_issue_id = CVI.componentversionissue_issue_id
+				  AND R.remediation_issue_id = I.issue_id
 				  AND R.remediation_deleted_at IS NULL
 				  AND (
 					  R.remediation_expiration_date IS NULL
 					  OR R.remediation_expiration_date >= CURDATE()
 				  )
 			)`)).
-		GroupBy("CVI.componentversionissue_component_version_id")
+		GroupBy("CV.componentversion_id")
 
 	insertBuilder := sq.
 		Insert("mvCountIssueRatingsComponentVersion").
