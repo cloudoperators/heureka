@@ -59,9 +59,15 @@ func (h *siemAlertHandler) DeleteSIEMAlert(ctx context.Context, id int64) error 
 		"siemAlertId": id,
 	})
 
-	matches, err := h.issueMatchHandler.ListIssueMatches(ctx, &entity.IssueMatchFilter{Id: []*int64{&id}}, entity.NewListOptions())
+	securityEvent := entity.IssueTypeSecurityEvent.String()
+
+	matches, err := h.issueMatchHandler.ListIssueMatches(ctx, &entity.IssueMatchFilter{
+		Id:        []*int64{&id},
+		IssueType: []*string{&securityEvent},
+	}, entity.NewListOptions())
 	if err != nil || matches == nil || len(matches.Elements) == 0 {
 		l.Error(err)
+
 		return NewSIEMAlertHandlerError("Internal error while resolving SIEM alert.")
 	}
 
@@ -158,6 +164,19 @@ func (h *siemAlertHandler) AcknowledgeSIEMAlert(ctx context.Context, id int64) (
 		return nil, NewSIEMAlertHandlerError("Internal error while acknowledging SIEM alert.")
 	}
 
+	if h.cache != nil {
+		_ = h.cache.InvalidateByMatch(func(decodedKey string) bool {
+			isIssueMatchQuery := strings.Contains(decodedKey, "GetIssueMatches") ||
+				strings.Contains(decodedKey, "GetAllIssueMatchCursors") ||
+				strings.Contains(decodedKey, "CountIssueMatches")
+			if !isIssueMatchQuery {
+				return false
+			}
+
+			return strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]", id))
+		})
+	}
+
 	return updated, nil
 }
 
@@ -170,7 +189,12 @@ func (h *siemAlertHandler) UpdateSIEMAlert(ctx context.Context, id int64, input 
 		return nil, NewSIEMAlertHandlerError("A comment is required when updating a SIEM alert.")
 	}
 
-	matches, err := h.issueMatchHandler.ListIssueMatches(ctx, &entity.IssueMatchFilter{Id: []*int64{&id}}, entity.NewListOptions())
+	securityEvent := entity.IssueTypeSecurityEvent.String()
+
+	matches, err := h.issueMatchHandler.ListIssueMatches(ctx, &entity.IssueMatchFilter{
+		Id:        []*int64{&id},
+		IssueType: []*string{&securityEvent},
+	}, entity.NewListOptions())
 	if err != nil {
 		l.Error(err)
 		return nil, NewSIEMAlertHandlerError("Internal error while resolving SIEM alert.")

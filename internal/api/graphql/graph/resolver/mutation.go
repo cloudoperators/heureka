@@ -1330,7 +1330,9 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 
 	var links []*model.SIEMAlertLink
 	if issueVariant != nil && issueVariant.ExternalUrl != "" {
-		_ = json.Unmarshal([]byte(issueVariant.ExternalUrl), &links)
+		if err := json.Unmarshal([]byte(issueVariant.ExternalUrl), &links); err != nil {
+			links = []*model.SIEMAlertLink{{Name: issueVariant.ExternalUrl, URL: issueVariant.ExternalUrl}}
+		}
 	} else if len(input.Links) > 0 {
 		for _, l := range input.Links {
 			if l != nil {

@@ -13,7 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 )
 
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 func (r *sIEMAlertNodeResolver) Comments(ctx context.Context, obj *model.SIEMAlertNode, filter *model.SIEMAlertCommentFilter, first *int, after *string) (*model.SIEMAlertCommentConnection, error) {
