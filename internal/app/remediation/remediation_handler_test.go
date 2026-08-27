@@ -570,6 +570,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		remediation = test.NewFakeRemediationResult()
+		remediation.Type = entity.RemediationTypeMitigation
 		first := 10
 		after := ""
 		filter = &entity.RemediationFilter{
