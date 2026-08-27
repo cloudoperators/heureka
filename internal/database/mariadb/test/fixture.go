@@ -1692,7 +1692,7 @@ func NewFakeIssueMatch() mariadb.IssueMatchRow {
 
 	return mariadb.IssueMatchRow{
 		Status: sql.NullString{
-			String: gofakeit.RandomString(entity.AllIssueMatchStatusValues),
+			String: entity.IssueMatchStatusValuesNew.String(),
 			Valid:  true,
 		},
 		Vector:                sql.NullString{String: v, Valid: true},
@@ -1712,7 +1712,7 @@ func NewFakeIssue() mariadb.IssueRow {
 		},
 		Description: sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
 		Type: sql.NullString{
-			String: gofakeit.RandomString(entity.AllIssueTypes),
+			String: entity.IssueTypeVulnerability.String(),
 			Valid:  true,
 		},
 		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},

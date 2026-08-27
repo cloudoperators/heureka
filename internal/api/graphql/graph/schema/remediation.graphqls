@@ -16,6 +16,7 @@ type Remediation implements Node {
     imageId: ID
     vulnerability: String
     vulnerabilityId: ID
+    assignee: String
     metadata: Metadata
 }
 
@@ -24,6 +25,7 @@ enum RemediationTypeValues {
     risk_accepted
     mitigation
     rescore
+    escalation
 }
 
 type RemediationConnection implements Connection {
@@ -70,4 +72,5 @@ input RemediationInput {
     image: String @constraint(maxLength: 255)
     vulnerability: String @constraint(maxLength: 255)
     expirationDate: DateTime
+    assignee: String @constraint(maxLength: 255)
 }
