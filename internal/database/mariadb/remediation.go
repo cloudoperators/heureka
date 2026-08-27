@@ -38,6 +38,12 @@ var remediationObject = DbObject[*entity.Remediation, *entity.RemediationFilter,
 		NewProperty("remediation_remediated_by_id", func(r *entity.Remediation) (any, bool) {
 			return sql.NullInt64{Int64: r.RemediatedById, Valid: IsValidId(r.RemediatedById)}, NoUpdate
 		}),
+		NewProperty("remediation_assignee", func(r *entity.Remediation) (any, bool) {
+			return sql.NullString{String: r.Assignee, Valid: r.Assignee != ""}, r.Assignee != ""
+		}),
+		NewProperty("remediation_assignee_id", func(r *entity.Remediation) (any, bool) {
+			return sql.NullInt64{Int64: r.AssigneeId, Valid: IsValidId(r.AssigneeId)}, r.AssigneeId != 0
+		}),
 		NewProperty("remediation_created_by", func(r *entity.Remediation) (any, bool) { return r.CreatedBy, NoUpdate }),
 		NewProperty("remediation_updated_by", func(r *entity.Remediation) (any, bool) { return r.UpdatedBy, r.UpdatedBy != 0 }),
 	},
