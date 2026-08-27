@@ -51,7 +51,20 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 		),
 		NewFilterProperty("MVL.max_severity = ?", func(filter *entity.IssueFilter) any { return filter.MvSeverity }),
 		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchId }),
-		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any { return filter.ComponentVersionId }),
+		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any {
+			if filter.HasIssueMatches {
+				return []int64{}
+			}
+
+			return filter.ComponentVersionId
+		}),
+		NewFilterProperty("CI.componentinstance_component_version_id = ?", func(filter *entity.IssueFilter) any {
+			if !filter.HasIssueMatches {
+				return []int64{}
+			}
+
+			return filter.ComponentVersionId
+		}),
 		NewFilterProperty("IV.issuevariant_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueVariantId }),
 		NewFilterProperty("I.issue_type = ?", func(filter *entity.IssueFilter) any { return filter.Type }),
 		NewFilterProperty("I.issue_primary_name = ?", func(filter *entity.IssueFilter) any { return filter.PrimaryName }),
@@ -117,7 +130,9 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
 			DependsOn: []string{"IM_RJ"},
-			Condition: DependentJoin[*entity.IssueFilter],
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return len(f.ComponentVersionId) > 0
+			},
 		},
 		{
 			Name:      "CI with IM_LJ",
@@ -203,6 +218,11 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table: "ComponentVersionIssue CVI",
 			On:    "I.issue_id = CVI.componentversionissue_issue_id",
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				// On the IM_RJ path (HasIssueMatches) we scope via CI directly;
+				// CVI is not needed and may not exist (SIEM alert path).
+				if f.HasIssueMatches {
+					return len(f.ComponentId) > 0
+				}
 				return len(f.ComponentVersionId) > 0 || len(f.ComponentId) > 0
 			},
 		},
