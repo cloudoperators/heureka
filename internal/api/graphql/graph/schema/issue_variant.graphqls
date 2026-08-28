@@ -15,11 +15,11 @@ type IssueVariant implements Node {
 }
 
 input IssueVariantInput {
-    secondaryName: String
-    description: String
-    issueRepositoryId: String
-    externalUrl: String
-    issueId: String
+    secondaryName: String @constraint(maxLength: 255)
+    description: String @constraint(maxLength: 4096)
+    issueRepositoryId: String @constraint(maxLength: 255)
+    externalUrl: String @constraint(maxLength: 2048, format: "url")
+    issueId: String @constraint(maxLength: 255)
     severity: SeverityInput
 }
 

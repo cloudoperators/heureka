@@ -26,9 +26,9 @@ type IssueMetadata {
 }
 
 input IssueInput {
-    primaryName: String
-    description: String
-    uuid: String
+    primaryName: String @constraint(maxLength: 255)
+    description: String @constraint(maxLength: 4096)
+    uuid: String @constraint(maxLength: 36)
     type: IssueTypes
 }
 

@@ -24,9 +24,9 @@ type ServiceMetadata {
 }
 
 input ServiceInput {
-    ccrn: String
-    domain: String
-    region: String
+    ccrn: String @constraint(maxLength: 255)
+    domain: String @constraint(maxLength: 255)
+    region: String @constraint(maxLength: 255)
 }
 
 type ServiceConnection implements Connection {

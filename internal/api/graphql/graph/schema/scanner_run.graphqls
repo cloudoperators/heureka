@@ -12,8 +12,8 @@ type ScannerRun implements Node {
 }
 
 input ScannerRunInput {
-    uuid:   String
-    tag:    String
+    uuid:   String @constraint(maxLength: 36)
+    tag:    String @constraint(maxLength: 255)
 }
 
 type ScannerRunConnection implements Connection {

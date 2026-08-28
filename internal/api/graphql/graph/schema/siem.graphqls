@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 input SIEMAlertLinkInput {
-    name: String!
-    url: String! @constraint(format: "url")
+    name: String! @constraint(maxLength: 255)
+    url: String! @constraint(maxLength: 2048, format: "url")
 }
 
 input SIEMAlertUpdateInput {
@@ -12,18 +12,18 @@ input SIEMAlertUpdateInput {
 }
 
 input SIEMAlertInput {
-    name: String
-    description: String
+    name: String @constraint(maxLength: 255)
+    description: String @constraint(maxLength: 4096)
     severity: SeverityValues
     links: [SIEMAlertLinkInput]
-    service: String
-    supportGroup: String
-    region: String
-    cluster: String
-    namespace: String
-    pod: String
-    container: String
-    source: String
+    service: String @constraint(maxLength: 255)
+    supportGroup: String @constraint(maxLength: 255)
+    region: String @constraint(maxLength: 255)
+    cluster: String @constraint(maxLength: 255)
+    namespace: String @constraint(maxLength: 255)
+    pod: String @constraint(maxLength: 255)
+    container: String @constraint(maxLength: 255)
+    source: String @constraint(maxLength: 255)
     acknowledged: Boolean
 }
 
