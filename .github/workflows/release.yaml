@@ -12,7 +12,7 @@ on:
         required: false
   push:
     branches:
-      - main
+      - mr2011/issue-x/semantic-release
     paths:
       - cmd/**
       - scanner/**
