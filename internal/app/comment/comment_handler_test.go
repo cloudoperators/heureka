@@ -230,7 +230,10 @@ var _ = Describe("When creating a Comment", Label("app", "CreateComment"), func(
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
-			Expect(err.Error()).To(ContainSubstring("Internal error while creating comment"), "should be handler error")
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("Comment"), "should reference Comment entity")
 		})
 	})
 })

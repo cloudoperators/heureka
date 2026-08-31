@@ -11,7 +11,7 @@ import (
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 
-	"github.com/cloudoperators/heureka/internal/app/service"
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
@@ -96,7 +96,7 @@ func newCacheTest(
 
 	ct.seedCollection = ct.seeder.SeedDbWithNFakeData(testResourceCount)
 
-	service.CacheTtlGetServiceAttrs = ttl
+	common.DefaultCacheTTL = ttl
 
 	return &ct
 }

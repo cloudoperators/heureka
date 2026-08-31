@@ -22,12 +22,12 @@ var (
 
 func (is *issueHandler) GetMaxSeverityByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64]string, error) {
 	return cache.CallCached[map[int64]string](
-		is.cache,
+		is.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetMaxSeverityByIssueIDs,
 			ctx,
 			"GetMaxSeverityByIssueIDs",
-			is.database.GetMaxSeverityByIssueIDs,
+			is.DB().GetMaxSeverityByIssueIDs,
 			issueIDs,
 		),
 	)
@@ -35,12 +35,12 @@ func (is *issueHandler) GetMaxSeverityByIssueIDs(ctx context.Context, issueIDs [
 
 func (is *issueHandler) GetEarliestRemediationByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64]time.Time, error) {
 	return cache.CallCached[map[int64]time.Time](
-		is.cache,
+		is.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetEarliestRemediationByIssueIDs,
 			ctx,
 			"GetEarliestRemediationByIssueIDs",
-			is.database.GetEarliestRemediationByIssueIDs,
+			is.DB().GetEarliestRemediationByIssueIDs,
 			issueIDs,
 		),
 	)
@@ -48,12 +48,12 @@ func (is *issueHandler) GetEarliestRemediationByIssueIDs(ctx context.Context, is
 
 func (is *issueHandler) GetSourceURLsByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64]string, error) {
 	return cache.CallCached[map[int64]string](
-		is.cache,
+		is.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetSourceURLsByIssueIDs,
 			ctx,
 			"GetSourceURLsByIssueIDs",
-			is.database.GetSourceURLsByIssueIDs,
+			is.DB().GetSourceURLsByIssueIDs,
 			issueIDs,
 		),
 	)
@@ -61,12 +61,12 @@ func (is *issueHandler) GetSourceURLsByIssueIDs(ctx context.Context, issueIDs []
 
 func (is *issueHandler) GetServicesByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64][]entity.ServiceResult, error) {
 	return cache.CallCached[map[int64][]entity.ServiceResult](
-		is.cache,
+		is.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetServicesByIssueIDs,
 			ctx,
 			"GetServicesByIssueIDs",
-			is.database.GetServicesByIssueIDs,
+			is.DB().GetServicesByIssueIDs,
 			issueIDs,
 		),
 	)
@@ -74,12 +74,12 @@ func (is *issueHandler) GetServicesByIssueIDs(ctx context.Context, issueIDs []in
 
 func (is *issueHandler) GetSupportGroupsByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64][]entity.SupportGroupResult, error) {
 	return cache.CallCached[map[int64][]entity.SupportGroupResult](
-		is.cache,
+		is.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetSupportGroupsByIssueIDs,
 			ctx,
 			"GetSupportGroupsByIssueIDs",
-			is.database.GetSupportGroupsByIssueIDs,
+			is.DB().GetSupportGroupsByIssueIDs,
 			issueIDs,
 		),
 	)
@@ -87,12 +87,12 @@ func (is *issueHandler) GetSupportGroupsByIssueIDs(ctx context.Context, issueIDs
 
 func (is *issueHandler) GetVulnerabilityAggregatesByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64]entity.VulnerabilityAggregate, error) {
 	return cache.CallCached[map[int64]entity.VulnerabilityAggregate](
-		is.cache,
+		is.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetVulnerabilityAggregatesByIssueIDs,
 			ctx,
 			"GetVulnerabilityAggregatesByIssueIDs",
-			is.database.GetVulnerabilityAggregatesByIssueIDs,
+			is.DB().GetVulnerabilityAggregatesByIssueIDs,
 			issueIDs,
 		),
 	)
