@@ -62,10 +62,10 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             OUTPUT=$(npx semantic-release --dry-run 2>&1) || true
           else
-            OUTPUT=$(npx semantic-release 2>&1) || true
+            OUTPUT=$(npx semantic-release 2>&1)
           fi
           echo "$OUTPUT"
-          VERSION=$(echo "$OUTPUT" | grep -oP 'Published release \K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+          VERSION=$(echo "$OUTPUT" | sed -nE 's/.*Published release ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | head -n 1)
           if [ -n "$VERSION" ]; then
             echo "release-version=${VERSION}" >> "$GITHUB_OUTPUT"
             echo "new-release-published=true" >> "$GITHUB_OUTPUT"
