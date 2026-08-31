@@ -53,16 +53,29 @@ jobs:
 
       - name: Install dependencies
         run: npm install --save-dev semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
-      - uses: codfish/semantic-release-action@v5
+
+      - name: Run semantic-release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Use the dry_run input if provided via manual trigger
-          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
-          
-    
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            OUTPUT=$(npx semantic-release --dry-run 2>&1) || true
+          else
+            OUTPUT=$(npx semantic-release 2>&1) || true
+          fi
+          echo "$OUTPUT"
+          VERSION=$(echo "$OUTPUT" | grep -oP 'Published release \K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+          if [ -n "$VERSION" ]; then
+            echo "release-version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "new-release-published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release-version=" >> "$GITHUB_OUTPUT"
+            echo "new-release-published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - run: echo ${{ steps.semantic.outputs.release-version }}
-    
+
       - run: echo "$OUTPUTS"
         env:
           OUTPUTS: ${{ toJson(steps.semantic.outputs) }}
