@@ -56,6 +56,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should register and handle events", func() {
 		var eventHandled int32
+
 		handler := func(db database.Database, e Event, authz openfga.Authorization) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
@@ -71,9 +72,11 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle multiple events", func() {
 		var eventHandled int32
+
 		handler := func(db database.Database, e Event, authz openfga.Authorization) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
+
 		er.Run(ctx)
 		er.RegisterEventHandler("test_event", EventHandlerFunc(handler))
 		er.PushEvent(NewTestEvent("test_event"))
@@ -86,6 +89,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle massive event counts with process overlap", func() {
 		const numEvents = 10000
+
 		var eventHandled int64
 
 		handler := func(db database.Database, e Event, authz openfga.Authorization) {
@@ -110,6 +114,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		// Increase wait time and add polling for completion
 		// assuming a 5 seconds on 10k events setting 10 second deadline to be sure
 		deadline := time.After(10 * time.Second)
+
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
 
@@ -123,6 +128,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 						numEvents,
 					),
 				)
+
 				return
 			case <-ticker.C:
 				if atomic.LoadInt64(&eventHandled) == int64(numEvents) {
@@ -134,6 +140,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle channel capacity overflow", func() {
 		const numEvents = 150 // More than channel capacity
+
 		var eventHandled int64
 
 		handler := func(db database.Database, e Event, authz openfga.Authorization) {
@@ -152,9 +159,9 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		// Wait for all events to be processed
 		// All go routines should be finished after 10s
 		timeout := time.After(10 * time.Second)
+
 		for atomic.LoadInt64(&eventHandled) != int64(numEvents) {
 			// Check for what's expected (all go routines have incremented the counter)
-
 			select {
 			case <-timeout:
 				Fail(
@@ -174,6 +181,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle multiple times when multiple handlers are registered", func() {
 		var eventHandled int32
+
 		handler := func(db database.Database, e Event, authz openfga.Authorization) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
@@ -192,6 +200,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should stop processing on context cancel", func() {
 		var eventHandled int32
+
 		handler := func(db database.Database, e Event, authz openfga.Authorization) {
 			atomic.AddInt32(&eventHandled, 1)
 		}

@@ -22,13 +22,16 @@ import (
 )
 
 var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -66,6 +69,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -98,6 +102,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 					respData := struct {
 						Issues model.IssueConnection `json:"Issues"`
 					}{}
+
 					BeforeEach(func() {
 						resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 							Issues model.IssueConnection `json:"Issues"`
@@ -127,7 +132,6 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 						// does resolve some reasonable data and is not doing
 						// a complete verification
 						// additional checks are added based on bugs discovered during usage
-
 						for _, issue := range respData.Issues.Edges {
 							Expect(issue.Node.PrimaryName).ToNot(BeNil(), "Name is set")
 							Expect(issue.Node.Type).ToNot(BeNil(), "Type is set")
@@ -169,6 +173,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 									iv.Node.IssueRepository.Name,
 								).ToNot(BeNil(), "Repository name is set")
 							}
+
 							for _, im := range issue.Node.IssueMatches.Edges {
 								_, issueMatchFound := lo.Find(
 									seedCollection.IssueMatchRows,
@@ -251,10 +256,12 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 					for _, issueEdge := range respData.Issues.Edges {
 						ciCount := 0
 						serviceIdSet := map[string]bool{}
+
 						for _, imEdge := range issueEdge.Node.IssueMatches.Edges {
 							ciCount += *imEdge.Node.ComponentInstance.Count
 							serviceIdSet[imEdge.Node.ComponentInstance.Service.ID] = true
 						}
+
 						Expect(
 							issueEdge.Node.ObjectMetadata.IssueMatchCount,
 						).To(Equal(issueEdge.Node.IssueMatches.TotalCount), "IssueMatchCount is correct")
@@ -309,10 +316,12 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 					By("- returns the expected content in order", func() {
 						prev := -10
+
 						for _, i := range issues.Edges {
 							if len(i.Node.IssueVariants.Edges) > 0 {
 								id, err := strconv.ParseInt(i.Node.ID, 10, 64)
 								Expect(err).To(BeNil(), "Error while parsing ID")
+
 								variants := seedCollection.GetIssueVariantsByIssueId(id)
 								ratings := lo.Map(
 									variants,
@@ -332,14 +341,17 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 })
 
 var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var issue entity.Issue
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		issue  entity.Issue
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -358,6 +370,7 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 	When("the database has 10 entries", func() {
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
+
 			issue = testentity.NewFakeIssueEntity()
 		})
 
@@ -388,13 +401,16 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 })
 
 var _ = Describe("Updating issue via API", Label("e2e", "Issues"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -444,13 +460,16 @@ var _ = Describe("Updating issue via API", Label("e2e", "Issues"), func() {
 })
 
 var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -499,13 +518,16 @@ var _ = Describe(
 	"Modifying relationship of ComponentVersion of Issue via API",
 	Label("e2e", "ComponentVersionIssueRelationship"),
 	func() {
-		var seeder *test.DatabaseSeeder
-		var s *server.Server
-		var cfg util.Config
-		var db *mariadb.SqlDatabase
+		var (
+			seeder *test.DatabaseSeeder
+			s      *server.Server
+			cfg    util.Config
+			db     *mariadb.SqlDatabase
+		)
 
 		BeforeEach(func() {
 			var err error
+
 			db = dbm.NewTestSchemaWithoutMigration()
 			seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 			Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -538,6 +560,7 @@ var _ = Describe(
 							if row.IssueId.Int64 == issue.Id {
 								return row.ComponentVersionId.Int64, true
 							}
+
 							return 0, false
 						},
 					)

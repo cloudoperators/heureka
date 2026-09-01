@@ -32,9 +32,11 @@ var _ = Describe(
 	"Creating issue value via API using OIDC authentication",
 	Label("e2e", "Authentication"),
 	func() {
-		var authTest *authenticationTest
-		var testUser entity.User
-		var issue entity.Issue
+		var (
+			authTest *authenticationTest
+			testUser entity.User
+			issue    entity.Issue
+		)
 
 		BeforeEach(func() {
 			authTest = newAuthenticationTest()
@@ -64,9 +66,11 @@ var _ = Describe(
 	"Updating issue value via API using OIDC authentication",
 	Label("e2e", "Authentication"),
 	func() {
-		var authTest *authenticationTest
-		var testUser entity.User
-		var issue entity.Issue
+		var (
+			authTest *authenticationTest
+			testUser entity.User
+			issue    entity.Issue
+		)
 
 		BeforeEach(func() {
 			authTest = newAuthenticationTest()
@@ -93,9 +97,11 @@ var _ = Describe(
 	"Deleting issue value via API using OIDC authentication",
 	Label("e2e", "Authentication"),
 	func() {
-		var authTest *authenticationTest
-		var testUser entity.User
-		var issue entity.Issue
+		var (
+			authTest *authenticationTest
+			testUser entity.User
+			issue    entity.Issue
+		)
 
 		BeforeEach(func() {
 			authTest = newAuthenticationTest()

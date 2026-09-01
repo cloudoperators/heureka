@@ -68,7 +68,9 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		ivFilter = entity.NewIssueVariantFilter()
 		first := 10
 		ivFilter.First = &first
+
 		var after string
+
 		ivFilter.After = &after
 		irFilter = entity.NewIssueRepositoryFilter()
 		irFilter.First = &first
@@ -87,10 +89,12 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 			issueVariants = test.NNewFakeIssueVariants(25)
 			repositories = test.NNewFakeIssueRepositories(2)
 			repositories[0].Priority = 1
+
 			repositories[1].Priority = 2
 			for i := range issueVariants {
 				issueVariants[i].IssueRepositoryId = repositories[i%2].Id
 			}
+
 			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
 				return &item.IssueRepositoryId
 			})
@@ -151,10 +155,12 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 			issueVariants = test.NNewFakeIssueVariants(25)
 			repositories = test.NNewFakeIssueRepositories(2)
 			repositories[0].Priority = 1
+
 			repositories[1].Priority = 1
 			for i := range issueVariants {
 				issueVariants[i].IssueRepositoryId = repositories[i%2].Id
 			}
+
 			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
 				return &item.IssueRepositoryId
 			})

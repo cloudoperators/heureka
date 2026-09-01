@@ -250,6 +250,7 @@ var _ = Describe("Authz", func() {
 			}
 			err := authz.AddRelation(newRelation1)
 			Expect(err).To(BeNil())
+
 			newRelation2 := openfga.RelationInput{
 				UserType:   userType,
 				UserId:     "new_user_1",
@@ -259,6 +260,7 @@ var _ = Describe("Authz", func() {
 			}
 			err = authz.AddRelation(newRelation2)
 			Expect(err).To(BeNil())
+
 			newRelation3 := openfga.RelationInput{
 				UserType:   userType,
 				UserId:     "new_user_1",
@@ -331,9 +333,11 @@ var _ = Describe("Authz", func() {
 			r.ObjectId = "document1"
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
+
 			r.ObjectId = "document2"
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
+
 			r.ObjectId = "document3"
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
@@ -355,9 +359,11 @@ var _ = Describe("Authz", func() {
 			r.Relation = ownerRel
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
+
 			r.ObjectId = "document2"
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
+
 			r.ObjectId = "document3"
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
@@ -365,9 +371,11 @@ var _ = Describe("Authz", func() {
 			r.ObjectId = "document1"
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
+
 			r.ObjectId = "document2"
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
+
 			r.ObjectId = "document3"
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())

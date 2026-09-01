@@ -88,6 +88,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			db.On("CountServices", mock.Anything, filter).Return(int64(1337), nil)
@@ -110,6 +111,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 				filter.First = &pageSize
 				services := []entity.ServiceResult{}
+
 				for _, s := range test.NNewFakeServiceEntities(resElements) {
 					cursor, _ := mariadb.EncodeCursor(
 						mariadb.WithService([]entity.Order{}, s, entity.IssueSeverityCounts{}),
@@ -131,6 +133,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 							entity.IssueSeverityCounts{},
 						),
 					)
+
 					return cursor
 				})
 
@@ -147,9 +150,11 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 					)
 					cursors = append(cursors, c)
 				}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return(services, nil)
 				db.On("GetAllServiceCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
+
 				serviceHandler = s.NewServiceHandler(handlerContext)
 				res, err := serviceHandler.ListServices(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -202,6 +207,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				for _, s := range test.NNewFakeServiceEntitiesWithAggregations(10) {
 					services = append(services, entity.ServiceResult{Service: &s.Service})
 				}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetServicesWithAggregations", mock.Anything, filter, []entity.Order{}).Return(services, nil)
 			})
@@ -252,6 +258,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				for _, s := range test.NNewFakeServiceEntitiesWithAggregations(15) {
 					services = append(services, entity.ServiceResult{Service: &s.Service})
 				}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return(services, nil)
 			})
@@ -300,6 +307,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			BeforeEach(func() {
 				sgIds := int64(-1)
 				filter.SupportGroupId = []*int64{&sgIds}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
@@ -323,6 +331,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 					systemUserId := int64(1)
 					filter.SupportGroupId = []*int64{&sgId}
 					service = test.NewFakeServiceEntity()
+
 					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 					db.On("GetServices", mock.Anything, filter, []entity.Order{}).
 						Return([]entity.ServiceResult{{Service: &service}}, nil)
@@ -391,6 +400,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		handlerContext.Authz.RemoveAllRelations()
+
 		service = test.NewFakeServiceEntity()
 		first := 10
 		after := ""
@@ -407,6 +417,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 	It("creates service", func() {
 		filter.CCRN = []*string{&service.CCRN}
+
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateService", &service).Return(&service, nil)
 		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
@@ -537,6 +548,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 					// Use type assertion to convert a CreateServiceEvent into an Event
 					var event event.Event = createEvent
+
 					r.ObjectId = openfga.ObjectIdFromInt(createEvent.Service.Id)
 					// Simulate event
 					s.OnServiceCreateAuthz(db, event, handlerContext.Authz)
@@ -578,6 +590,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 	It("updates service", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateService", service.Service).Return(nil)
+
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		service.CCRN = "SecretService"
 		filter.Id = []*int64{&service.Id}
@@ -623,8 +636,11 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 	It("deletes service", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteService", id, mock.Anything).Return(nil)
+
 		serviceHandler = s.NewServiceHandler(handlerContext)
+
 		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+
 		err := serviceHandler.DeleteService(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -696,11 +712,14 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 
 					// get the number of relations before deletion
 					relCountBefore := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountBefore += len(relations)
 					}
+
 					Expect(
 						relCountBefore,
 					).To(Equal(len(relations)), "all relations should exist before deletion")
@@ -718,11 +737,14 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 
 					// get the number of relations after deletion
 					relCountAfter := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountAfter += len(relations)
 					}
+
 					Expect(
 						relCountAfter < relCountBefore,
 					).To(BeTrue(), "less relations after deletion")
@@ -777,6 +799,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		db.On("AddOwnerToService", service.Id, owner.Id).Return(nil)
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		service, err := serviceHandler.AddOwnerToService(ctx, service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -814,6 +837,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		service, err := serviceHandler.RemoveOwnerFromService(ctx, service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -936,6 +960,7 @@ var _ = Describe(
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetServices", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.ServiceResult{service}, nil)
+
 			serviceHandler = s.NewServiceHandler(handlerContext)
 			service, err := serviceHandler.AddIssueRepositoryToService(
 				ctx,
@@ -952,6 +977,7 @@ var _ = Describe(
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetServices", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.ServiceResult{service}, nil)
+
 			serviceHandler = s.NewServiceHandler(handlerContext)
 			service, err := serviceHandler.RemoveIssueRepositoryFromService(
 				ctx,

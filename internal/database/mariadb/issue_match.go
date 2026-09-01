@@ -44,6 +44,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			if filter.Acknowledged == nil {
 				return []*bool{}
 			}
+
 			return []*bool{filter.Acknowledged}
 		}),
 		NewFilterProperty("SG.supportgroup_ccrn = ?", func(filter *entity.IssueMatchFilter) any { return filter.SupportGroupCCRN }),

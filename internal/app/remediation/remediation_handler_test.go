@@ -73,6 +73,7 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{}, nil)
 			db.On("CountRemediations", mock.Anything, filter).Return(int64(1337), nil)
@@ -95,6 +96,7 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 				filter.First = &pageSize
 				remediations := []entity.RemediationResult{}
+
 				for _, remediation := range test.NNewFakeRemediations(resElements) {
 					cursor, _ := mariadb.EncodeCursor(
 						mariadb.WithRemediation([]entity.Order{}, remediation),
@@ -112,6 +114,7 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 					cursor, _ := mariadb.EncodeCursor(
 						mariadb.WithRemediation([]entity.Order{}, *m.Remediation),
 					)
+
 					return cursor
 				})
 
@@ -124,8 +127,10 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 					)
 					cursors = append(cursors, c)
 				}
+
 				db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).Return(remediations, nil)
 				db.On("GetAllRemediationCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
+
 				remediationHandler = rh.NewRemediationHandler(handlerContext)
 				res, err := remediationHandler.ListRemediations(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -191,6 +196,7 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 
 		It("should return Internal error", func() {
 			remediations := []entity.RemediationResult{}
+
 			for _, remediation := range test.NNewFakeRemediations(5) {
 				cursor, _ := mariadb.EncodeCursor(
 					mariadb.WithRemediation([]entity.Order{}, remediation),
@@ -202,6 +208,7 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 			}
 
 			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).Return(remediations, nil)
+
 			cursorsError := errors.New("cursor database error")
 			db.On("GetAllRemediationCursors", mock.Anything, filter, []entity.Order{}).
 				Return([]string{}, cursorsError)
@@ -287,10 +294,12 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 	Context("when a remediation of the same type exists and is active", func() {
 		It("returns InvalidArgument error if the new expiration date is not later", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(2 * time.Hour)
 			// New remediation has same or earlier expiration — rejected
 			remediation.ExpirationDate = time.Now().Add(time.Hour)
+
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 
@@ -310,10 +319,12 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 		It("returns InvalidArgument error if the new expiration date equals the existing one", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			sharedExpiration := time.Now().Add(time.Hour).Truncate(time.Second)
 			existing := remediation
 			existing.ExpirationDate = sharedExpiration
 			remediation.ExpirationDate = sharedExpiration
+
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 
@@ -325,6 +336,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 			Expect(newRemediation).To(BeNil())
 			Expect(err).ToNot(BeNil())
+
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue())
 			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
@@ -332,9 +344,11 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 		It("returns InvalidArgument error if the existing one has no expiration date (permanent)", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			existing := remediation
 			existing.ExpirationDate = time.Time{}
 			remediation.ExpirationDate = time.Now().Add(24 * time.Hour)
+
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 
@@ -346,6 +360,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 			Expect(newRemediation).To(BeNil())
 			Expect(err).ToNot(BeNil())
+
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue())
 			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
@@ -353,9 +368,11 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 		It("returns InvalidArgument error if the new remediation has no expiration date", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(time.Hour)
 			remediation.ExpirationDate = time.Time{} // zero — no expiration on new one
+
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 
@@ -367,6 +384,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 			Expect(newRemediation).To(BeNil())
 			Expect(err).ToNot(BeNil())
+
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue())
 			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
@@ -374,10 +392,12 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 		It("creates remediation if the new expiration date is strictly later", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(time.Hour)
 			// New remediation has a later expiration — allowed
 			remediation.ExpirationDate = time.Now().Add(2 * time.Hour)
+
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
@@ -395,6 +415,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 		It("creates remediation if the existing one is expired", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(-time.Hour)
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
@@ -416,6 +437,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 	Context("when a remediation of a different type exists and is active", func() {
 		It("creates remediation regardless of expiration dates", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(24 * time.Hour)
 			// Force different types
@@ -424,6 +446,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 			} else {
 				existing.Type = entity.RemediationTypeFalsePositive
 			}
+
 			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
@@ -486,6 +509,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 		It("creates remediation when issue is a SIEM alert and description is provided", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			siemIssue := test.NewFakeIssueResult()
 			siemIssue.Type = entity.IssueTypeSecurityEvent
 			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
@@ -589,6 +613,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 		It("updates remediation", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			db.On("UpdateRemediation", remediation.Remediation).Return(nil)
+
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
 			remediation.Description = "Updated description"
 			remediation.Service = "Updated Service"
@@ -618,6 +643,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 
 		It("returns InvalidArgument when clearing description leaves it empty", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			existing := remediation
 			existing.Description = ""
 			remediation.Description = ""
@@ -641,10 +667,12 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 
 		It("returns InvalidArgument when issue is not a SIEM alert", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			remediation.Description = "Filtered: out of scope"
 			filter.Id = []*int64{&remediation.Id}
 			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{remediation}, nil)
+
 			nonSIEMIssue := test.NewFakeIssueResult()
 			nonSIEMIssue.Type = entity.IssueTypeVulnerability
 			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
@@ -666,10 +694,12 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 
 		It("updates successfully when issue is a SIEM alert and description is present", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
 			remediation.Description = "Filtered: out of scope"
 			filter.Id = []*int64{&remediation.Id}
 			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{remediation}, nil)
+
 			siemIssue := test.NewFakeIssueResult()
 			siemIssue.Type = entity.IssueTypeSecurityEvent
 			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
@@ -719,9 +749,12 @@ var _ = Describe("When deleting Remediation", Label("app", "DeleteRemediation"),
 		It("deletes remediation", func() {
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			db.On("DeleteRemediation", id, int64(123)).Return(nil)
+
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
+
 			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{}, nil)
+
 			err := remediationHandler.DeleteRemediation(common.NewAdminContext(), id)
 			Expect(err).To(BeNil(), "no error should be thrown")
 

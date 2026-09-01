@@ -19,13 +19,16 @@ import (
 )
 
 var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -43,8 +46,10 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 	When("the database has entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			var err error
+
 			seedCollection, err = seeder.SeedForIssueCounts()
 			Expect(err).To(BeNil(), "Seeding should work")
 			err = seeder.RefreshCountIssueRatings()

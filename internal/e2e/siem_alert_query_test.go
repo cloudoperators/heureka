@@ -19,13 +19,16 @@ import (
 )
 
 var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -180,6 +183,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				Expect(err).ToNot(HaveOccurred())
 
 				criticalCount := 0
+
 				for _, edge := range respAll.SIEMAlerts.Edges {
 					if edge.Node.Severity != nil && string(*edge.Node.Severity) == targetSeverity {
 						criticalCount++
@@ -208,6 +212,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respFiltered.SIEMAlerts.TotalCount).To(Equal(criticalCount))
 				Expect(respFiltered.SIEMAlerts.TotalCount).To(BeNumerically("<", respAll.SIEMAlerts.TotalCount))
+
 				for _, edge := range respFiltered.SIEMAlerts.Edges {
 					Expect(string(*edge.Node.Severity)).To(Equal(targetSeverity))
 				}
@@ -219,6 +224,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				targetStatus := entity.IssueMatchStatusValuesNew.String()
 
 				newCount := 0
+
 				for _, im := range seedCollection.IssueMatchRows {
 					if im.Status.String == targetStatus {
 						newCount++
@@ -247,6 +253,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.SIEMAlerts.TotalCount).To(Equal(newCount))
 				Expect(respData.SIEMAlerts.TotalCount).To(BeNumerically("<", len(seedCollection.GetValidIssueMatchRows())))
+
 				for _, edge := range respData.SIEMAlerts.Edges {
 					Expect(string(*edge.Node.Status)).To(Equal(targetStatus))
 				}
@@ -256,6 +263,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 		Context("filtering by acknowledged", func() {
 			It("returns only alerts matching the requested acknowledged value", func() {
 				acknowledgedCount := 0
+
 				for _, im := range seedCollection.GetValidIssueMatchRows() {
 					if im.Acknowledged.Bool {
 						acknowledgedCount++
@@ -281,6 +289,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respAck.SIEMAlerts.TotalCount).To(Equal(acknowledgedCount))
+
 				for _, edge := range respAck.SIEMAlerts.Edges {
 					Expect(edge.Node.Acknowledged).NotTo(BeNil())
 					Expect(*edge.Node.Acknowledged).To(BeTrue())
@@ -301,6 +310,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respUnack.SIEMAlerts.TotalCount).To(Equal(len(seedCollection.GetValidIssueMatchRows()) - acknowledgedCount))
+
 				for _, edge := range respUnack.SIEMAlerts.Edges {
 					Expect(edge.Node.Acknowledged).NotTo(BeNil())
 					Expect(*edge.Node.Acknowledged).To(BeFalse())
@@ -419,8 +429,11 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 	})
 
 	When("the database has SecurityEvent IssueMatches split across two distinct services", func() {
-		var service1CCRN, service2CCRN string
-		var sg1CCRN, sg2CCRN string
+		var (
+			service1CCRN, service2CCRN string
+			sg1CCRN, sg2CCRN           string
+		)
+
 		const matchesPerService = 3
 
 		BeforeEach(func() {
@@ -569,6 +582,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 
 	When("the database has SecurityEvent IssueMatches split across two distinct regions", func() {
 		var region1, region2 string
+
 		const matchesPerRegion = 3
 
 		BeforeEach(func() {
@@ -590,6 +604,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 				ci.ServiceId = svcRows[i].Id
 				ciId, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
+
 				ci.Id = sql.NullInt64{Int64: ciId, Valid: true}
 				seeder.SeedIssueMatches(matchesPerRegion, issues, []mariadb.ComponentInstanceRow{ci}, users)
 			}
@@ -654,6 +669,7 @@ var _ = Describe("Getting SIEMAlerts via API", Label("e2e", "SIEMAlerts"), func(
 
 	When("the database has SecurityEvent IssueMatches with distinct names", func() {
 		var name1, name2 string
+
 		const matchesPerName = 2
 
 		BeforeEach(func() {

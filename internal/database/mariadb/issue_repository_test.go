@@ -15,10 +15,14 @@ import (
 )
 
 var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -31,6 +35,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetIssueRepositories(context.Background(), nil, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -41,6 +46,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 		})
 		Context("and we have 10 issue repositories in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -62,10 +68,8 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -116,6 +120,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 
 					// collect all issue repository ids that belong to the service
 					irIds := []int64{}
+
 					for _, irsRow := range seedCollection.IssueRepositoryServiceRows {
 						if irsRow.ServiceId.Int64 == sRow.Id.Int64 {
 							irIds = append(irIds, irsRow.IssueRepositoryId.Int64)
@@ -144,6 +149,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 
 					// collect all issue repository ids that belong to the service
 					irIds := []int64{}
+
 					for _, irsRow := range seedCollection.IssueRepositoryServiceRows {
 						if irsRow.ServiceId.Int64 == sRow.Id.Int64 {
 							irIds = append(irIds, irsRow.IssueRepositoryId.Int64)
@@ -183,6 +189,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 										*entries[len(entries)-1].IssueRepository,
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.IssueRepositoryRows),
@@ -212,9 +219,12 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var irRows []mariadb.BaseIssueRepositoryRow
-			var count int
+			var (
+				seedCollection *test.SeedCollection
+				irRows         []mariadb.BaseIssueRepositoryRow
+				count          int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				irRows = seedCollection.IssueRepositoryRows
@@ -260,6 +270,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 
 						// collect all issue repository ids that belong to the service
 						irIds := []int64{}
+
 						for _, irsRow := range seedCollection.IssueRepositoryServiceRows {
 							if irsRow.ServiceId.Int64 == sRow.Id.Int64 {
 								irIds = append(irIds, irsRow.IssueRepositoryId.Int64)
@@ -274,6 +285,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 							ServiceCCRN: []*string{&sRow.CCRN.String},
 						}
 						entries, err := db.CountIssueRepositories(context.Background(), filter)
+
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
 						})
@@ -291,9 +303,12 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 	})
 	When("Insert IssueRepository", Label("InsertIssueRepository"), func() {
 		Context("and we have 10 IssueRepositories in the database", func() {
-			var newIssueRepositoryRow mariadb.IssueRepositoryRow
-			var newIssueRepository entity.IssueRepository
-			var seedCollection *test.SeedCollection
+			var (
+				newIssueRepositoryRow mariadb.IssueRepositoryRow
+				newIssueRepository    entity.IssueRepository
+				seedCollection        *test.SeedCollection
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newIssueRepositoryRow = test.NewFakeIssueRepository()
@@ -314,6 +329,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				}
 
 				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -343,6 +359,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 	When("Update IssueRepository", Label("UpdateIssueRepository"), func() {
 		Context("and we have 10 IssueRepositories in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -361,6 +378,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				}
 
 				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -388,6 +406,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				}
 
 				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -405,6 +424,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 	When("Delete IssueRepository", Label("DeleteIssueRepository"), func() {
 		Context("and we have 10 IssueRepositories in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -422,6 +442,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				}
 
 				ir, err := db.GetIssueRepositories(context.Background(), issueRepositoryFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})

@@ -31,9 +31,11 @@ var _ = Describe(
 	"Pass OIDC token data via context when using OIDC auth middleware",
 	Label("api", "OidcAuthorization"),
 	func() {
-		var oidcProvider *oidc.Provider
-		var testServer *test.TestServer
-		var oidcTokenStringHandler func(j *test.Jwt) string
+		var (
+			oidcProvider           *oidc.Provider
+			testServer             *test.TestServer
+			oidcTokenStringHandler func(j *test.Jwt) string
+		)
 
 		BeforeEach(func() {
 			oidcProviderUrl := fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())

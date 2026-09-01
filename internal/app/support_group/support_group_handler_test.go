@@ -79,6 +79,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
 			db.On("CountSupportGroups", mock.Anything, filter).Return(int64(1337), nil)
@@ -100,7 +101,9 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 			"pagination information is correct",
 			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 				filter.First = &pageSize
+
 				var supportGroups []entity.SupportGroupResult
+
 				for _, sg := range test.NNewFakeSupportGroupEntities(resElements) {
 					cursor, _ := mariadb.EncodeCursor(mariadb.WithSupportGroup(order, sg))
 					supportGroups = append(supportGroups, entity.SupportGroupResult{
@@ -114,6 +117,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				})
 
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+
 				var i int64 = 0
 				for len(cursors) < dbElements {
 					i++
@@ -123,8 +127,10 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 					)
 					cursors = append(cursors, c)
 				}
+
 				db.On("GetSupportGroups", mock.Anything, filter, order).Return(supportGroups, nil)
 				db.On("GetAllSupportGroupCursors", mock.Anything, filter, order).Return(cursors, nil)
+
 				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 				res, err := supportGroupHandler.ListSupportGroups(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -173,6 +179,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 			BeforeEach(func() {
 				sgIds := int64(-1)
 				filter.Id = []*int64{&sgIds}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetSupportGroups", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.SupportGroupResult{}, nil)
@@ -194,6 +201,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				systemUserId := int64(1)
 				supportGroup = test.NewFakeSupportGroupEntity()
 				filter.Id = []*int64{&supportGroup.Id}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetSupportGroups", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.SupportGroupResult{{SupportGroup: &supportGroup}}, nil)
@@ -247,7 +255,9 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		supportGroup = test.NewFakeSupportGroupEntity()
+
 		handlerContext.Authz.RemoveAllRelations()
+
 		order = []entity.Order{}
 		first := 10
 		after := ""
@@ -265,9 +275,11 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 	It("creates supportGroup", func() {
 		filter.CCRN = []*string{&supportGroup.CCRN}
+
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
+
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(
 			common.NewAdminContext(),
@@ -314,6 +326,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 					// Use type assertion to convert a CreateServiceEvent into an Event
 					var event event.Event = createEvent
+
 					r.ObjectId = openfga.ObjectIdFromInt(createEvent.SupportGroup.Id)
 
 					// Simulate event
@@ -358,6 +371,7 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 	It("updates supportGroup", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateSupportGroup", supportGroup.SupportGroup).Return(nil)
+
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup.CCRN = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
@@ -389,6 +403,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		listOptions = entity.NewListOptions()
+
 		handlerContext.Authz.RemoveAllRelations()
 
 		id = 1
@@ -410,8 +425,11 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	It("deletes supportGroup", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteSupportGroup", id, mock.Anything).Return(nil)
+
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+
 		db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
+
 		err := supportGroupHandler.DeleteSupportGroup(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -483,11 +501,14 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 
 					// get the number of relations before deletion
 					relCountBefore := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountBefore += len(relations)
 					}
+
 					Expect(
 						relCountBefore,
 					).To(Equal(len(relations)), "all relations should exist before deletion")
@@ -505,11 +526,14 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 
 					// get the number of relations after deletion
 					relCountAfter := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountAfter += len(relations)
 					}
+
 					Expect(
 						relCountAfter < relCountBefore,
 					).To(BeTrue(), "less relations after deletion")
@@ -569,6 +593,7 @@ var _ = Describe(
 			db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
 			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
+
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.AddServiceToSupportGroup(
 				ctx,
@@ -584,6 +609,7 @@ var _ = Describe(
 			db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
 			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
+
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.RemoveServiceFromSupportGroup(
 				ctx,
@@ -711,6 +737,7 @@ var _ = Describe(
 			db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
 			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
+
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.AddUserToSupportGroup(
 				ctx,
@@ -726,6 +753,7 @@ var _ = Describe(
 			db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
 			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
+
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.RemoveUserFromSupportGroup(
 				ctx,

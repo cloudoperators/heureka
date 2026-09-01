@@ -74,7 +74,7 @@ mockery: install-build-dependencies
 	mockery
 
 install-build-dependencies:
-	go install github.com/vektra/mockery/v2@v2.52.2
+	go install github.com/vektra/mockery/v3@v3.7.4
 	go install github.com/onsi/ginkgo/v2/ginkgo
 	go install github.com/99designs/gqlgen
 
@@ -103,7 +103,7 @@ fmt: install-gofumpt
 	gofumpt -l -w internal/
 
 install-golangci-lint:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0	
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
 
 lint: install-golangci-lint
 	golangci-lint run

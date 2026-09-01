@@ -38,6 +38,7 @@ var testTemplates = map[string]uniquenessTestItemTemplate{
 
 var _ = Describe("Delete uniqueness", Ordered, Label("database", "Uniqueness"), func() {
 	var db *mariadb.SqlDatabase
+
 	BeforeAll(func() {
 		db = dbm.NewTestSchema()
 	})

@@ -18,10 +18,14 @@ import (
 )
 
 var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -34,6 +38,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetComponentVersions(context.Background(), nil, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -44,6 +49,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 		})
 		Context("and we have 10 component versions in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -65,10 +71,8 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -120,6 +124,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					// collect all component version ids that belong to the issues
 					componentVersionIds := []int64{}
+
 					for _, cvvRow := range seedCollection.ComponentVersionIssueRows {
 						if cvvRow.IssueId.Int64 == issueRow.Id.Int64 {
 							componentVersionIds = append(
@@ -149,6 +154,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					// collect all activity ids that belong to the component
 					componentVersionIds := []int64{}
+
 					for _, cvRow := range seedCollection.ComponentVersionRows {
 						if cvRow.ComponentId.Int64 == componentRow.Id.Int64 {
 							componentVersionIds = append(componentVersionIds, cvRow.Id.Int64)
@@ -209,6 +215,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					cv := test.PickOne(seedCollection.ComponentVersionRows)
 
 					componentCCRN := ""
+
 					for _, cr := range seedCollection.ComponentRows {
 						if cr.Id.Int64 == cv.ComponentId.Int64 {
 							componentCCRN = cr.CCRN.String
@@ -238,6 +245,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					s := test.PickOne(seedCollection.ServiceRows)
 
 					cvs := []int64{}
+
 					for _, ci := range seedCollection.ComponentInstanceRows {
 						if ci.ServiceId.Int64 == s.Id.Int64 {
 							cvs = append(cvs, ci.ComponentVersionId.Int64)
@@ -262,6 +270,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					s := test.PickOne(seedCollection.ServiceRows)
 
 					cvs := []int64{}
+
 					for _, ci := range seedCollection.ComponentInstanceRows {
 						if ci.ServiceId.Int64 == s.Id.Int64 {
 							cvs = append(cvs, ci.ComponentVersionId.Int64)
@@ -312,12 +321,14 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					By("including our expected component version", func() {
 						found := false
+
 						for _, entry := range entries {
 							if entry.Id == cv.Id.Int64 {
 								found = true
 								break
 							}
 						}
+
 						Expect(found).To(BeTrue())
 					})
 				})
@@ -418,6 +429,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 										entity.IssueSeverityCounts{},
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.ComponentVersionRows),
@@ -447,9 +459,12 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var cvRows []mariadb.ComponentVersionRow
-			var count int
+			var (
+				seedCollection *test.SeedCollection
+				cvRows         []mariadb.ComponentVersionRow
+				count          int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				cvRows = seedCollection.ComponentVersionRows
@@ -489,9 +504,12 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 		})
 		When("Insert ComponentVersion", Label("InsertComponentVersion"), func() {
 			Context("and we have 10 ComponentVersions in the database", func() {
-				var newComponentVersionRow mariadb.ComponentVersionRow
-				var newComponentVersion entity.ComponentVersion
-				var seedCollection *test.SeedCollection
+				var (
+					newComponentVersionRow mariadb.ComponentVersionRow
+					newComponentVersion    entity.ComponentVersion
+					seedCollection         *test.SeedCollection
+				)
+
 				BeforeEach(func() {
 					seeder.SeedDbWithNFakeData(10)
 					seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -523,6 +541,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					}
 
 					cv, err := db.GetComponentVersions(context.Background(), componentVersionFilter, nil)
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -540,6 +559,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 		When("Update ComponentVersion", Label("UpdateComponentVersion"), func() {
 			Context("and we have 10 ComponentVersions in the database", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
@@ -558,6 +578,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					}
 
 					cv, err := db.GetComponentVersions(context.Background(), componentVersionFilter, nil)
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -585,6 +606,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					}
 
 					cv, err := db.GetComponentVersions(context.Background(), componentVersionFilter, nil)
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -631,12 +653,14 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 						By("being able to find the updated version", func() {
 							found := false
+
 							var updatedCV entity.ComponentVersion
 
 							for _, cv := range allVersions {
 								if cv.Id == originalId {
 									found = true
 									updatedCV = *cv.ComponentVersion
+
 									break
 								}
 							}
@@ -668,12 +692,15 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 })
 
 var _ = Describe("Ordering ComponentVersions", func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
+	var (
+		db             *mariadb.SqlDatabase
+		seeder         *test.DatabaseSeeder
+		seedCollection *test.SeedCollection
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -708,12 +735,14 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		if err != nil {
 			return nil, nil, err
 		}
+
 		cvIssues, err := test.LoadComponentVersionIssues(
 			test.GetTestDataPath("testdata/component_version_order/component_version_issue.json"),
 		)
 		if err != nil {
 			return nil, nil, err
 		}
+
 		return issueVariants, cvIssues, nil
 	}
 
@@ -723,6 +752,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 			seeder.SeedIssues(10)
 			components := seeder.SeedComponents(1)
 			seeder.SeedComponentVersions(10, components)
+
 			issueVariants, componentVersionIssues, err := loadTestData()
 			Expect(err).To(BeNil())
 			// Important: the order need to be preserved
@@ -730,6 +760,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 				_, err := seeder.InsertFakeIssueVariant(iv)
 				Expect(err).To(BeNil())
 			}
+
 			for _, cvi := range componentVersionIssues {
 				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 				Expect(err).To(BeNil())

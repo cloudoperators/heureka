@@ -4,7 +4,7 @@ WORKDIR /go/src/github.com/cloudoperators/heureka
 ADD . .
 
 # generate mock code files
-RUN go install github.com/vektra/mockery/v2@v2.52.2
+RUN go install github.com/vektra/mockery/v3@v3.7.4
 RUN mockery
 # generate graphql code
 RUN cd internal/api/graphql && go run github.com/99designs/gqlgen generate

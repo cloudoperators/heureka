@@ -24,13 +24,16 @@ import (
 )
 
 var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -69,6 +72,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -112,10 +116,12 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				for _, serviceEdge := range respData.Services.Edges {
 					imCount := 0
 					ciCount := 0
+
 					for _, ciEdge := range serviceEdge.Node.ComponentInstances.Edges {
 						imCount += ciEdge.Node.IssueMatches.TotalCount
 						ciCount += *ciEdge.Node.Count
 					}
+
 					Expect(serviceEdge.Node.ObjectMetadata.IssueMatchCount).To(Equal(imCount))
 					Expect(
 						serviceEdge.Node.ObjectMetadata.ComponentInstanceCount,
@@ -130,6 +136,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				respData := struct {
 					Services model.ServiceConnection `json:"Services"`
 				}{}
+
 				BeforeEach(func() {
 					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 						Services model.ServiceConnection `json:"Services"`
@@ -159,7 +166,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 					// resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
-
 					for _, service := range respData.Services.Edges {
 						for _, owner := range service.Node.Owners.Edges {
 							Expect(owner.Node.ID).ToNot(BeNil(), "owner has a ID set")
@@ -346,6 +352,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			})
 		})
 	})
+
 	loadTestData := func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
 		issueVariants, err := test.LoadIssueVariants(
 			test.GetTestDataPath(
@@ -355,6 +362,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
+
 		cvIssues, err := test.LoadComponentVersionIssues(
 			test.GetTestDataPath(
 				"../database/mariadb/testdata/service_order/component_version_issue.json",
@@ -363,6 +371,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
+
 		componentInstances, err := test.LoadComponentInstances(
 			test.GetTestDataPath(
 				"../database/mariadb/testdata/service_order/component_instance.json",
@@ -371,14 +380,17 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
+
 		issueMatches, err := test.LoadIssueMatches(
 			test.GetTestDataPath("../database/mariadb/testdata/service_order/issue_match.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
+
 		return componentInstances, issueVariants, cvIssues, issueMatches, nil
 	}
+
 	When("issueCounts are involved", func() {
 		BeforeEach(func() {
 			seeder.SeedIssueRepositories()
@@ -386,6 +398,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			components := seeder.SeedComponents(1)
 			seeder.SeedComponentVersions(10, components)
 			seeder.SeedServices(5)
+
 			componentInstances, issueVariants, componentVersionIssues, issueMatches, err := loadTestData()
 			Expect(err).To(BeNil())
 			// Important: the order need to be preserved
@@ -393,18 +406,22 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				_, err := seeder.InsertFakeIssueVariant(iv)
 				Expect(err).To(BeNil())
 			}
+
 			for _, cvi := range componentVersionIssues {
 				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 				Expect(err).To(BeNil())
 			}
+
 			for _, ci := range componentInstances {
 				_, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
 			}
+
 			for _, im := range issueMatches {
 				_, err := seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 			}
+
 			err = seeder.RefreshServiceIssueCounters()
 			Expect(err).To(BeNil())
 		})
@@ -429,6 +446,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.Services.TotalCount).To(Equal(5))
 			Expect(len(respData.Services.Edges)).To(Equal(5))
+
 			for i, id := range expectedOrder {
 				Expect(respData.Services.Edges[i].Node.ID).To(BeEquivalentTo(id))
 			}
@@ -448,14 +466,17 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var service entity.Service
-	var db *mariadb.SqlDatabase
+	var (
+		seeder  *test.DatabaseSeeder
+		s       *server.Server
+		cfg     util.Config
+		service entity.Service
+		db      *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -475,6 +496,7 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 	When("the database has 10 entries", func() {
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
+
 			service = testentity.NewFakeServiceEntity()
 		})
 
@@ -501,13 +523,16 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -558,13 +583,16 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -611,13 +639,16 @@ var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -650,6 +681,7 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 						if row.ServiceId.Int64 == service.Id {
 							return row.UserId.Int64, true
 						}
+
 						return 0, false
 					},
 				)
@@ -671,6 +703,7 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 				)
 
 				Expect(err).ToNot(HaveOccurred())
+
 				_, found := lo.Find(respData.Service.Owners.Edges, func(edge *model.UserEdge) bool {
 					return edge.Node.ID == fmt.Sprintf("%d", ownerRow.Id.Int64)
 				})
@@ -711,14 +744,17 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 })
 
 var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "Services"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var priority int64
-	var db *mariadb.SqlDatabase
+	var (
+		seeder   *test.DatabaseSeeder
+		s        *server.Server
+		cfg      util.Config
+		priority int64
+		db       *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -753,6 +789,7 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 						if row.ServiceId.Int64 == service.Id {
 							return row.IssueRepositoryId.Int64, true
 						}
+
 						return 0, false
 					},
 				)
