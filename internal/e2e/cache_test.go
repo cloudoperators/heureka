@@ -92,11 +92,16 @@ func newCacheTest(
 	ct.cfg.CacheThrottleIntervalMSec = throttleIntervalMSec
 	ct.cfg.CacheThrottlePerInterval = throttlePerInterval
 
+	originalTTL := common.DefaultCacheTTL
+	common.DefaultCacheTTL = ttl
+
+	DeferCleanup(func() {
+		common.DefaultCacheTTL = originalTTL
+	})
+
 	ct.server = e2e_common.NewRunningServer(ct.cfg)
 
 	ct.seedCollection = ct.seeder.SeedDbWithNFakeData(testResourceCount)
-
-	common.DefaultCacheTTL = ttl
 
 	return &ct
 }

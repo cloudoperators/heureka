@@ -153,7 +153,7 @@ func (b *BaseHandler[R, F]) List(
 
 	if options.ShowPageInfo && len(res) > 0 {
 		cursors, err := cache.CallCached[[]string](b.cache, cache.NewCacheCallParams(
-			b.cfg.CursorsTTL, ctx, "GetAll"+b.cfg.Entity+"Cursors", b.cfg.CursorsFn, filter, options.Order,
+			b.cfg.CursorsTTL, ctx, "GetAll"+b.cfg.CursorEntity, b.cfg.CursorsFn, filter, options.Order,
 		))
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), b.cfg.CursorEntity, "", err)
@@ -166,7 +166,7 @@ func (b *BaseHandler[R, F]) List(
 		count = int64(len(cursors))
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](b.cache, cache.NewCacheCallParams(
-			b.cfg.CountTTL, ctx, "Count"+b.cfg.CountEntity, b.cfg.CountFn, filter,
+			b.cfg.CountTTL, ctx, "Count"+b.cfg.Entity, b.cfg.CountFn, filter,
 		))
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), b.cfg.CountEntity, "", err)
