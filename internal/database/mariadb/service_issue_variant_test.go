@@ -19,10 +19,14 @@ import (
 )
 
 var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -52,6 +56,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 			Context("and using no filter", func() {
 				It("Should work", func() {
 					_, err := db.GetServiceIssueVariants(context.Background(), nil, nil)
+
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
 					})
@@ -67,9 +72,12 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 			"and filtering for component instances",
 			func(filterForInstances int, totalInstances int, totalIssues int) {
 				// Complex Setup
-				var allCI []mariadb.ComponentInstanceRow
-				var issueVariants []mariadb.IssueVariantRow
-				var issueRepositories []mariadb.BaseIssueRepositoryRow
+				var (
+					allCI             []mariadb.ComponentInstanceRow
+					issueVariants     []mariadb.IssueVariantRow
+					issueRepositories []mariadb.BaseIssueRepositoryRow
+				)
+
 				issue_count := totalIssues / totalInstances
 				// create issue repository
 				issueRepositories = seeder.SeedIssueRepositories()
@@ -100,6 +108,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 					// create component version and adding each issue to the component version
 					componentVersions := seeder.SeedComponentVersions(1, components)
 					cvirows := make([]mariadb.ComponentVersionIssueRow, issue_count)
+
 					for idx, issue := range issues {
 						cvi := mariadb.ComponentVersionIssueRow{
 							ComponentVersionId: componentVersions[0].Id,
@@ -108,6 +117,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 
 						_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 						Expect(err).To(BeNil())
+
 						cvirows[idx] = cvi
 					}
 
@@ -121,6 +131,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 
 					// create an issue variant per repo and issue (5 repos 10 issues)
 					variantList := make([]mariadb.IssueVariantRow, issue_count*5)
+
 					for idx, issue := range issues {
 						for irdx, ir := range issueRepositories {
 							variants := []string{
@@ -149,10 +160,12 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 							}
 							id, err := seeder.InsertFakeIssueVariant(iv)
 							Expect(err).To(BeNil())
+
 							iv.IssueId = sql.NullInt64{Int64: id, Valid: true}
 							variantList[(idx*5)+irdx] = iv
 						}
 					}
+
 					issueVariants = append(issueVariants, variantList...)
 
 					// add to each repository the service with a increasing priority
@@ -189,6 +202,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 								if len(cids) > filterForInstances {
 									cids = cids[:filterForInstances]
 								}
+
 								filter := &entity.ServiceIssueVariantFilter{
 									Paginated:           entity.Paginated{},
 									ComponentInstanceId: cids,
@@ -237,10 +251,12 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 				})
 
 				Context("and there is a single issue with variants", func() {
-					var issue mariadb.IssueRow
-					var componentInstances []mariadb.ComponentInstanceRow
-					var services []mariadb.BaseServiceRow
-					var issueRepositories []mariadb.BaseIssueRepositoryRow
+					var (
+						issue              mariadb.IssueRow
+						componentInstances []mariadb.ComponentInstanceRow
+						services           []mariadb.BaseServiceRow
+						issueRepositories  []mariadb.BaseIssueRepositoryRow
+					)
 
 					BeforeEach(func() {
 						// Create service

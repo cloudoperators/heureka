@@ -14,10 +14,14 @@ import (
 )
 
 var _ = Describe("Patch", Label("database", "Patch"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -30,6 +34,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetPatches(context.Background(), nil, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -40,6 +45,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 		})
 		Context("and we have 10 patches in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -59,10 +65,8 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -207,6 +211,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 								after, _ := mariadb.EncodeCursor(
 									mariadb.WithPatch([]entity.Order{}, *entries[len(entries)-1].Patch),
 								)
+
 								return after
 							},
 							len(seedCollection.PatchRows),
@@ -236,9 +241,12 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var patchRows []mariadb.PatchRow
-			var count int
+			var (
+				seedCollection *test.SeedCollection
+				patchRows      []mariadb.PatchRow
+				count          int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				patchRows = seedCollection.PatchRows

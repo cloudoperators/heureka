@@ -12,9 +12,12 @@ import (
 
 var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 	var db *mariadb.SqlDatabase
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
+
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {

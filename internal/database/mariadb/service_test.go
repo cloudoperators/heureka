@@ -23,10 +23,14 @@ import (
 )
 
 var _ = Describe("Service", Label("database", "Service"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -39,6 +43,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetServices(context.Background(), nil, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -49,6 +54,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		})
 		Context("and we have 10 services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -68,10 +74,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -138,6 +142,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						x := row.CCRN.String
 						serviceCcrns[i] = &x
 					}
+
 					filter := &entity.ServiceFilter{CCRN: serviceCcrns}
 
 					entries, err := db.GetServices(context.Background(), filter, nil)
@@ -206,6 +211,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					// collect all service ids that belong to the support group
 					serviceIds := []int64{}
+
 					for _, sgsRow := range seedCollection.SupportGroupServiceRows {
 						if sgsRow.SupportGroupId.Int64 == sgRow.Id.Int64 {
 							serviceIds = append(serviceIds, sgsRow.ServiceId.Int64)
@@ -232,6 +238,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					// collect all service ids that belong to the owner
 					serviceIds := []int64{}
+
 					for _, ownerRow := range seedCollection.OwnerRows {
 						if ownerRow.UserId.Int64 == userRow.Id.Int64 {
 							serviceIds = append(serviceIds, ownerRow.ServiceId.Int64)
@@ -258,6 +265,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					// collect all service ids that belong to the owner
 					serviceIds := []int64{}
+
 					for _, oRow := range seedCollection.OwnerRows {
 						if oRow.UserId.Int64 == ownerRow.UserId.Int64 {
 							serviceIds = append(serviceIds, oRow.ServiceId.Int64)
@@ -284,6 +292,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					// collect all service ids that belong to the issue repository
 					serviceIds := []int64{}
+
 					for _, irsRow := range seedCollection.IssueRepositoryServiceRows {
 						if irsRow.IssueRepositoryId.Int64 == irRow.Id.Int64 {
 							serviceIds = append(serviceIds, irsRow.ServiceId.Int64)
@@ -326,6 +335,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					// 3. For each ComponentInstanceRow, check if its Id is in the set, and collect
 					// ServiceIds
 					serviceIds := []int64{}
+
 					for _, ciRow := range seedCollection.ComponentInstanceRows {
 						if lo.Contains(componentInstanceIds, ciRow.Id.Int64) {
 							serviceIds = append(serviceIds, ciRow.ServiceId.Int64)
@@ -352,6 +362,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					// collect all service ids that belong to the support group
 					serviceIds := []int64{}
+
 					for _, sssRow := range seedCollection.SupportGroupServiceRows {
 						if sssRow.SupportGroupId.Int64 == sgRow.Id.Int64 {
 							serviceIds = append(serviceIds, sssRow.ServiceId.Int64)
@@ -376,6 +387,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					ciRow := test.PickOne(seedCollection.ComponentInstanceRows)
 					sRow, ok := seedCollection.GetServiceById(ciRow.ServiceId.Int64)
 					Expect(ok).To(BeTrue())
+
 					filter := &entity.ServiceFilter{ComponentInstanceId: []*int64{&ciRow.Id.Int64}}
 
 					entries, err := db.GetServices(context.Background(), filter, nil)
@@ -434,6 +446,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 										entity.IssueSeverityCounts{},
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.ServiceRows),
@@ -529,9 +542,12 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var serviceRows []mariadb.BaseServiceRow
-			var count int
+			var (
+				seedCollection *test.SeedCollection
+				serviceRows    []mariadb.BaseServiceRow
+				count          int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				serviceRows = seedCollection.ServiceRows
@@ -578,6 +594,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 						// collect all service ids that belong to the support group
 						serviceIds := []int64{}
+
 						for _, sgsRow := range seedCollection.SupportGroupServiceRows {
 							if sgsRow.SupportGroupId.Int64 == sgRow.Id.Int64 {
 								serviceIds = append(serviceIds, sgsRow.ServiceId.Int64)
@@ -593,6 +610,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							SupportGroupCCRN: []*string{&sgRow.CCRN.String},
 						}
 						entries, err := db.CountServices(context.Background(), filter)
+
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
 						})
@@ -610,9 +628,12 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	})
 	When("Insert Service", Label("InsertService"), func() {
 		Context("and we have 10 Services in the database", func() {
-			var newServiceRow mariadb.ServiceRow
-			var newService entity.Service
-			var seedCollection *test.SeedCollection
+			var (
+				newServiceRow  mariadb.ServiceRow
+				newService     entity.Service
+				seedCollection *test.SeedCollection
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newServiceRow = test.NewFakeService()
@@ -633,6 +654,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				}
 
 				s, err := db.GetServices(context.Background(), serviceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -660,6 +682,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	When("Update Service", Label("UpdateService"), func() {
 		Context("and we have 10 Services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -680,6 +703,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				}
 
 				s, err := db.GetServices(context.Background(), serviceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -695,6 +719,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	When("Delete Service", Label("DeleteService"), func() {
 		Context("and we have 10 Services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -712,6 +737,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				}
 
 				s, err := db.GetServices(context.Background(), serviceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -723,11 +749,13 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	})
 	When("Add Owner To Service", Label("AddOwnerToService"), func() {
 		Context("and we have 10 Services in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newOwnerRow mariadb.UserRow
-			var newOwner entity.User
-			var owner *entity.User
-			var service entity.Service
+			var (
+				seedCollection *test.SeedCollection
+				newOwnerRow    mariadb.UserRow
+				newOwner       entity.User
+				owner          *entity.User
+				service        entity.Service
+			)
 
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -775,8 +803,11 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	})
 	When("Remove Owner From Service", Label("RemoveOwnerFromService"), func() {
 		Context("and we have 10 Services in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ownerRow mariadb.OwnerRow
+			var (
+				seedCollection *test.SeedCollection
+				ownerRow       mariadb.OwnerRow
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				ownerRow = seedCollection.OwnerRows[0]
@@ -793,6 +824,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				}
 
 				services, err := db.GetServices(context.Background(), serviceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -805,12 +837,14 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	})
 	When("Add Issue Repository To Service", Label("AddIssueRepositoryToService"), func() {
 		Context("and we have 10 Services in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newIssueRepositoryRow mariadb.IssueRepositoryRow
-			var newIssueRepository entity.IssueRepository
-			var issueRepository *entity.IssueRepository
-			var service entity.Service
-			var priority int64 = 1
+			var (
+				seedCollection        *test.SeedCollection
+				newIssueRepositoryRow mariadb.IssueRepositoryRow
+				newIssueRepository    entity.IssueRepository
+				issueRepository       *entity.IssueRepository
+				service               entity.Service
+				priority              int64 = 1
+			)
 
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -819,6 +853,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				newIssueRepository = newIssueRepositoryRow.AsIssueRepository()
 
 				var err error
+
 				issueRepository, err = db.CreateIssueRepository(&newIssueRepository)
 				Expect(err).To(BeNil())
 
@@ -861,8 +896,11 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	})
 	When("Remove Issue Repository From Service", Label("RemoveIssueRepositoryFromService"), func() {
 		Context("and we have 10 Services in the database", func() {
-			var seedCollection *test.SeedCollection
-			var issueRepositoryServiceRow mariadb.IssueRepositoryServiceRow
+			var (
+				seedCollection            *test.SeedCollection
+				issueRepositoryServiceRow mariadb.IssueRepositoryServiceRow
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				issueRepositoryServiceRow = seedCollection.IssueRepositoryServiceRows[0]
@@ -882,6 +920,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				}
 
 				services, err := db.GetServices(context.Background(), serviceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -896,6 +935,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetServiceCcrns(context.Background(), nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -906,6 +946,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		})
 		Context("and we have 10 services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -937,8 +978,11 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 			})
 			Context("and using a ServiceCcrn filter", func() {
-				var filter *entity.ServiceFilter
-				var expectedServiceCcrns []string
+				var (
+					filter               *entity.ServiceFilter
+					expectedServiceCcrns []string
+				)
+
 				BeforeEach(func() {
 					namePointers := []*string{}
 
@@ -968,6 +1012,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 					It("and using another filter", func() {
 						var anotherFilter *entity.ServiceFilter
+
 						BeforeEach(func() {
 							nonExistentServiceCcrn := "NonexistentService"
 
@@ -1000,6 +1045,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetServiceDomains(context.Background(), nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1010,6 +1056,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		})
 		Context("and we have 10 services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1046,6 +1093,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetServiceRegions(context.Background(), nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1056,6 +1104,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		})
 		Context("and we have 10 services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1091,16 +1140,20 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 })
 
 var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
-	var c *collate.Collator
+	var (
+		db             *mariadb.SqlDatabase
+		seeder         *test.DatabaseSeeder
+		seedCollection *test.SeedCollection
+		c              *collate.Collator
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
 		c = collate.New(language.English)
 	})
 	AfterEach(func() {
@@ -1134,12 +1187,14 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 		if err != nil {
 			return nil, nil, nil, err
 		}
+
 		cvIssues, err := test.LoadComponentVersionIssues(
 			test.GetTestDataPath("testdata/service_order/component_version_issue.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
+
 		componentInstances, err := test.LoadComponentInstances(
 			test.GetTestDataPath("testdata/service_order/component_instance.json"),
 		)
@@ -1157,6 +1212,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 			components := seeder.SeedComponents(1)
 			seeder.SeedComponentVersions(10, components)
 			seeder.SeedServices(5)
+
 			componentInstances, issueVariants, componentVersionIssues, err := loadTestData()
 			Expect(err).To(BeNil())
 			// Important: the order need to be preserved
@@ -1164,10 +1220,12 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 				_, err := seeder.InsertFakeIssueVariant(iv)
 				Expect(err).To(BeNil())
 			}
+
 			for _, cvi := range componentVersionIssues {
 				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 				Expect(err).To(BeNil())
 			}
+
 			for _, ci := range componentInstances {
 				ciId, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
@@ -1176,6 +1234,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 					if cvi.ComponentVersionId == ci.ComponentVersionId {
 						// Find the corresponding rating from issue variants
 						rating := "None"
+
 						for _, iv := range issueVariants {
 							if iv.IssueId == cvi.IssueId {
 								rating = iv.Rating.String
@@ -1199,6 +1258,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 					}
 				}
 			}
+
 			err = seeder.RefreshServiceIssueCounters()
 			Expect(err).To(BeNil())
 		})

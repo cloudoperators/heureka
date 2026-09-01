@@ -111,9 +111,11 @@ var _ = Describe(
 	"Creating, updating and state filtering of entity via API",
 	Label("e2e", "Metadata"),
 	func() {
-		var s *server.Server
-		var cfg util.Config
-		var db *mariadb.SqlDatabase
+		var (
+			s   *server.Server
+			cfg util.Config
+			db  *mariadb.SqlDatabase
+		)
 
 		BeforeEach(func() {
 			db = dbm.NewTestSchemaWithoutMigration()
@@ -131,6 +133,7 @@ var _ = Describe(
 
 		When("New issue is created via API", func() {
 			var issue model.Issue
+
 			BeforeEach(func() {
 				createTestIssue(cfg.Port)
 				issue = getTestIssue(cfg.Port)
@@ -162,8 +165,10 @@ var _ = Describe(
 		})
 		When("Issue is updated via API", func() {
 			var issue model.Issue
+
 			BeforeEach(func() {
 				iid := createTestIssue(cfg.Port)
+
 				time.Sleep(1100 * time.Millisecond)
 				updateTestIssue(cfg.Port, iid)
 				issue = getTestIssue(cfg.Port)
@@ -196,8 +201,10 @@ var _ = Describe(
 		})
 		When("Issue is deleted via API", func() {
 			var issue model.Issue
+
 			BeforeEach(func() {
 				iid := createTestIssue(cfg.Port)
+
 				time.Sleep(1100 * time.Millisecond)
 				deleteTestIssue(cfg.Port, iid)
 				issue = getTestIssue(cfg.Port)
@@ -222,8 +229,11 @@ var _ = Describe(
 		})
 
 		When("Two issues are created and one of them is deleted", func() {
-			var activeIssueId string
-			var deletedIssueId string
+			var (
+				activeIssueId  string
+				deletedIssueId string
+			)
+
 			BeforeEach(func() {
 				activeIssueId = createIssue(
 					cfg.Port,

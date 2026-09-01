@@ -21,11 +21,14 @@ import (
 )
 
 var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -38,6 +41,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetComponentInstances(context.Background(), nil, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -48,6 +52,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 component instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -68,10 +73,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -310,6 +313,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 										*entries[len(entries)-1].ComponentInstance,
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.ComponentInstanceRows),
@@ -339,9 +343,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var componentInstanceRows []mariadb.ComponentInstanceRow
-			var count int
+			var (
+				seedCollection        *test.SeedCollection
+				componentInstanceRows []mariadb.ComponentInstanceRow
+				count                 int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				componentInstanceRows = seedCollection.GetValidComponentInstanceRows()
@@ -397,6 +404,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							IssueMatchId: ids,
 						}
 						entries, err := db.CountComponentInstances(context.Background(), filter)
+
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
 						})
@@ -414,11 +422,14 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 	})
 	When("Insert ComponentInstance", Label("InsertComponentInstance"), func() {
 		Context("and we have 10 ComponentInstances in the database", func() {
-			var newComponentInstanceRow mariadb.ComponentInstanceRow
-			var newComponentInstance entity.ComponentInstance
-			var componentVersion entity.ComponentVersion
-			var service entity.Service
-			var seedCollection *test.SeedCollection
+			var (
+				newComponentInstanceRow mariadb.ComponentInstanceRow
+				newComponentInstance    entity.ComponentInstance
+				componentVersion        entity.ComponentVersion
+				service                 entity.Service
+				seedCollection          *test.SeedCollection
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newComponentInstanceRow = test.NewFakeComponentInstance()
@@ -521,6 +532,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 	When("Update ComponentInstance", Label("UpdateComponentInstance"), func() {
 		Context("and we have 10 ComponentInstances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -539,6 +551,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				}
 
 				ci, err := db.GetComponentInstances(context.Background(), componentInstanceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -583,6 +596,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				}
 
 				ci, err := db.GetComponentInstances(context.Background(), componentInstanceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -617,6 +631,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 	When("Delete ComponentInstance", Label("DeleteComponentInstance"), func() {
 		Context("and we have 10 ComponentInstances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -634,6 +649,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				}
 
 				ci, err := db.GetComponentInstances(context.Background(), componentInstanceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -651,9 +667,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
+
 			testOrder := func(
 				order []entity.Order,
 				verifyFunc func(res []entity.ComponentInstanceResult),
@@ -938,6 +956,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
 							iterContext := *util.ConvertStrToJsonNoError(&iter.Context.String)
 							pickedContext := *util.ConvertStrToJsonNoError(&picked.Context.String)
+
 							return iter.CCRN.String, iterContext["my_ip"] == pickedContext["my_ip"] &&
 								iterContext["remove_unused_base_images"] == pickedContext["remove_unused_base_images"]
 						},
@@ -1035,6 +1054,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using asc order", func() {
 				c := collate.New(language.English)
+
 				It("can order by id", func() {
 					sort.Slice(seedCollection.ComponentInstanceRows, func(i, j int) bool {
 						return seedCollection.ComponentInstanceRows[i].Id.Int64 < seedCollection.ComponentInstanceRows[j].Id.Int64
@@ -1197,6 +1217,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using desc order", func() {
 				c := collate.New(language.English)
+
 				It("can order by id", func() {
 					sort.Slice(seedCollection.ComponentInstanceRows, func(i, j int) bool {
 						return seedCollection.ComponentInstanceRows[i].Id.Int64 > seedCollection.ComponentInstanceRows[j].Id.Int64
@@ -1367,6 +1388,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1416,6 +1438,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1469,6 +1492,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1520,6 +1544,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1569,6 +1594,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1620,6 +1646,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1671,6 +1698,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1722,6 +1750,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -1776,6 +1805,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		})
 		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})

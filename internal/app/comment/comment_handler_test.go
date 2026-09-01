@@ -67,6 +67,7 @@ var _ = Describe("When listing Comments", Label("app", "ListComments"), func() {
 	When("the list option includes the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetComments", mock.Anything, filter, []entity.Order{}).Return([]entity.CommentResult{}, nil)
 			db.On("CountComments", mock.Anything, filter).Return(int64(1337), nil)
 		})
@@ -89,6 +90,7 @@ var _ = Describe("When listing Comments", Label("app", "ListComments"), func() {
 			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 				filter.First = &pageSize
 				comments := []entity.CommentResult{}
+
 				for _, c := range test.NNewFakeComments(resElements) {
 					cursor, _ := mariadb.EncodeCursor(mariadb.WithComment(c))
 					comments = append(comments, entity.CommentResult{
@@ -153,6 +155,7 @@ var _ = Describe("When listing Comments", Label("app", "ListComments"), func() {
 
 		It("should return an Internal error", func() {
 			comments := []entity.CommentResult{}
+
 			for _, c := range test.NNewFakeComments(5) {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithComment(c))
 				comments = append(comments, entity.CommentResult{
@@ -162,6 +165,7 @@ var _ = Describe("When listing Comments", Label("app", "ListComments"), func() {
 			}
 
 			db.On("GetComments", mock.Anything, filter, []entity.Order{}).Return(comments, nil)
+
 			cursorsError := errors.New("cursor database error")
 			db.On("GetAllCommentCursors", mock.Anything, filter, []entity.Order{}).Return([]string{}, cursorsError)
 

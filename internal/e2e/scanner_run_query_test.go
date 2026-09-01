@@ -16,9 +16,11 @@ import (
 )
 
 var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		s   *server.Server
+		cfg util.Config
+		db  *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		db = dbm.NewTestSchemaWithoutMigration()
@@ -140,9 +142,11 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 })
 
 var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		s   *server.Server
+		cfg util.Config
+		db  *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		db = dbm.NewTestSchemaWithoutMigration()

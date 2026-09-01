@@ -24,13 +24,16 @@ import (
 )
 
 var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -67,6 +70,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		type remediationRespDataType struct {
 			Remediations model.RemediationConnection `json:"Remediations"`
 		}
@@ -142,15 +146,18 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var remediation entity.Remediation
-	var db *mariadb.SqlDatabase
-	var seedCollection *test.SeedCollection
+	var (
+		seeder         *test.DatabaseSeeder
+		s              *server.Server
+		cfg            util.Config
+		remediation    entity.Remediation
+		db             *mariadb.SqlDatabase
+		seedCollection *test.SeedCollection
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -172,6 +179,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 			remediation = testentity.NewFakeRemediationEntity()
 			service, component, issue, ok := seedCollection.FindLinkedRemediationData()
 			Expect(ok).To(BeTrue(), "linked service/component/issue data must exist in seed")
+
 			remediation.Service = service.CCRN.String
 			remediation.Component = component.Repository.String
 			remediation.Issue = issue.PrimaryName.String
@@ -461,13 +469,16 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -485,6 +496,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		type remediationUpdateRespDataType struct {
 			Remediation model.Remediation `json:"updateRemediation"`
 		}
@@ -720,13 +732,16 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

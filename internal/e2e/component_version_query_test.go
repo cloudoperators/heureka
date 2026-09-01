@@ -22,13 +22,16 @@ import (
 )
 
 var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVersions"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -66,6 +69,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -142,6 +146,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				respData := struct {
 					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
 				}{}
+
 				BeforeEach(func() {
 					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 						ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
@@ -157,6 +162,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 					)
 
 					Expect(err).ToNot(HaveOccurred())
+
 					respData = resp
 				})
 
@@ -172,7 +178,6 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 					// resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
-
 					for _, cv := range respData.ComponentVersions.Edges {
 						for _, issue := range cv.Node.Issues.Edges {
 							Expect(issue.Node.ID).ToNot(BeNil(), "issue has a ID set")
@@ -203,7 +208,6 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 							Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has ccrn set")
 
 							Expect(*ci.Node.ComponentVersionID).To(BeEquivalentTo(cv.Node.ID))
-
 						}
 
 						if cv.Node.Component != nil {
@@ -269,13 +273,16 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -300,6 +307,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 		if err != nil {
 			return nil, nil, err
 		}
+
 		cvIssues, err := test.LoadComponentVersionIssues(
 			test.GetTestDataPath(
 				"../database/mariadb/testdata/component_version_order/component_version_issue.json",
@@ -308,6 +316,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 		if err != nil {
 			return nil, nil, err
 		}
+
 		return issueVariants, cvIssues, nil
 	}
 
@@ -317,6 +326,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 			seeder.SeedIssues(10)
 			components := seeder.SeedComponents(1)
 			seeder.SeedComponentVersions(10, components)
+
 			issueVariants, componentVersionIssues, err := loadTestData()
 			Expect(err).To(BeNil())
 			// Important: the order need to be preserved
@@ -324,6 +334,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 				_, err := seeder.InsertFakeIssueVariant(iv)
 				Expect(err).To(BeNil())
 			}
+
 			for _, cvi := range componentVersionIssues {
 				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 				Expect(err).To(BeNil())
@@ -350,6 +361,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.ComponentVersions.TotalCount).To(Equal(10))
 			Expect(len(respData.ComponentVersions.Edges)).To(Equal(10))
+
 			for i, id := range expectedOrder {
 				Expect(respData.ComponentVersions.Edges[i].Node.ID).To(BeEquivalentTo(id))
 			}
@@ -366,16 +378,19 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
-	var s *server.Server
-	var cfg util.Config
-	var componentVersion entity.ComponentVersion
-	var componentId int64
-	var db *mariadb.SqlDatabase
+	var (
+		seeder           *test.DatabaseSeeder
+		seedCollection   *test.SeedCollection
+		s                *server.Server
+		cfg              util.Config
+		componentVersion entity.ComponentVersion
+		componentId      int64
+		db               *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -429,13 +444,16 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -488,13 +506,16 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Deleting ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

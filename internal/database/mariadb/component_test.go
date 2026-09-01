@@ -21,10 +21,14 @@ import (
 )
 
 var _ = Describe("Component", Label("database", "Component"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -44,6 +48,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			).To(BeEquivalentTo(len(expectedComponents)), "GetComponents should return expected number of components")
 			check(res)
 		}
+
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				testGetComponents(
@@ -55,8 +60,11 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			})
 		})
 		Context("and we have 10 components in the database", func() {
-			var seedCollection *test.SeedCollection
-			var randomComponent mariadb.ComponentRow
+			var (
+				seedCollection  *test.SeedCollection
+				randomComponent mariadb.ComponentRow
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				randomComponent = test.PickOne(seedCollection.ComponentRows)
@@ -72,6 +80,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 							var prev int64 = 0
 							for _, r := range entries {
 								Expect(r.Id > prev).Should(BeTrue())
+
 								prev = r.Id
 								for _, row := range seedCollection.ComponentRows {
 									if r.Id == row.Id.Int64 {
@@ -241,6 +250,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				It("can filter by a single component version id", func() {
 					componentRow, componentVersionRow, ok := seedCollection.FindMatchingComponentAndComponentVersion()
 					Expect(ok).To(BeTrue())
+
 					filter := &entity.ComponentFilter{ComponentVersionId: []*int64{&componentVersionRow.Id.Int64}}
 					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{componentRow}, func(entries []entity.ComponentResult) {
 						for _, entry := range entries {
@@ -268,6 +278,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 										entity.IssueSeverityCounts{},
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.ComponentRows),
@@ -298,10 +309,13 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var componentRows []mariadb.ComponentRow
-			var randomComponent mariadb.ComponentRow
-			var count int
+			var (
+				seedCollection  *test.SeedCollection
+				componentRows   []mariadb.ComponentRow
+				randomComponent mariadb.ComponentRow
+				count           int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				componentRows = seedCollection.ComponentRows
@@ -354,9 +368,12 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		})
 		When("Insert Component", Label("InsertComponent"), func() {
 			Context("and we have 10 Components in the database", func() {
-				var newComponentRow mariadb.ComponentRow
-				var newComponent entity.Component
-				var seedCollection *test.SeedCollection
+				var (
+					newComponentRow mariadb.ComponentRow
+					newComponent    entity.Component
+					seedCollection  *test.SeedCollection
+				)
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 					newComponentRow = test.NewFakeComponent()
@@ -377,6 +394,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					}
 
 					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -409,6 +427,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		When("Update Component", Label("UpdateComponent"), func() {
 			Context("and we have 10 Components in the database", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
@@ -427,6 +446,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					}
 
 					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -457,6 +477,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					}
 
 					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -477,6 +498,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		When("Delete Component", Label("DeleteComponent"), func() {
 			Context("and we have 10 Components in the database", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
@@ -494,6 +516,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					}
 
 					c, err := db.GetComponents(context.Background(), componentFilter, []entity.Order{})
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -507,16 +530,20 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 })
 
 var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
-	var c *collate.Collator
+	var (
+		db             *mariadb.SqlDatabase
+		seeder         *test.DatabaseSeeder
+		seedCollection *test.SeedCollection
+		c              *collate.Collator
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		c = collate.New(language.English)
+
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
@@ -550,47 +577,57 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
+
 		cvIssues, err := test.LoadComponentVersionIssues(
 			test.GetTestDataPath("testdata/component_order/component_version_issue.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
+
 		componentInstances, err := test.LoadComponentInstances(
 			test.GetTestDataPath("testdata/service_order/component_instance.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
+
 		issueMatches, err := test.LoadIssueMatches(
 			test.GetTestDataPath("testdata/component_order/issue_match.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
+
 		componentVersions, err := test.LoadComponentVersions(
 			test.GetTestDataPath("testdata/component_order/component_version.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
+
 		return componentVersions, componentInstances, issueVariants, cvIssues, issueMatches, nil
 	}
 
 	When("order by count is used", func() {
 		var componentFilter *entity.ComponentFilter
+
 		BeforeEach(func() {
 			seeder.SeedIssueRepositories()
+
 			for range 10 {
 				issue := test.NewFakeIssue()
 				issue.Type.String = entity.IssueTypeVulnerability.String()
 				seeder.InsertFakeIssue(issue)
 			}
+
 			seeder.SeedComponents(5)
+
 			var serviceCcrns []*string
 			for _, s := range seeder.SeedServices(5) {
 				serviceCcrns = append(serviceCcrns, &s.CCRN.String)
 			}
+
 			componentFilter = &entity.ComponentFilter{
 				ServiceCCRN: serviceCcrns,
 			}
@@ -601,22 +638,27 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 				_, err := seeder.InsertFakeIssueVariant(iv)
 				Expect(err).To(BeNil())
 			}
+
 			for _, cv := range componentVersions {
 				_, err := seeder.InsertFakeComponentVersion(cv)
 				Expect(err).To(BeNil())
 			}
+
 			for _, cvi := range componentVersionIssues {
 				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 				Expect(err).To(BeNil())
 			}
+
 			for _, ci := range componentInstances {
 				_, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
 			}
+
 			for _, im := range issueMatches {
 				_, err := seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 			}
+
 			err = seeder.RefreshComponentVulnerabilityCounts()
 			Expect(err).To(BeNil())
 		})

@@ -21,13 +21,16 @@ import (
 )
 
 var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -119,12 +122,14 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					))
 
 					issueVariantWithSeverity := false
+
 					for _, v := range ivs {
 						if strings.Contains(v.ExternalUrl, alertURL) && v.Severity.Value == alertSeverity {
 							issueVariantWithSeverity = true
 							break
 						}
 					}
+
 					Expect(issueVariantWithSeverity).To(BeTrue())
 
 					serviceFilter := &entity.ServiceFilter{CCRN: []*string{&service}}
@@ -228,6 +233,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					nil,
 				)
 				Expect(err).To(BeNil())
+
 				issueId := issues[0].Issue.Id
 
 				ivs, err := db.GetIssueVariants(
@@ -299,14 +305,17 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 })
 
 var _ = Describe("Acknowledging SIEMAlert via API", Label("e2e", "SIEMAlert"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
-	var seedCollection *test.SeedCollection
+	var (
+		seeder         *test.DatabaseSeeder
+		s              *server.Server
+		cfg            util.Config
+		db             *mariadb.SqlDatabase
+		seedCollection *test.SeedCollection
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

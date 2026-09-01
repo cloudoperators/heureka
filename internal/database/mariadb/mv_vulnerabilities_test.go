@@ -19,9 +19,11 @@ import (
 )
 
 var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
+	var (
+		db             *mariadb.SqlDatabase
+		seeder         *test.DatabaseSeeder
+		seedCollection *test.SeedCollection
+	)
 
 	testIssueSeverityCount := func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
 		issueSeverityCounts, err := db.CountIssueRatings(context.Background(), filter)
@@ -115,16 +117,19 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			remediation.ServiceId = serviceRow.Id
 			remediation.Service = serviceRow.CCRN
 		}
+
 		if componentRow != nil {
 			remediation.ComponentId = componentRow.Id
 			remediation.Component = componentRow.CCRN
 		}
+
 		remediation.IssueId = sql.NullInt64{Int64: 1, Valid: true}
 		remediation.Issue = seedCollection.IssueRows[0].PrimaryName
 		remediation.ExpirationDate = sql.NullTime{Time: expirationDate, Valid: true}
 		r := remediation.AsRemediation()
 		newRemediation, err := db.CreateRemediation(&r)
 		Expect(err).To(BeNil())
+
 		return newRemediation
 	}
 
@@ -148,6 +153,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 					),
 				)
 				Expect(err).To(BeNil())
+
 				for _, cvi := range seedCollection.ComponentVersionIssueRows {
 					cvId := cvi.ComponentVersionId.Int64
 					filter := &entity.IssueFilter{
@@ -160,6 +166,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 							if s.ComponentVersionId.Int64 == cvId {
 								return &s.ServiceId.Int64, true
 							}
+
 							return nil, false
 						},
 					)
@@ -170,6 +177,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 							if lo.Contains(serviceIds, &s.Id.Int64) {
 								return &s.CCRN.String, true
 							}
+
 							return nil, false
 						},
 					)
@@ -219,6 +227,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 				),
 			)
 			Expect(err).To(BeNil())
+
 			totalCounts := entity.IssueSeverityCounts{}
 			for _, count := range severityCounts {
 				totalCounts.Critical += count.Critical
@@ -309,6 +318,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -348,12 +358,16 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		testNoActiveRemediation()
 	})
 	When("there is an active remediation for a service", Label("WithRemediations"), func() {
-		var serviceCounts entity.IssueSeverityCounts
-		var serviceId string
-		var remediation *entity.Remediation
+		var (
+			serviceCounts entity.IssueSeverityCounts
+			serviceId     string
+			remediation   *entity.Remediation
+		)
+
 		BeforeEach(func() {
 			expirationDate := time.Now().Add(10 * 24 * time.Hour)
 			remediation = insertRemediation(&seedCollection.ServiceRows[0], nil, expirationDate)
+
 			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 			// remediation for previously critical issue
 			serviceCounts = entity.IssueSeverityCounts{
@@ -373,6 +387,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 				),
 			)
 			severityCounts["1"] = entity.IssueSeverityCounts{}
+
 			Expect(err).To(BeNil())
 
 			testComponentVersions(severityCounts)
@@ -438,12 +453,14 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		})
 		It("returns the correct count for services", func() {
 			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
+
 			severityCounts, err := test.LoadServiceIssueCounts(
 				test.GetTestDataPath(
 					"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
 				),
 			)
 			Expect(err).To(BeNil())
+
 			severityCounts[serviceId] = serviceCounts
 
 			testServices(severityCounts)
@@ -461,6 +478,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 				None:     1,
 				Total:    5,
 			}
+
 			Expect(err).To(BeNil())
 
 			testSupportGroups(severityCounts)
@@ -472,6 +490,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 				),
 			)
 			Expect(err).To(BeNil())
+
 			severityCounts["1"] = entity.IssueSeverityCounts{
 				Critical: 1,
 				Medium:   1,
@@ -510,8 +529,11 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		"there is an active remediation for a component in a service",
 		Label("WithRemediations"),
 		func() {
-			var serviceCounts entity.IssueSeverityCounts
-			var serviceId string
+			var (
+				serviceCounts entity.IssueSeverityCounts
+				serviceId     string
+			)
+
 			BeforeEach(func() {
 				expirationDate := time.Now().Add(10 * 24 * time.Hour)
 				r := insertRemediation(
@@ -519,6 +541,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 					&seedCollection.ComponentRows[0],
 					expirationDate,
 				)
+
 				Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 				// remediation for previously critical issue
 				serviceCounts = entity.IssueSeverityCounts{
@@ -538,18 +561,21 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 					),
 				)
 				severityCounts["1"] = entity.IssueSeverityCounts{}
+
 				Expect(err).To(BeNil())
 
 				testComponentVersions(severityCounts)
 			})
 			It("returns the correct count for services", func() {
 				Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
+
 				severityCounts, err := test.LoadServiceIssueCounts(
 					test.GetTestDataPath(
 						"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
 					),
 				)
 				Expect(err).To(BeNil())
+
 				severityCounts[serviceId] = serviceCounts
 
 				testServices(severityCounts)
@@ -567,6 +593,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 					None:     1,
 					Total:    5,
 				}
+
 				Expect(err).To(BeNil())
 
 				testSupportGroups(severityCounts)
@@ -578,6 +605,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 					),
 				)
 				Expect(err).To(BeNil())
+
 				severityCounts["1"] = entity.IssueSeverityCounts{
 					Critical: 1,
 					Medium:   1,

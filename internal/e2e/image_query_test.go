@@ -104,6 +104,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 					},
 				)
 				Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
+
 				component, foundComp := lo.Find(
 					imgTest.components,
 					func(c mariadb.ComponentRow) bool {

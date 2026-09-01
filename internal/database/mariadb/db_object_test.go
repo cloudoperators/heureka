@@ -74,10 +74,12 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					mariadb.NewProperty("a", func(de *dummyEntity) (any, bool) { return de.A, anyVal }),
 				},
 			}
+
 			It("can build insert query and query parameters", func() {
 				de := dummyEntity{Id: dummyId, A: dummyString}
 				query, params, err := testObject.InsertQuery(&de)
 				Expect(err).To(BeNil())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo("INSERT INTO DummyTable (id,a) VALUES (?,?)"))
 				Expect(params).To(HaveLen(2))
@@ -89,6 +91,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 	When("Filter query is called", func() {
 		Context("Two filters are there in the filter object", func() {
 			var testObject mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]
+
 			BeforeEach(func() {
 				testObject = mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 					TableName: "DummyTable",
@@ -100,11 +103,13 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			})
 			It("builds filter for one filter item", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
+
 				By("returning correct filter in query", func() {
 					qb := testObject.AddFilter(dummySelectBuilder, &def)
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString)}))
+
 					normalizedQuery := strings.Join(strings.Fields(query), " ")
 					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_a = ? )"))
 				})
@@ -114,6 +119,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString), dummyCursorFieldVal}))
+
 					normalizedQuery := strings.Join(strings.Fields(query), " ")
 					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_a = ? ) AND ( componentinstance_namespace < ? ) LIMIT 1000"))
 				})
@@ -124,6 +130,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(dummyString), dummyCursorFieldVal}))
+
 					normalizedQuery := strings.Join(strings.Fields(query), " ")
 					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_a = ? ) HAVING ( componentinstance_namespace < ? ) LIMIT 1000"))
 				})
@@ -132,11 +139,13 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			It("builds filter for two filter items", func() {
 				id := int64(dummyId)
 				def := dummyEntityFilter{Id: []*int64{&id}, A: []*string{lo.ToPtr(dummyString)}}
+
 				By("returning correct filter query string", func() {
 					qb := testObject.AddFilter(dummySelectBuilder, &def)
 					query, params, err := qb.ToSql()
 					Expect(err).To(BeNil())
 					Expect(params).To(ConsistOf([]any{lo.ToPtr(int64(dummyId)), lo.ToPtr(dummyString)}))
+
 					normalizedQuery := strings.Join(strings.Fields(query), " ")
 					Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " WHERE ( DT.dummytable_id = ? ) AND ( DT.dummytable_a = ? )"))
 				})
@@ -148,6 +157,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery))
 			})
@@ -158,12 +168,14 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 			testObject := mariadb.DbObject[*dummyEntity, *dummyEntityFilter, dummyResult, *any]{
 				TableName: "DummyTable",
 			}
+
 			It("gets no joins in query as there is no join defined", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
 				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery))
 			})
@@ -188,12 +200,14 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					},
 				},
 			}
+
 			It("gets no joins in query when there is an empty filter in use", func() {
 				def := dummyEntityFilter{}
 				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery))
 			})
@@ -203,6 +217,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
 			})
@@ -212,6 +227,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(dummySelectQuery + " RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id"))
 			})
@@ -221,6 +237,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
@@ -250,12 +267,14 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					},
 				},
 			}
+
 			It("gets two joins with X (and dependent Y) when B mapping condition is met (there is at least one element to filter)", func() {
 				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
 				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
@@ -269,6 +288,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
@@ -281,6 +301,7 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
@@ -318,12 +339,14 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					},
 				},
 			}
+
 			It("gets two joins and one dependent join when A and B mapping conditions are met (there is at least one element for each filter)", func() {
 				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}, B: []*int{lo.ToPtr(10)}}
 				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +
@@ -353,12 +376,14 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 					},
 				},
 			}
+
 			It("gets one join even when both join defs have the same condition but only first one will be included to prevent join table name duplication", func() {
 				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
 				qb := testObject.AddJoins(dummySelectBuilder, &def, nil, nil)
 				query, params, err := qb.ToSql()
 				Expect(err).To(BeNil())
 				Expect(params).To(BeEmpty())
+
 				normalizedQuery := strings.Join(strings.Fields(query), " ")
 				Expect(normalizedQuery).To(BeEquivalentTo(
 					dummySelectQuery +

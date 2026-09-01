@@ -16,10 +16,14 @@ import (
 )
 
 var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -43,6 +47,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 		})
 		Context("and we have 10 issue variants in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -61,10 +66,8 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -72,7 +75,6 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.IssueVariantRows {
 								if r.Id == row.Id.Int64 {
-
 									Expect(
 										r.SecondaryName,
 									).Should(BeEquivalentTo(row.SecondaryName.String), "Name matches")
@@ -316,6 +318,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 										*entries[len(entries)-1].IssueVariant,
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.IssueVariantRows),
@@ -345,9 +348,12 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var ivRows []mariadb.IssueVariantRow
-			var count int
+			var (
+				seedCollection *test.SeedCollection
+				ivRows         []mariadb.IssueVariantRow
+				count          int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				ivRows = seedCollection.IssueVariantRows
@@ -401,6 +407,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 							IssueId: []*int64{&issueId},
 						}
 						entries, err := db.CountIssueVariants(context.Background(), filter)
+
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
 						})
@@ -416,9 +423,12 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 		})
 		When("Insert IssueVariant", Label("InsertIssueVariant"), func() {
 			Context("and we have 10 IssueVariants in the database", func() {
-				var newIssueVariantRow mariadb.IssueVariantRow
-				var newIssueVariant entity.IssueVariant
-				var seedCollection *test.SeedCollection
+				var (
+					newIssueVariantRow mariadb.IssueVariantRow
+					newIssueVariant    entity.IssueVariant
+					seedCollection     *test.SeedCollection
+				)
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 					newIssueVariantRow = test.NewFakeIssueVariant(
@@ -442,6 +452,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					}
 
 					iv, err := db.GetIssueVariants(context.Background(), issueVariantFilter, []entity.Order{})
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -481,6 +492,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 		When("Update IssueVariant", Label("UpdateIssueVariant"), func() {
 			Context("and we have 10 IssueVariants in the database", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
@@ -499,6 +511,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					}
 
 					iv, err := db.GetIssueVariants(context.Background(), issueVariantFilter, []entity.Order{})
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -526,6 +539,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 		When("Delete IssueVariant", Label("DeleteIssueVariant"), func() {
 			Context("and we have 10 IssueVariants in the database", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
@@ -543,6 +557,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					}
 
 					iv, err := db.GetIssueVariants(context.Background(), issueVariantFilter, []entity.Order{})
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
