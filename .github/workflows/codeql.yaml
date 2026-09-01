@@ -19,7 +19,7 @@ jobs:
       runs-on: "['ubuntu-latest']"
       language: "['go']"
       go-check: true
-      go-version: "['1.25']"
+      go-version: "['1.27']"
       node-check: false
       # node-version : "['node']"
       fail-fast: false  
