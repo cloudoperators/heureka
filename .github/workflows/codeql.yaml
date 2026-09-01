@@ -25,4 +25,4 @@ jobs:
       fail-fast: false  
       # timeout: 30
       autobuild: false
-      build_query: "go install github.com/vektra/mockery/v2@v2.53.5 && make build-binary"
+      build_query: "go install github.com/vektra/mockery/v3@v3.7.4 && make build-binary"
