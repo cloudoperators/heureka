@@ -6,7 +6,6 @@ package remediation
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -383,21 +382,12 @@ func (rh *remediationHandler) DeleteRemediation(ctx context.Context, id int64) e
 	return rh.Delete(ctx, id)
 }
 
-func validateExternalURL(rawURL string) error {
-	parsed, err := url.Parse(rawURL)
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return fmt.Errorf("invalid external URL: %q", rawURL)
-	}
-
-	return nil
-}
-
 func validateRiskAccepted(r *entity.Remediation) error {
 	if r.URL == "" {
 		return fmt.Errorf("URL is required for risk_accepted remediation")
 	}
 
-	return validateExternalURL(r.URL)
+	return nil
 }
 
 func validateEscalation(r *entity.Remediation) error {
@@ -409,7 +399,7 @@ func validateEscalation(r *entity.Remediation) error {
 		return fmt.Errorf("URL is required for escalation remediation")
 	}
 
-	return validateExternalURL(r.URL)
+	return nil
 }
 
 func validateByType(r *entity.Remediation) error {

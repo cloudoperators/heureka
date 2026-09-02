@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -177,20 +176,6 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 	)
 
 	if len(input.Links) > 0 {
-		for _, link := range input.Links {
-			if link == nil {
-				continue
-			}
-
-			parsed, err := url.ParseRequestURI(link.URL)
-			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-				return nil, nil, baseResolver.NewResolverError(
-					"CreateSIEMAlertMutationResolver",
-					fmt.Sprintf("Invalid Input - invalid URL in links: %s", link.URL),
-				)
-			}
-		}
-
 		if input.Name != nil && *input.Name != "" {
 			ivs, err := r.App.ListIssueVariants(
 				ctx,

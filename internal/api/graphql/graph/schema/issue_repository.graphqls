@@ -11,8 +11,8 @@ type IssueRepository implements Node {
 }
 
 input IssueRepositoryInput {
-    name: String
-    url: String
+    name: String @constraint(maxLength: 255)
+    url: String @constraint(maxLength: 2048, format: "url")
 }
 
 type IssueRepositoryConnection implements Connection {
