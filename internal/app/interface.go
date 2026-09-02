@@ -27,7 +27,6 @@ type Heureka interface {
 	component_version.ComponentVersionHandler
 	component.ComponentHandler
 	issue_match.IssueMatchHandler
-	issue_match.IssueMatchHandler
 	issue_repository.IssueRepositoryHandler
 	issue_variant.IssueVariantHandler
 	issue.IssueHandler

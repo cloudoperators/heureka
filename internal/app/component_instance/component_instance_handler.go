@@ -8,12 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	applog "github.com/cloudoperators/heureka/internal/app/logging"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
@@ -21,39 +19,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	CacheTtlGetComponentInstances          = 12 * time.Hour
-	CacheTtlGetAllComponentInstanceCursors = 12 * time.Hour
-	CacheTtlCountComponentInstances        = 12 * time.Hour
-)
-
 type componentInstanceHandler struct {
-	database      database.Database
-	eventRegistry event.EventRegistry
-	cache         cache.Cache
-	authz         openfga.Authorization
-	logger        *logrus.Logger
+	common.BaseHandler[entity.ComponentInstanceResult, *entity.ComponentInstanceFilter]
 }
 
-type ComponentInstanceHandlerError struct {
-	msg string
-}
-
-func (e *ComponentInstanceHandlerError) Error() string {
-	return fmt.Sprintf("ComponentInstanceHandlerError: %s", e.msg)
-}
-
-func NewComponentInstanceHandlerError(msg string) *ComponentInstanceHandlerError {
-	return &ComponentInstanceHandlerError{msg: msg}
-}
-
-func NewComponentInstanceHandler(handlerContext common.HandlerContext) ComponentInstanceHandler {
+func NewComponentInstanceHandler(hc common.HandlerContext) ComponentInstanceHandler {
 	return &componentInstanceHandler{
-		database:      handlerContext.DB,
-		eventRegistry: handlerContext.EventReg,
-		cache:         handlerContext.Cache,
-		authz:         handlerContext.Authz,
-		logger:        logrus.New(),
+		BaseHandler: common.NewBaseHandler(hc, common.BaseConfig[entity.ComponentInstanceResult, *entity.ComponentInstanceFilter]{
+			Op:              appErrors.Op("componentInstanceHandler"),
+			Entity:          "ComponentInstances",
+			CursorEntity:    "ComponentInstanceCursors",
+			CountEntity:     "ComponentInstanceCount",
+			GetFn:           hc.DB.GetComponentInstances,
+			CursorsFn:       hc.DB.GetAllComponentInstanceCursors,
+			CountFn:         hc.DB.CountComponentInstances,
+			Authz:           hc.Authz,
+			AuthzObjectType: openfga.TypeService,
+			AuthzApplyFn: func(f *entity.ComponentInstanceFilter, ids []*int64) {
+				f.ServiceId = common.CombineFilterWithAccessibleIds(f.ServiceId, ids)
+			},
+			ListEventFn: func(f *entity.ComponentInstanceFilter, o *entity.ListOptions, r *entity.List[entity.ComponentInstanceResult]) any {
+				return &ListComponentInstancesEvent{Filter: f, Options: o, ComponentInstances: r}
+			},
+			DeleteFn:      hc.DB.DeleteComponentInstance,
+			DeleteEventFn: func(id int64) any { return &DeleteComponentInstanceEvent{ComponentInstanceID: id} },
+		}),
 	}
 }
 
@@ -62,127 +52,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 	filter *entity.ComponentInstanceFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.ComponentInstanceResult], error) {
-	op := appErrors.Op("componentInstanceHandler.ListComponentInstances")
-
-	var (
-		count    int64
-		pageInfo *entity.PageInfo
-	)
-
-	common.EnsurePaginated(&filter.Paginated)
-
-	// get current user id
-	currentUserId, err := common.GetCurrentUserId(ctx, ci.database)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Authorization check
-	accessibleServiceIds, err := ci.authz.GetListOfAccessibleObjectIds(
-		openfga.UserId(fmt.Sprint(currentUserId)),
-		openfga.TypeService,
-	)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Update the filter.ServiceId based on accessibleServiceIds
-	filter.ServiceId = common.CombineFilterWithAccessibleIds(filter.ServiceId, accessibleServiceIds)
-
-	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
-		ci.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetComponentInstances,
-			ctx,
-			"GetComponentInstances",
-			ci.database.GetComponentInstances,
-			filter,
-			options.Order,
-		),
-	)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	if options.ShowPageInfo {
-		if len(res) > 0 {
-			cursors, err := cache.CallCached[[]string](
-				ci.cache,
-				cache.NewCacheCallParams(
-					CacheTtlGetAllComponentInstanceCursors,
-					ctx,
-					"GetAllComponentInstanceCursors",
-					ci.database.GetAllComponentInstanceCursors,
-					filter,
-					options.Order,
-				),
-			)
-			if err != nil {
-				wrappedErr := appErrors.InternalError(
-					string(op),
-					"ComponentInstanceCursors",
-					"",
-					err,
-				)
-				applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-					"filter": filter,
-				})
-
-				return nil, wrappedErr
-			}
-
-			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
-			count = int64(len(cursors))
-		}
-	} else if options.ShowTotalCount {
-		count, err = cache.CallCached[int64](
-			ci.cache,
-			cache.NewCacheCallParams(
-				CacheTtlCountComponentInstances,
-				ctx,
-				"CountComponentInstances",
-				ci.database.CountComponentInstances,
-				filter,
-			),
-		)
-		if err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCount", "", err)
-			applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-				"filter": filter,
-			})
-
-			return nil, wrappedErr
-		}
-	}
-
-	result := &entity.List[entity.ComponentInstanceResult]{
-		TotalCount: &count,
-		PageInfo:   pageInfo,
-		Elements:   res,
-	}
-
-	ci.eventRegistry.PushEvent(&ListComponentInstancesEvent{
-		Filter:             filter,
-		Options:            options,
-		ComponentInstances: result,
-	})
-
-	return result, nil
+	return ci.List(ctx, appErrors.CallerOp(), filter, options)
 }
 
 func (ci *componentInstanceHandler) CreateComponentInstance(
@@ -190,38 +60,25 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 	componentInstance *entity.ComponentInstance,
 	scannerRunUUID *string,
 ) (*entity.ComponentInstance, error) {
-	op := appErrors.Op("componentInstanceHandler.CreateComponentInstance")
+	op := appErrors.CallerOp()
 
-	// Input validation - check for required fields
 	if componentInstance == nil {
-		err := appErrors.E(
-			op,
-			"ComponentInstance",
-			appErrors.InvalidArgument,
-			"component instance cannot be nil",
-		)
-		applog.LogError(ci.logger, err, logrus.Fields{})
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "component instance cannot be nil")
+		applog.LogError(logrus.StandardLogger(), err, logrus.Fields{})
 
 		return nil, err
 	}
 
 	if componentInstance.CCRN == "" {
 		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "CCRN is required")
-		applog.LogError(ci.logger, err, logrus.Fields{
-			"component_instance": componentInstance,
-		})
+		applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"component_instance": componentInstance})
 
 		return nil, err
 	}
 
 	if componentInstance.ServiceId <= 0 {
-		err := appErrors.E(
-			op,
-			"ComponentInstance",
-			appErrors.InvalidArgument,
-			"valid service ID is required",
-		)
-		applog.LogError(ci.logger, err, logrus.Fields{
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "valid service ID is required")
+		applog.LogError(logrus.StandardLogger(), err, logrus.Fields{
 			"service_id": componentInstance.ServiceId,
 			"ccrn":       componentInstance.CCRN,
 		})
@@ -229,13 +86,9 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 		return nil, err
 	}
 
-	// Business rule validation - ParentId validation for specific types
-	if err := validateParentIdForType(
-		componentInstance.ParentId,
-		componentInstance.Type.String(),
-	); err != nil {
+	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
 		wrappedErr := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, err.Error())
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
 			"parent_id":        componentInstance.ParentId,
 			"type":             componentInstance.Type.String(),
 			"ccrn":             componentInstance.CCRN,
@@ -245,13 +98,12 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 		return nil, wrappedErr
 	}
 
-	// Get current user for audit fields
 	var err error
 
-	componentInstance.CreatedBy, err = common.GetCurrentUserId(ctx, ci.database)
+	componentInstance.CreatedBy, err = common.GetCurrentUserId(ctx, ci.DB())
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
 			"ccrn": componentInstance.CCRN,
 			"type": componentInstance.Type.String(),
 		})
@@ -261,18 +113,12 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 
 	componentInstance.UpdatedBy = componentInstance.CreatedBy
 
-	// Create the component instance in database
-	newComponentInstance, err := ci.database.CreateComponentInstance(componentInstance)
+	newComponentInstance, err := ci.DB().CreateComponentInstance(componentInstance)
 	if err != nil {
-		// Check for specific database errors
 		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
 		if errors.As(err, &duplicateEntryError) {
-			wrappedErr := appErrors.AlreadyExistsError(
-				string(op),
-				"ComponentInstance",
-				componentInstance.CCRN,
-			)
-			applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "ComponentInstance", componentInstance.CCRN)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
 				"ccrn":                    componentInstance.CCRN,
 				"component_version_id":    componentInstance.ComponentVersionId,
 				"service_id":              componentInstance.ServiceId,
@@ -282,9 +128,8 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 			return nil, wrappedErr
 		}
 
-		// Generic database error
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
 			"ccrn":                 componentInstance.CCRN,
 			"component_version_id": componentInstance.ComponentVersionId,
 			"service_id":           componentInstance.ServiceId,
@@ -294,38 +139,25 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 		return nil, wrappedErr
 	}
 
-	// Handle scanner run tracking if UUID provided
 	if scannerRunUUID != nil {
-		err = ci.database.CreateScannerRunComponentInstanceTracker(
-			newComponentInstance.Id,
-			*scannerRunUUID,
-		)
+		err = ci.DB().CreateScannerRunComponentInstanceTracker(newComponentInstance.Id, *scannerRunUUID)
 		if err != nil {
-			// Log the error but don't fail the creation since the component instance was created
-			// successfully
 			logErr := appErrors.InternalError(
 				string(op),
 				"ScannerRunComponentInstanceTracker",
-				fmt.Sprintf(
-					"component_instance:%d-scanner_run:%s",
-					newComponentInstance.Id,
-					*scannerRunUUID,
-				),
+				fmt.Sprintf("component_instance:%d-scanner_run:%s", newComponentInstance.Id, *scannerRunUUID),
 				err,
 			)
-			applog.LogError(ci.logger, logErr, logrus.Fields{
+
+			applog.LogError(logrus.StandardLogger(), logErr, logrus.Fields{
 				"component_instance_id": newComponentInstance.Id,
 				"scanner_run_uuid":      *scannerRunUUID,
 				"ccrn":                  newComponentInstance.CCRN,
 			})
-			// Note: We don't return this error since the main operation succeeded
 		}
 	}
 
-	// Emit success event
-	ci.eventRegistry.PushEvent(&CreateComponentInstanceEvent{
-		ComponentInstance: newComponentInstance,
-	})
+	ci.PushEvent(&CreateComponentInstanceEvent{ComponentInstance: newComponentInstance})
 
 	return newComponentInstance, nil
 }
@@ -335,503 +167,142 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(
 	componentInstance *entity.ComponentInstance,
 	scannerRunUUID *string,
 ) (*entity.ComponentInstance, error) {
-	op := appErrors.Op("componentInstanceHandler.UpdateComponentInstance")
+	op := appErrors.CallerOp()
 
-	// Input validation
 	if componentInstance == nil {
-		err := appErrors.E(
-			op,
-			"ComponentInstance",
-			appErrors.InvalidArgument,
-			"component instance cannot be nil",
-		)
-		applog.LogError(ci.logger, err, logrus.Fields{})
-
-		return nil, err
+		return nil, appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "component instance cannot be nil")
 	}
 
 	if componentInstance.Id <= 0 {
-		err := appErrors.E(
-			op,
-			"ComponentInstance",
-			appErrors.InvalidArgument,
-			fmt.Sprintf("invalid ID: %d", componentInstance.Id),
-		)
-		applog.LogError(ci.logger, err, logrus.Fields{"id": componentInstance.Id})
-
-		return nil, err
+		return nil, appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", componentInstance.Id))
 	}
 
-	// Business rule validation - ParentId validation for specific types
-	if err := validateParentIdForType(
-		componentInstance.ParentId,
-		componentInstance.Type.String(),
-	); err != nil {
-		wrappedErr := appErrors.E(
-			op,
-			"ComponentInstance",
-			strconv.FormatInt(componentInstance.Id, 10),
-			appErrors.InvalidArgument,
-			err.Error(),
-		)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"id":               componentInstance.Id,
-			"parent_id":        componentInstance.ParentId,
-			"type":             componentInstance.Type.String(),
-			"validation_error": err.Error(),
-		})
-
-		return nil, wrappedErr
+	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+		return nil, appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.InvalidArgument, err.Error())
 	}
 
-	// Get current user for audit fields
+	id := strconv.FormatInt(componentInstance.Id, 10)
+
 	var err error
 
-	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ctx, ci.database)
+	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ctx, ci.DB())
 	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"ComponentInstance",
-			strconv.FormatInt(componentInstance.Id, 10),
-			err,
-		)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"id":   componentInstance.Id,
-			"ccrn": componentInstance.CCRN,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "ComponentInstance", id, err)
 	}
 
-	// Update the component instance in database
-	err = ci.database.UpdateComponentInstance(componentInstance)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"ComponentInstance",
-			strconv.FormatInt(componentInstance.Id, 10),
-			err,
-		)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"id":   componentInstance.Id,
-			"ccrn": componentInstance.CCRN,
-		})
-
-		return nil, wrappedErr
+	if err = ci.DB().UpdateComponentInstance(componentInstance); err != nil {
+		return nil, appErrors.InternalError(string(op), "ComponentInstance", id, err)
 	}
 
-	// Handle scanner run tracking if UUID provided
 	if scannerRunUUID != nil {
-		err = ci.database.CreateScannerRunComponentInstanceTracker(
-			componentInstance.Id,
-			*scannerRunUUID,
-		)
-		if err != nil {
-			// Log the error but don't fail the update since the component instance was updated
-			// successfully
-			logErr := appErrors.InternalError(
-				string(op),
-				"ScannerRunComponentInstanceTracker",
-				fmt.Sprintf(
-					"component_instance:%d-scanner_run:%s",
-					componentInstance.Id,
-					*scannerRunUUID,
-				),
-				err,
-			)
-			applog.LogError(ci.logger, logErr, logrus.Fields{
-				"component_instance_id": componentInstance.Id,
-				"scanner_run_uuid":      *scannerRunUUID,
-				"ccrn":                  componentInstance.CCRN,
-			})
-			// Note: We don't return this error since the main operation succeeded
+		if err = ci.DB().CreateScannerRunComponentInstanceTracker(componentInstance.Id, *scannerRunUUID); err != nil {
+			applog.LogError(logrus.StandardLogger(), appErrors.InternalError(string(op), "ScannerRunComponentInstanceTracker",
+				fmt.Sprintf("component_instance:%d-scanner_run:%s", componentInstance.Id, *scannerRunUUID), err), logrus.Fields{})
 		}
 	}
 
-	// Retrieve updated component instance to return fresh data
-	lo := entity.NewListOptions()
-
-	componentInstanceResult, err := ci.ListComponentInstances(
-		ctx,
-		&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}},
-		lo,
-	)
+	result, err := ci.ListComponentInstances(ctx, &entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, entity.NewListOptions())
 	if err != nil {
-		wrappedErr := appErrors.E(
-			op,
-			"ComponentInstance",
-			strconv.FormatInt(componentInstance.Id, 10),
-			appErrors.Internal,
-			err,
-		)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"id":   componentInstance.Id,
-			"ccrn": componentInstance.CCRN,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "ComponentInstance", id, err)
 	}
 
-	if len(componentInstanceResult.Elements) != 1 {
-		err := appErrors.E(
-			op,
-			"ComponentInstance",
-			strconv.FormatInt(componentInstance.Id, 10),
-			appErrors.Internal,
-			fmt.Sprintf(
-				"unexpected number of component instances found after update: expected 1, got %d",
-				len(componentInstanceResult.Elements),
-			),
-		)
-		applog.LogError(ci.logger, err, logrus.Fields{
-			"id":          componentInstance.Id,
-			"found_count": len(componentInstanceResult.Elements),
-			"ccrn":        componentInstance.CCRN,
-		})
-
-		return nil, err
+	if len(result.Elements) != 1 {
+		return nil, appErrors.E(op, "ComponentInstance", id, appErrors.Internal,
+			fmt.Sprintf("unexpected number of component instances found after update: expected 1, got %d", len(result.Elements)))
 	}
 
-	updatedComponentInstance := componentInstanceResult.Elements[0].ComponentInstance
-
-	// Emit success event
-	ci.eventRegistry.PushEvent(&UpdateComponentInstanceEvent{
-		ComponentInstance: updatedComponentInstance,
-	})
+	updatedComponentInstance := result.Elements[0].ComponentInstance
+	ci.PushEvent(&UpdateComponentInstanceEvent{ComponentInstance: updatedComponentInstance})
 
 	return updatedComponentInstance, nil
 }
 
 func (ci *componentInstanceHandler) DeleteComponentInstance(ctx context.Context, id int64) error {
-	op := appErrors.Op("componentInstanceHandler.DeleteComponentInstance")
-
-	// Input validation
 	if id <= 0 {
-		err := appErrors.E(
-			op,
-			"ComponentInstance",
-			appErrors.InvalidArgument,
-			fmt.Sprintf("invalid ID: %d", id),
-		)
-		applog.LogError(ci.logger, err, logrus.Fields{"id": id})
+		op := appErrors.CallerOp()
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
+		applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"id": id})
 
 		return err
 	}
 
-	// Get current user for audit fields
-	userId, err := common.GetCurrentUserId(ctx, ci.database)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"ComponentInstance",
-			strconv.FormatInt(id, 10),
-			err,
-		)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"id": id,
-		})
-
-		return wrappedErr
-	}
-
-	// Delete the component instance from database
-	err = ci.database.DeleteComponentInstance(id, userId)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"ComponentInstance",
-			strconv.FormatInt(id, 10),
-			err,
-		)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"id":      id,
-			"user_id": userId,
-		})
-
-		return wrappedErr
-	}
-
-	// Emit success event
-	ci.eventRegistry.PushEvent(&DeleteComponentInstanceEvent{
-		ComponentInstanceID: id,
-	})
-
-	return nil
+	return ci.Delete(ctx, id)
 }
 
-func (ci *componentInstanceHandler) ListRegions(
+func (ci *componentInstanceHandler) listStrings(
+	op appErrors.Op,
 	ctx context.Context,
 	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
+	entityName string,
+	fetchFn func(context.Context, *entity.ComponentInstanceFilter) ([]string, error),
+	eventFn func([]string) event.Event,
 ) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListRegions")
-
-	regions, err := ci.database.GetRegion(ctx, filter)
+	values, err := fetchFn(ctx, filter)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceRegions", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
+		wrappedErr := appErrors.InternalError(string(op), entityName, "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{"filter": filter})
 
 		return nil, wrappedErr
 	}
 
-	ci.eventRegistry.PushEvent(&ListRegionsEvent{
-		Filter:  filter,
-		Regions: regions,
-	})
+	ci.PushEvent(eventFn(values))
 
-	return regions, nil
+	return values, nil
 }
 
-func (ci *componentInstanceHandler) ListCcrns(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListCcrns")
-
-	ccrns, err := ci.database.GetCcrn(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCcrns", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListCcrnEvent{
-		Filter: filter,
-		Ccrn:   ccrns,
-	})
-
-	return ccrns, nil
+func (ci *componentInstanceHandler) ListRegions(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceRegions", ci.DB().GetRegion,
+		func(v []string) event.Event { return &ListRegionsEvent{Filter: filter, Regions: v} })
 }
 
-func (ci *componentInstanceHandler) ListClusters(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListClusters")
-
-	clusters, err := ci.database.GetCluster(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceClusters", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListClustersEvent{
-		Filter:   filter,
-		Clusters: clusters,
-	})
-
-	return clusters, nil
+func (ci *componentInstanceHandler) ListCcrns(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceCcrns", ci.DB().GetCcrn,
+		func(v []string) event.Event { return &ListCcrnEvent{Filter: filter, Ccrn: v} })
 }
 
-func (ci *componentInstanceHandler) ListNamespaces(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListNamespaces")
-
-	namespaces, err := ci.database.GetNamespace(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceNamespaces", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListNamespacesEvent{
-		Filter:     filter,
-		Namespaces: namespaces,
-	})
-
-	return namespaces, nil
+func (ci *componentInstanceHandler) ListClusters(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceClusters", ci.DB().GetCluster,
+		func(v []string) event.Event { return &ListClustersEvent{Filter: filter, Clusters: v} })
 }
 
-func (ci *componentInstanceHandler) ListDomains(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListDomains")
-
-	domains, err := ci.database.GetDomain(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceDomains", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListDomainsEvent{
-		Filter:  filter,
-		Domains: domains,
-	})
-
-	return domains, nil
+func (ci *componentInstanceHandler) ListNamespaces(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceNamespaces", ci.DB().GetNamespace,
+		func(v []string) event.Event { return &ListNamespacesEvent{Filter: filter, Namespaces: v} })
 }
 
-func (ci *componentInstanceHandler) ListProjects(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListProjects")
-
-	projects, err := ci.database.GetProject(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceProjects", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListProjectsEvent{
-		Filter:   filter,
-		Projects: projects,
-	})
-
-	return projects, nil
+func (ci *componentInstanceHandler) ListDomains(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceDomains", ci.DB().GetDomain,
+		func(v []string) event.Event { return &ListDomainsEvent{Filter: filter, Domains: v} })
 }
 
-func (ci *componentInstanceHandler) ListPods(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListPods")
-
-	pods, err := ci.database.GetPod(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstancePods", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListPodsEvent{
-		Filter: filter,
-		Pods:   pods,
-	})
-
-	return pods, nil
+func (ci *componentInstanceHandler) ListProjects(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceProjects", ci.DB().GetProject,
+		func(v []string) event.Event { return &ListProjectsEvent{Filter: filter, Projects: v} })
 }
 
-func (ci *componentInstanceHandler) ListContainers(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListContainers")
-
-	containers, err := ci.database.GetContainer(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceContainers", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListContainersEvent{
-		Filter:     filter,
-		Containers: containers,
-	})
-
-	return containers, nil
+func (ci *componentInstanceHandler) ListPods(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstancePods", ci.DB().GetPod,
+		func(v []string) event.Event { return &ListPodsEvent{Filter: filter, Pods: v} })
 }
 
-func (ci *componentInstanceHandler) ListTypes(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListTypes")
-
-	types, err := ci.database.GetType(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceTypes", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListTypesEvent{
-		Filter: filter,
-		Types:  types,
-	})
-
-	return types, nil
+func (ci *componentInstanceHandler) ListContainers(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceContainers", ci.DB().GetContainer,
+		func(v []string) event.Event { return &ListContainersEvent{Filter: filter, Containers: v} })
 }
 
-func (ci *componentInstanceHandler) ListParents(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListParents")
-
-	parents, err := ci.database.GetComponentInstanceParent(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceParents", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListParentsEvent{
-		Filter:  filter,
-		Parents: parents,
-	})
-
-	return parents, nil
+func (ci *componentInstanceHandler) ListTypes(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceTypes", ci.DB().GetType,
+		func(v []string) event.Event { return &ListTypesEvent{Filter: filter, Types: v} })
 }
 
-func (ci *componentInstanceHandler) ListContexts(
-	ctx context.Context,
-	filter *entity.ComponentInstanceFilter,
-	options *entity.ListOptions,
-) ([]string, error) {
-	op := appErrors.Op("componentInstanceHandler.ListContexts")
+func (ci *componentInstanceHandler) ListParents(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceParents", ci.DB().GetComponentInstanceParent,
+		func(v []string) event.Event { return &ListParentsEvent{Filter: filter, Parents: v} })
+}
 
-	contexts, err := ci.database.GetContext(ctx, filter)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceContexts", "", err)
-		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	ci.eventRegistry.PushEvent(&ListContextsEvent{
-		Filter:   filter,
-		Contexts: contexts,
-	})
-
-	return contexts, nil
+func (ci *componentInstanceHandler) ListContexts(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	return ci.listStrings(appErrors.CallerOp(), ctx, filter, "ComponentInstanceContexts", ci.DB().GetContext,
+		func(v []string) event.Event { return &ListContextsEvent{Filter: filter, Contexts: v} })
 }
 
 // validateParentIdForType checks if ParentId is only set for allowed types.

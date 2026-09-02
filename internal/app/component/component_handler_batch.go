@@ -18,55 +18,55 @@ var (
 	CacheTtlGetVulnerabilityCountsByComponentIDs = 12 * time.Hour
 )
 
-func (cs *componentHandler) GetVersionsByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64][]entity.ComponentVersionResult, error) {
+func (ch *componentHandler) GetVersionsByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64][]entity.ComponentVersionResult, error) {
 	return cache.CallCached[map[int64][]entity.ComponentVersionResult](
-		cs.cache,
+		ch.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetVersionsByComponentIDs,
 			ctx,
 			"GetVersionsByComponentIDs",
-			cs.database.GetVersionsByComponentIDs,
+			ch.DB().GetVersionsByComponentIDs,
 			componentIDs,
 			serviceCCRN,
 		),
 	)
 }
 
-func (cs *componentHandler) GetIssueCountsByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64]entity.IssueSeverityCounts, error) {
+func (ch *componentHandler) GetIssueCountsByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64]entity.IssueSeverityCounts, error) {
 	return cache.CallCached[map[int64]entity.IssueSeverityCounts](
-		cs.cache,
+		ch.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetIssueCountsByComponentIDs,
 			ctx,
 			"GetIssueCountsByComponentIDs",
-			cs.database.GetIssueCountsByComponentIDs,
+			ch.DB().GetIssueCountsByComponentIDs,
 			componentIDs,
 			serviceCCRN,
 		),
 	)
 }
 
-func (cs *componentHandler) GetVulnerabilitiesByComponentIDs(ctx context.Context, componentIDs []int64) (map[int64][]entity.VulnerabilityResult, error) {
+func (ch *componentHandler) GetVulnerabilitiesByComponentIDs(ctx context.Context, componentIDs []int64) (map[int64][]entity.VulnerabilityResult, error) {
 	return cache.CallCached[map[int64][]entity.VulnerabilityResult](
-		cs.cache,
+		ch.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetVulnerabilitiesByComponentIDs,
 			ctx,
 			"GetVulnerabilitiesByComponentIDs",
-			cs.database.GetVulnerabilitiesByComponentIDs,
+			ch.DB().GetVulnerabilitiesByComponentIDs,
 			componentIDs,
 		),
 	)
 }
 
-func (cs *componentHandler) GetVulnerabilityCountsByComponentIDs(ctx context.Context, componentIDs []int64) (map[int64]int, error) {
+func (ch *componentHandler) GetVulnerabilityCountsByComponentIDs(ctx context.Context, componentIDs []int64) (map[int64]int, error) {
 	return cache.CallCached[map[int64]int](
-		cs.cache,
+		ch.Cache(),
 		cache.NewCacheCallParams(
 			CacheTtlGetVulnerabilityCountsByComponentIDs,
 			ctx,
 			"GetVulnerabilityCountsByComponentIDs",
-			cs.database.GetVulnerabilityCountsByComponentIDs,
+			ch.DB().GetVulnerabilityCountsByComponentIDs,
 			componentIDs,
 		),
 	)

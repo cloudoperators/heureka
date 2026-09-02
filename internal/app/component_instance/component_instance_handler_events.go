@@ -4,6 +4,8 @@
 package component_instance
 
 import (
+	"fmt"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -170,7 +172,7 @@ func OnComponentInstanceCreateAuthz(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnComponentInstanceCreateAuthz")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentInstanceCreateAuthz",
@@ -212,9 +214,7 @@ func OnComponentInstanceCreateAuthz(
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewComponentInstanceHandlerError(
-			"OnComponentInstanceCreateAuthz: triggered with wrong event type",
-		)
+		err := fmt.Errorf("OnComponentInstanceCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
 		l.Error(wrappedErr)
 	}
@@ -229,7 +229,7 @@ func OnComponentInstanceUpdateAuthz(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnComponentInstanceUpdateAuthz")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentInstanceUpdateAuthz",
@@ -323,9 +323,7 @@ func OnComponentInstanceUpdateAuthz(
 			}
 		}
 	} else {
-		err := NewComponentInstanceHandlerError(
-			"OnComponentInstanceUpdateAuthz: triggered with wrong event type",
-		)
+		err := fmt.Errorf("OnComponentInstanceUpdateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
 		l.Error(wrappedErr)
 	}
@@ -338,7 +336,7 @@ func OnComponentInstanceDeleteAuthz(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnComponentInstanceDeleteAuthz")
+	op := appErrors.CallerOp()
 
 	deleteInput := []openfga.RelationInput{}
 
@@ -373,9 +371,7 @@ func OnComponentInstanceDeleteAuthz(
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewComponentInstanceHandlerError(
-			"OnComponentInstanceDeleteAuthz: triggered with wrong event type",
-		)
+		err := fmt.Errorf("OnComponentInstanceDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
 		l.Error(wrappedErr)
 	}

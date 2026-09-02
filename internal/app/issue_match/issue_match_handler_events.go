@@ -5,6 +5,7 @@ package issue_match
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
@@ -114,7 +115,7 @@ func BuildIssueVariantMap(
 			WithError(err).
 			Error("Error while fetching issue variants")
 
-		return nil, NewIssueMatchHandlerError("Error while fetching issue variants")
+		return nil, errors.New("error while fetching issue variants")
 	}
 
 	// No issue variants found,
@@ -122,9 +123,7 @@ func BuildIssueVariantMap(
 		l.WithField("event-step", "FetchIssueVariants").
 			Error("No issue variants found that are related to the issue repository")
 
-		return nil, NewIssueMatchHandlerError(
-			"No issue variants found that are related to the issue repository",
-		)
+		return nil, errors.New("no issue variants found that are related to the issue repository")
 	}
 
 	// create a map of issue id to variants for easy access
@@ -250,7 +249,7 @@ func OnComponentVersionAssignmentToComponentInstance(
 // OnIssueMatchCreateAuthz is a handler for the CreateIssueMatchEvent
 // It creates an OpenFGA relation tuple for the issue match and the current user
 func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnIssueMatchCreateAuthz")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnIssueMatchCreateAuthz",
@@ -276,7 +275,7 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewIssueMatchHandlerError("OnIssueMatchCreateAuthz: triggered with wrong event type")
+		err := errors.New("OnIssueMatchCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
 		l.Error(wrappedErr)
 	}
@@ -286,7 +285,7 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 // Fields that can be updated in Issue Match which affect tuple relations include:
 // issuematch_component_instance_id
 func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnIssueMatchUpdateAuthz")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnIssueMatchUpdateAuthz",
@@ -328,7 +327,7 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 			}
 		}
 	} else {
-		err := NewIssueMatchHandlerError("OnIssueMatchUpdateAuthz: triggered with wrong event type")
+		err := errors.New("OnIssueMatchUpdateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
 		l.Error(wrappedErr)
 	}
@@ -336,7 +335,7 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 
 // OnIssueMatchDeleteAuthz is a handler for the DeleteIssueMatchEvent
 func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnIssueMatchDeleteAuthz")
+	op := appErrors.CallerOp()
 
 	deleteInput := []openfga.RelationInput{}
 
@@ -365,7 +364,7 @@ func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewIssueMatchHandlerError("OnIssueMatchDeleteAuthz: triggered with wrong event type")
+		err := errors.New("OnIssueMatchDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
 		l.Error(wrappedErr)
 	}
