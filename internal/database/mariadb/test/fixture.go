@@ -2295,6 +2295,11 @@ func (s *DatabaseSeeder) RefreshMVVulnerabilityList() error {
 	return mariadb.TxCall(mariadb.RefreshMVVulnerabilityList, context.Background(), s.db)
 }
 
+func (s *DatabaseSeeder) RefreshMVVulnerabilityService() error {
+	// 10
+	return mariadb.TxCall(mariadb.RefreshMVVulnerabilityService, context.Background(), s.db)
+}
+
 func (s *DatabaseSeeder) RefreshMVComponentService() error {
 	// 11
 	return mariadb.TxCall(mariadb.RefreshMVComponentService, context.Background(), s.db)

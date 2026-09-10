@@ -23,7 +23,7 @@ RUN if [ -d "$UI_GIT_DIR" ]; then \
 
 # Modify JSON config
 RUN cd "$UI_GIT_DIR" && \
-    jq '.apiEndpoint = "http://localhost:80/query" | .initialFilters.support_group = ["containers"] | .embedded = true' \
+    jq '.apiEndpoint = "http://localhost:80/query" | .initialFilters.support_group = ["containers"] | .embedded = true | .auth = {"status": "anonymous"}' \
        apps/heureka/appProps.template.json > apps/heureka/appProps.json
 
 # Build

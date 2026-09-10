@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/database/querycounter"
@@ -280,11 +281,11 @@ func (r *issueCountWithComponentRow) asIssueSeverityCounts() entity.IssueSeverit
 	return isc
 }
 
-// GetVulnerabilitiesByComponentIDs returns active vulnerabilities grouped by component ID
-// using the mvVulnerabilityList materialized view. This eliminates N+1 queries when loading
-// nested vulnerabilities for multiple images.
-// Join path: ComponentVersionIssue → ComponentVersion → Issue → mvVulnerabilityList
-func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, componentIDs []int64) (map[int64][]entity.VulnerabilityResult, error) {
+// GetVulnerabilitiesByComponentIDs returns active vulnerabilities grouped by component ID.
+// When serviceCCRN is provided, the returned severity reflects any active rescore remediations
+// scoped to those services (via mvVulnerabilityService), falling back to the global
+// mvVulnerabilityList severity when no service-specific rescore exists.
+func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64][]entity.VulnerabilityResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":        "database.GetVulnerabilitiesByComponentIDs",
 		"componentIDs": componentIDs,
@@ -294,19 +295,54 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 		return map[int64][]entity.VulnerabilityResult{}, nil
 	}
 
+	nonNilCCRNs := make([]string, 0, len(serviceCCRN))
+	for _, c := range serviceCCRN {
+		if c != nil {
+			nonNilCCRNs = append(nonNilCCRNs, *c)
+		}
+	}
+
+	severityExpr := "MVL.max_severity"
+	if len(nonNilCCRNs) > 0 {
+		severityExpr = `COALESCE(
+			ELT(
+				MAX(FIELD(MVS.max_severity, 'None', 'Low', 'Medium', 'High', 'Critical')),
+				'None', 'Low', 'Medium', 'High', 'Critical'
+			),
+			MVL.max_severity
+		)`
+	}
+
 	query := sq.Select(
 		"CV.componentversion_component_id",
 		"I.issue_id",
 		"I.issue_primary_name",
 		"I.issue_description",
-		"MVL.max_severity",
-		"MVL.earliest_remediation_date",
-		"MVL.source_url",
 	).
+		Column(fmt.Sprintf("%s AS effective_severity", severityExpr)).
+		Column("MVL.earliest_remediation_date").
+		Column("MVL.source_url").
 		From("ComponentVersionIssue CVI").
 		Join("ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id").
 		Join("Issue I ON CVI.componentversionissue_issue_id = I.issue_id").
-		Join("mvVulnerabilityList MVL ON I.issue_id = MVL.issue_id").
+		Join("mvVulnerabilityList MVL ON I.issue_id = MVL.issue_id")
+
+	if len(nonNilCCRNs) > 0 {
+		inPlaceholders := strings.TrimSuffix(strings.Repeat("?,", len(nonNilCCRNs)), ",")
+
+		ccrnArgs := make([]interface{}, 0, len(nonNilCCRNs))
+		for _, c := range nonNilCCRNs {
+			ccrnArgs = append(ccrnArgs, c)
+		}
+
+		query = query.
+			LeftJoin(fmt.Sprintf(
+				"mvVulnerabilityService MVS ON MVS.issue_id = I.issue_id AND MVS.service_id IN (SELECT service_id FROM Service WHERE service_ccrn IN (%s) AND service_deleted_at IS NULL)",
+				inPlaceholders,
+			), ccrnArgs...)
+	}
+
+	query = query.
 		Where(sq.Eq{"CV.componentversion_component_id": componentIDs}).
 		Where("CVI.componentversionissue_deleted_at IS NULL").
 		Where("CV.componentversion_deleted_at IS NULL").
@@ -314,7 +350,7 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 		GroupBy("CV.componentversion_component_id", "I.issue_id").
 		OrderBy(
 			"CV.componentversion_component_id",
-			"FIELD(MVL.max_severity, 'Critical','High','Medium','Low','None') ASC",
+			fmt.Sprintf("FIELD(%s, 'Critical','High','Medium','Low','None') ASC", severityExpr),
 			"I.issue_primary_name ASC",
 		)
 

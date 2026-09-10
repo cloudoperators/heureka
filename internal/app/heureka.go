@@ -136,6 +136,7 @@ func NewHeurekaApp(
 
 	heureka.SubscribeHandlers()
 	heureka.SubscribeAuthzHandlers()
+	heureka.registerMveCallbacks()
 
 	return heureka
 }
@@ -190,10 +191,38 @@ func (h *HeurekaApp) SubscribeHandlers() {
 			issue.AddComponentVersionToIssueEventName,
 			event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
 		},
+		{
+			remediation.CreateRemediationEventName,
+			event.EventHandlerFunc(h.onRemediationChange),
+		},
+		{
+			remediation.UpdateRemediationEventName,
+			event.EventHandlerFunc(h.onRemediationChange),
+		},
+		{
+			remediation.DeleteRemediationEventName,
+			event.EventHandlerFunc(h.onRemediationChange),
+		},
 	}
 
 	for _, hdl := range handlers {
 		h.eventRegistry.RegisterEventHandler(hdl.eventName, hdl.handler)
+	}
+}
+
+func (h *HeurekaApp) onRemediationChange(_ database.Database, _ event.Event, _ openfga.Authorization) {
+	if h.mve != nil {
+		h.mve.TriggerAsync()
+	}
+}
+
+func (h *HeurekaApp) registerMveCallbacks() {
+	if h.mve == nil {
+		return
+	}
+
+	h.mve.OnRefreshComplete = func() {
+		h.InvalidateImageVulnerabilityCaches()
 	}
 }
 
