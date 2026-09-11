@@ -88,6 +88,7 @@ type IssueMatchFilter struct {
 	State                    []StateFilterType `json:"state"`
 	ServiceOwnerUsername     []*string         `json:"service_owner_username"`
 	ServiceOwnerUniqueUserId []*string         `json:"service_owner_unique_user_id"`
+	TargetRemediationDate    *TimeFilter       `json:"target_remediation_date"`
 	IncludeComponentInstance bool              `json:"include_component_instance"`
 	IncludeService           bool              `json:"include_service"`
 	IncludeIssueVariants     bool              `json:"include_issue_variants"`
