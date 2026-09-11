@@ -416,6 +416,61 @@ func buildStateFilterQuery(state []entity.StateFilterType, prefix string) string
 	return combineFilterQueries(stateQueries, OP_OR)
 }
 
+func buildTimeRangeFilterQuery(filter []any, column string) string {
+	if len(filter) == 0 || filter[0] == nil {
+		return ""
+	}
+
+	tf, ok := filter[0].(*entity.TimeFilter)
+	if !ok || tf == nil {
+		return ""
+	}
+
+	var parts []string
+
+	if !tf.After.IsZero() {
+		parts = append(parts, fmt.Sprintf("%s >= ?", column))
+	}
+
+	if !tf.Before.IsZero() {
+		parts = append(parts, fmt.Sprintf("%s <= ?", column))
+	}
+
+	return combineFilterQueries(parts, OP_AND)
+}
+
+func NewTimeRangeFilterProperty[T any](column string, param func(T) *entity.TimeFilter) *FilterProperty[T] {
+	return &FilterProperty[T]{
+		BuildQuery: func(filter []any) string { return buildTimeRangeFilterQuery(filter, column) },
+		GetParam: func(f T) []any {
+			tf := param(f)
+			if tf == nil {
+				return nil
+			}
+
+			return []any{tf}
+		},
+		BuildParams: func(f T) []any {
+			tf := param(f)
+			if tf == nil {
+				return nil
+			}
+
+			var params []any
+
+			if !tf.After.IsZero() {
+				params = append(params, tf.After)
+			}
+
+			if !tf.Before.IsZero() {
+				params = append(params, tf.Before)
+			}
+
+			return params
+		},
+	}
+}
+
 func buildJsonFilterQuery(filter []*entity.Json, column string, op string) string {
 	var conFilQueries []string
 
