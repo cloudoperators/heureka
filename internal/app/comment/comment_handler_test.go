@@ -234,6 +234,7 @@ var _ = Describe("When creating a Comment", Label("app", "CreateComment"), func(
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
+
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
