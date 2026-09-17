@@ -42,6 +42,7 @@ input IssueMatchFilter {
     state: [StateFilter!]
     serviceOwnerUsername: [String]
     serviceOwnerUniqueUserId: [String]
+    targetRemediationDate: DateTimeFilter
 }
 
 #type CCloudSeverity {
