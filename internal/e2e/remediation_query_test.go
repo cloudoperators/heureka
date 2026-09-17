@@ -331,6 +331,73 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 				Expect(err).ToNot(HaveOccurred())
 			})
 
+			It("throws error if type is escalation and description is not provided", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"type":           entity.RemediationTypeEscalation.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+							"url":            "https://jira.example.com/SEC-123",
+						},
+					},
+				)
+
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("throws error if type is escalation and URL is not provided", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"description":    remediation.Description,
+							"type":           entity.RemediationTypeEscalation.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+						},
+					},
+				)
+
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("creates remediation with escalation type when both description and URL are provided", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"description":    remediation.Description,
+							"type":           entity.RemediationTypeEscalation.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+							"url":            "https://jira.example.com/SEC-123",
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+			})
+
 			It("rejects url exceeding 2048 characters", func() {
 				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 					Remediation model.Remediation `json:"createRemediation"`

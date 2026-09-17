@@ -530,6 +530,65 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 		})
 	})
 
+	Context("when creating an escalation remediation", func() {
+		BeforeEach(func() {
+			remediation.Type = entity.RemediationTypeEscalation
+			remediation.Description = "Escalating to security team"
+			remediation.URL = "https://jira.example.com/SEC-123"
+		})
+
+		It("returns InvalidArgument when description is empty", func() {
+			remediation.Description = ""
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("returns InvalidArgument when URL is empty", func() {
+			remediation.URL = ""
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("creates remediation when both description and URL are provided", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{}, nil)
+			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
+				Return(&remediation, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
+
+			Expect(err).To(BeNil())
+			Expect(newRemediation).ToNot(BeNil())
+		})
+	})
+
 	Context("when the caller lacks can_write permission on the target service", func() {
 		var mockAuthz *mocks.MockAuthorization
 
@@ -704,6 +763,84 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 			siemIssue.Type = entity.IssueTypeSecurityEvent
 			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.IssueResult{siemIssue}, nil)
+			db.On("UpdateRemediation", remediation.Remediation).Return(nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(
+				common.NewAdminContext(),
+				remediation.Remediation,
+			)
+
+			Expect(err).To(BeNil())
+			Expect(updatedRemediation).ToNot(BeNil())
+		})
+	})
+
+	Context("when updating an escalation remediation", func() {
+		BeforeEach(func() {
+			remediation.Type = entity.RemediationTypeEscalation
+			remediation.Description = "Escalating to security team"
+			remediation.URL = "https://jira.example.com/SEC-123"
+		})
+
+		It("returns InvalidArgument when the merged description is empty", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
+			existingData := *remediation.Remediation
+			existingData.Description = ""
+			existing := entity.RemediationResult{Remediation: &existingData}
+			// incoming update also sends empty description — merged result has no description
+			remediation.Description = ""
+			filter.Id = []*int64{&remediation.Id}
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
+				Return([]entity.RemediationResult{existing}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(
+				common.NewAdminContext(),
+				remediation.Remediation,
+			)
+
+			Expect(updatedRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("returns InvalidArgument when the merged URL is empty", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
+			existingData := *remediation.Remediation
+			existingData.URL = ""
+			existing := entity.RemediationResult{Remediation: &existingData}
+			// incoming update also sends empty URL — merged result has no URL
+			remediation.URL = ""
+			filter.Id = []*int64{&remediation.Id}
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
+				Return([]entity.RemediationResult{existing}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(
+				common.NewAdminContext(),
+				remediation.Remediation,
+			)
+
+			Expect(updatedRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument))
+		})
+
+		It("updates successfully when both description and URL are present", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+
+			filter.Id = []*int64{&remediation.Id}
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
+				Return([]entity.RemediationResult{remediation}, nil)
 			db.On("UpdateRemediation", remediation.Remediation).Return(nil)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
