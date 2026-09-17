@@ -5,23 +5,40 @@ package test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 func NewFakeIssueEntity() entity.Issue {
-	t := gofakeit.RandomString(entity.AllIssueTypes)
+	issueType := gofakeit.RandomString(entity.AllIssueTypes)
 	primaryName := fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999))
+	knownExploited := gofakeit.Bool()
+
+	var addedDate, dueDate *time.Time
+
+	if knownExploited {
+		added := gofakeit.DateRange(
+			time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		).UTC().Truncate(time.Second)
+		due := added.Add(90 * 24 * time.Hour)
+		addedDate = &added
+		dueDate = &due
+	}
 
 	return entity.Issue{
-		Id:                int64(gofakeit.Number(1, 10000000)),
-		PrimaryName:       primaryName,
-		Description:       gofakeit.AdjectiveDescriptive(),
-		Type:              entity.NewIssueType(t),
-		IssueVariants:     nil,
-		IssueMatches:      nil,
-		ComponentVersions: nil,
+		Id:                      int64(gofakeit.Number(1, 10000000)),
+		PrimaryName:             primaryName,
+		Description:             gofakeit.AdjectiveDescriptive(),
+		Type:                    entity.NewIssueType(issueType),
+		KnownExploited:          knownExploited,
+		KnownExploitedAddedDate: addedDate,
+		KnownExploitedDueDate:   dueDate,
+		IssueVariants:           nil,
+		IssueMatches:            nil,
+		ComponentVersions:       nil,
 		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),

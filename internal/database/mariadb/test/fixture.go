@@ -1281,12 +1281,18 @@ func (s *DatabaseSeeder) InsertFakeIssue(issue mariadb.IssueRow) (int64, error) 
 			issue_primary_name,
 			issue_type,
 			issue_description,
+			issue_known_exploited,
+			issue_known_exploited_added_date,
+			issue_known_exploited_due_date,
 			issue_created_by,
 			issue_updated_by
 		) VALUES (
 			:issue_primary_name,
 			:issue_type,
 			:issue_description,
+			:issue_known_exploited,
+			:issue_known_exploited_added_date,
+			:issue_known_exploited_due_date,
 			:issue_created_by,
 			:issue_updated_by
 		)`
@@ -1708,18 +1714,31 @@ func NewFakeIssueMatch() mariadb.IssueMatchRow {
 }
 
 func NewFakeIssue() mariadb.IssueRow {
+	knownExploited := gofakeit.Bool()
+
+	var addedDate, dueDate sql.NullTime
+
+	if knownExploited {
+		added := gofakeit.DateRange(
+			time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		).UTC().Truncate(time.Second)
+		addedDate = sql.NullTime{Time: added, Valid: true}
+		dueDate = sql.NullTime{Time: added.Add(90 * 24 * time.Hour), Valid: true}
+	}
+
 	return mariadb.IssueRow{
 		PrimaryName: sql.NullString{
 			String: fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999)),
 			Valid:  true,
 		},
-		Description: sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
-		Type: sql.NullString{
-			String: entity.IssueTypeVulnerability.String(),
-			Valid:  true,
-		},
-		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-		UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		Description:             sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
+		Type:                    sql.NullString{String: entity.IssueTypeVulnerability.String(), Valid: true},
+		KnownExploited:          sql.NullBool{Bool: knownExploited, Valid: true},
+		KnownExploitedAddedDate: addedDate,
+		KnownExploitedDueDate:   dueDate,
+		CreatedBy:               sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		UpdatedBy:               sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
 }
 

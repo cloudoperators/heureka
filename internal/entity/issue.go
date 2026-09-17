@@ -108,13 +108,16 @@ type IssueAggregations struct {
 
 type Issue struct {
 	Metadata
-	Id                int64              `json:"id"`
-	Type              IssueType          `json:"type"`
-	PrimaryName       string             `json:"primary_name"`
-	Description       string             `json:"description"`
-	IssueVariants     []IssueVariant     `json:"issue_variants,omitempty"`
-	IssueMatches      []IssueMatch       `json:"issue_matches,omitempty"`
-	ComponentVersions []ComponentVersion `json:"component_versions,omitempty"`
+	Id                      int64              `json:"id"`
+	Type                    IssueType          `json:"type"`
+	PrimaryName             string             `json:"primary_name"`
+	Description             string             `json:"description"`
+	KnownExploited          bool               `json:"known_exploited"`
+	KnownExploitedAddedDate *time.Time         `json:"known_exploited_added_date,omitempty"`
+	KnownExploitedDueDate   *time.Time         `json:"known_exploited_due_date,omitempty"`
+	IssueVariants           []IssueVariant     `json:"issue_variants,omitempty"`
+	IssueMatches            []IssueMatch       `json:"issue_matches,omitempty"`
+	ComponentVersions       []ComponentVersion `json:"component_versions,omitempty"`
 }
 
 func (i *Issue) GetId() int64 {

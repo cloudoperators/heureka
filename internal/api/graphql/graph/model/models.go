@@ -17,6 +17,29 @@ import (
 )
 
 // add custom models here
+func formatNullableTime(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+
+	s := t.String()
+
+	return &s
+}
+
+func parseNullableDateTime(s *string) *time.Time {
+	if s == nil || *s == "" {
+		return nil
+	}
+
+	t, err := time.Parse(time.RFC3339, *s)
+	if err != nil {
+		return nil
+	}
+
+	return &t
+}
+
 func getModelMetadata(em entity.Metadata) *Metadata {
 	return &Metadata{
 		CreatedAt: new(em.CreatedAt.String()),
@@ -354,12 +377,15 @@ func NewIssue(issue *entity.Issue) Issue {
 	issueType := IssueTypes(issue.Type.String())
 
 	return Issue{
-		ID:           fmt.Sprintf("%d", issue.Id),
-		PrimaryName:  &issue.PrimaryName,
-		Type:         &issueType,
-		Description:  &issue.Description,
-		LastModified: &lastModified,
-		Metadata:     getModelMetadata(issue.Metadata),
+		ID:                      fmt.Sprintf("%d", issue.Id),
+		PrimaryName:             &issue.PrimaryName,
+		Type:                    &issueType,
+		Description:             &issue.Description,
+		KnownExploited:          &issue.KnownExploited,
+		KnownExploitedAddedDate: formatNullableTime(issue.KnownExploitedAddedDate),
+		KnownExploitedDueDate:   formatNullableTime(issue.KnownExploitedDueDate),
+		LastModified:            &lastModified,
+		Metadata:                getModelMetadata(issue.Metadata),
 	}
 }
 
@@ -381,13 +407,16 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	}
 
 	return Issue{
-		ID:             fmt.Sprintf("%d", issue.Issue.Id),
-		PrimaryName:    &issue.PrimaryName,
-		Type:           &issueType,
-		Description:    &issue.Issue.Description,
-		LastModified:   &lastModified,
-		ObjectMetadata: &objectMetadata,
-		Metadata:       getModelMetadata(issue.Issue.Metadata),
+		ID:                      fmt.Sprintf("%d", issue.Issue.Id),
+		PrimaryName:             &issue.PrimaryName,
+		Type:                    &issueType,
+		Description:             &issue.Issue.Description,
+		KnownExploited:          &issue.KnownExploited,
+		KnownExploitedAddedDate: formatNullableTime(issue.KnownExploitedAddedDate),
+		KnownExploitedDueDate:   formatNullableTime(issue.KnownExploitedDueDate),
+		LastModified:            &lastModified,
+		ObjectMetadata:          &objectMetadata,
+		Metadata:                getModelMetadata(issue.Issue.Metadata),
 	}
 }
 
@@ -398,9 +427,12 @@ func NewIssueEntity(issue *IssueInput) entity.Issue {
 	}
 
 	return entity.Issue{
-		PrimaryName: lo.FromPtr(issue.PrimaryName),
-		Description: lo.FromPtr(issue.Description),
-		Type:        entity.NewIssueType(issueType),
+		PrimaryName:             lo.FromPtr(issue.PrimaryName),
+		Description:             lo.FromPtr(issue.Description),
+		Type:                    entity.NewIssueType(issueType),
+		KnownExploited:          lo.FromPtr(issue.KnownExploited),
+		KnownExploitedAddedDate: parseNullableDateTime(issue.KnownExploitedAddedDate),
+		KnownExploitedDueDate:   parseNullableDateTime(issue.KnownExploitedDueDate),
 	}
 }
 
