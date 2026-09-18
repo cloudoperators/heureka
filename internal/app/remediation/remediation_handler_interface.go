@@ -18,4 +18,5 @@ type RemediationHandler interface {
 	CreateRemediation(context.Context, *entity.Remediation) (*entity.Remediation, error)
 	UpdateRemediation(context.Context, *entity.Remediation) (*entity.Remediation, error)
 	DeleteRemediation(context.Context, int64) error
+	InvalidateImageVulnerabilityCaches()
 }

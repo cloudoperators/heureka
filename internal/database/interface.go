@@ -84,7 +84,7 @@ type Database interface {
 	GetIssueCountsByServiceIDs(context.Context, []int64) (map[int64]entity.IssueSeverityCounts, error)
 	GetVersionsByComponentIDs(context.Context, []int64, []*string) (map[int64][]entity.ComponentVersionResult, error)
 	GetIssueCountsByComponentIDs(context.Context, []int64, []*string) (map[int64]entity.IssueSeverityCounts, error)
-	GetVulnerabilitiesByComponentIDs(context.Context, []int64) (map[int64][]entity.VulnerabilityResult, error)
+	GetVulnerabilitiesByComponentIDs(context.Context, []int64, []*string) (map[int64][]entity.VulnerabilityResult, error)
 	GetVulnerabilityCountsByComponentIDs(context.Context, []int64) (map[int64]int, error)
 
 	GetUsers(context.Context, *entity.UserFilter, []entity.Order) ([]entity.UserResult, error)
@@ -186,5 +186,5 @@ type Database interface {
 	GetSourceURLsByIssueIDs(context.Context, []int64) (map[int64]string, error)
 	GetServicesByIssueIDs(context.Context, []int64) (map[int64][]entity.ServiceResult, error)
 	GetSupportGroupsByIssueIDs(context.Context, []int64) (map[int64][]entity.SupportGroupResult, error)
-	GetVulnerabilityAggregatesByIssueIDs(context.Context, []int64) (map[int64]entity.VulnerabilityAggregate, error)
+	GetVulnerabilityAggregatesByIssueIDs(context.Context, []int64, []*string) (map[int64]entity.VulnerabilityAggregate, error)
 }

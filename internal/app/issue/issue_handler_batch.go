@@ -85,7 +85,7 @@ func (is *issueHandler) GetSupportGroupsByIssueIDs(ctx context.Context, issueIDs
 	)
 }
 
-func (is *issueHandler) GetVulnerabilityAggregatesByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64]entity.VulnerabilityAggregate, error) {
+func (is *issueHandler) GetVulnerabilityAggregatesByIssueIDs(ctx context.Context, issueIDs []int64, serviceCCRN []*string) (map[int64]entity.VulnerabilityAggregate, error) {
 	return cache.CallCached[map[int64]entity.VulnerabilityAggregate](
 		is.Cache(),
 		cache.NewCacheCallParams(
@@ -94,6 +94,7 @@ func (is *issueHandler) GetVulnerabilityAggregatesByIssueIDs(ctx context.Context
 			"GetVulnerabilityAggregatesByIssueIDs",
 			is.DB().GetVulnerabilityAggregatesByIssueIDs,
 			issueIDs,
+			serviceCCRN,
 		),
 	)
 }

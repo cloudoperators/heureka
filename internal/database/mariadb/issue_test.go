@@ -967,6 +967,8 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			})
 			It("stores KnownExploited=false with nil dates when not in KEV", func() {
 				newIssueRow.KnownExploited = sql.NullBool{Bool: false, Valid: true}
+				newIssueRow.KnownExploitedAddedDate = sql.NullTime{Valid: false}
+				newIssueRow.KnownExploitedDueDate = sql.NullTime{Valid: false}
 				newIssue = newIssueRow.AsIssue()
 
 				issue, err := db.CreateIssue(&newIssue)
