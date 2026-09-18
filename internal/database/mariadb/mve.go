@@ -17,10 +17,14 @@ import (
 )
 
 type MvEngine struct {
-	scheduler    *gocron.Scheduler
-	firstRunDone chan struct{}
-	once         sync.Once
-	cfg          util.Config
+	scheduler         *gocron.Scheduler
+	firstRunDone      chan struct{}
+	once              sync.Once
+	cfg               util.Config
+	triggerMu         sync.Mutex
+	running           bool
+	pending           bool
+	OnRefreshComplete func()
 }
 
 func NewMvEngine(cfg util.Config) *MvEngine {
@@ -72,6 +76,65 @@ func (mve *MvEngine) Stop() {
 	mve.scheduler.Clear()
 	// The following method is not advisory as it may hang for a long time:
 	// mve.scheduler.Stop()
+}
+
+func (mve *MvEngine) TriggerAsync() {
+	mve.triggerMu.Lock()
+	mve.pending = true
+
+	if mve.running {
+		mve.triggerMu.Unlock()
+		return
+	}
+
+	mve.running = true
+	mve.triggerMu.Unlock()
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logrus.Errorf("MVE async trigger panicked: %v", r)
+			}
+
+			mve.triggerMu.Lock()
+			mve.running = false
+			pending := mve.pending
+			mve.triggerMu.Unlock()
+
+			if pending {
+				mve.TriggerAsync()
+			}
+		}()
+
+		for {
+			mve.triggerMu.Lock()
+			if !mve.pending {
+				mve.triggerMu.Unlock()
+
+				return
+			}
+
+			mve.pending = false
+			mve.triggerMu.Unlock()
+
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						logrus.Errorf("MVE async trigger panicked: %v", r)
+					}
+				}()
+
+				if err := TriggerMVE(mve.cfg); err != nil {
+					logrus.WithError(err).Error("MVE async trigger error")
+					return
+				}
+
+				if cb := mve.OnRefreshComplete; cb != nil {
+					cb()
+				}
+			}()
+		}
+	}()
 }
 
 func (mve *MvEngine) WaitForFirstRun() {

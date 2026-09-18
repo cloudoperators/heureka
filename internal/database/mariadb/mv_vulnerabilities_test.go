@@ -133,6 +133,43 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		return newRemediation
 	}
 
+	insertRescoreRemediation := func(serviceRow *mariadb.BaseServiceRow, severity entity.SeverityValues) *entity.Remediation {
+		remediation := test.NewFakeRemediation()
+		remediation.Type = sql.NullString{String: entity.RemediationTypeRescore.String(), Valid: true}
+		remediation.Severity = sql.NullString{String: severity.String(), Valid: true}
+
+		if serviceRow != nil {
+			remediation.ServiceId = serviceRow.Id
+			remediation.Service = serviceRow.CCRN
+		}
+
+		remediation.IssueId = sql.NullInt64{Int64: 1, Valid: true}
+		remediation.Issue = seedCollection.IssueRows[0].PrimaryName
+		remediation.ExpirationDate = sql.NullTime{Time: time.Now().Add(10 * 24 * time.Hour), Valid: true}
+		r := remediation.AsRemediation()
+		newRemediation, err := db.CreateRemediation(&r)
+		Expect(err).To(BeNil())
+
+		return newRemediation
+	}
+
+	sumComponentVulnerabilityCounts := func(filter *entity.ComponentFilter) entity.IssueSeverityCounts {
+		rows, err := db.CountComponentVulnerabilities(context.Background(), filter)
+		Expect(err).To(BeNil())
+
+		total := entity.IssueSeverityCounts{}
+		for _, c := range rows {
+			total.Critical += c.Critical
+			total.High += c.High
+			total.Medium += c.Medium
+			total.Low += c.Low
+			total.None += c.None
+			total.Total += c.Total
+		}
+
+		return total
+	}
+
 	testNoActiveRemediation := func() {
 		It("returns the correct count for component version issues", func() {
 			severityCounts, err := test.LoadComponentVersionIssueCounts(
@@ -673,4 +710,136 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			})
 		},
 	)
+	When("there is an active rescore remediation for a component in a service", Label("WithRemediations"), func() {
+		var (
+			baseline entity.IssueSeverityCounts
+			filter   *entity.ComponentFilter
+		)
+
+		BeforeEach(func() {
+			serviceCCRN := seedCollection.ServiceRows[0].CCRN.String
+
+			componentIDs := make([]*int64, 0, len(seedCollection.ComponentRows))
+			for i := range seedCollection.ComponentRows {
+				componentIDs = append(componentIDs, &seedCollection.ComponentRows[i].Id.Int64)
+			}
+
+			filter = &entity.ComponentFilter{
+				ServiceCCRN: []*string{&serviceCCRN},
+				Id:          componentIDs,
+			}
+
+			Expect(seeder.RefreshComponentVulnerabilityCounts()).To(BeNil())
+
+			baseline = sumComponentVulnerabilityCounts(filter)
+
+			insertRescoreRemediation(&seedCollection.ServiceRows[0], entity.SeverityValuesMedium)
+			Expect(seeder.RefreshComponentVulnerabilityCounts()).To(BeNil())
+		})
+
+		It("suppresses the vulnerability from all counts instead of re-bucketing it", func() {
+			got := sumComponentVulnerabilityCounts(filter)
+
+			Expect(got.Total).To(BeNumerically("<", baseline.Total))
+			Expect(got.Critical).To(BeNumerically("<", baseline.Critical))
+			Expect(got.Medium).To(BeEquivalentTo(baseline.Medium))
+		})
+	})
+	When("there is an active non-rescore remediation for a component in a service", Label("WithRemediations"), func() {
+		var (
+			baseline entity.IssueSeverityCounts
+			filter   *entity.ComponentFilter
+		)
+
+		BeforeEach(func() {
+			serviceCCRN := seedCollection.ServiceRows[0].CCRN.String
+
+			componentIDs := make([]*int64, 0, len(seedCollection.ComponentRows))
+			for i := range seedCollection.ComponentRows {
+				componentIDs = append(componentIDs, &seedCollection.ComponentRows[i].Id.Int64)
+			}
+
+			filter = &entity.ComponentFilter{
+				ServiceCCRN: []*string{&serviceCCRN},
+				Id:          componentIDs,
+			}
+
+			Expect(seeder.RefreshComponentVulnerabilityCounts()).To(BeNil())
+
+			baseline = sumComponentVulnerabilityCounts(filter)
+
+			remediation := test.NewFakeRemediation()
+			remediation.Type = sql.NullString{String: entity.RemediationTypeFalsePositive.String(), Valid: true}
+			remediation.Severity = sql.NullString{String: entity.SeverityValuesMedium.String(), Valid: true}
+			remediation.ServiceId = seedCollection.ServiceRows[0].Id
+			remediation.Service = seedCollection.ServiceRows[0].CCRN
+			remediation.IssueId = sql.NullInt64{Int64: 1, Valid: true}
+			remediation.Issue = seedCollection.IssueRows[0].PrimaryName
+			remediation.ExpirationDate = sql.NullTime{Time: time.Now().Add(10 * 24 * time.Hour), Valid: true}
+			r := remediation.AsRemediation()
+			_, err := db.CreateRemediation(&r)
+			Expect(err).To(BeNil())
+
+			Expect(seeder.RefreshComponentVulnerabilityCounts()).To(BeNil())
+		})
+
+		It("does not re-bucket the vulnerability into the remediation severity", func() {
+			got := sumComponentVulnerabilityCounts(filter)
+
+			Expect(got.Medium).To(BeEquivalentTo(baseline.Medium))
+		})
+	})
+	When("there is an active rescore remediation in every service for a vulnerability", Label("WithRemediations"), func() {
+		BeforeEach(func() {
+			for i := range seedCollection.ServiceRows {
+				insertRescoreRemediation(&seedCollection.ServiceRows[i], entity.SeverityValuesMedium)
+			}
+
+			Expect(seeder.RefreshMVVulnerabilityList()).To(BeNil())
+		})
+
+		It("returns the rescored severity as the displayed severity", func() {
+			aggregates, err := db.GetVulnerabilityAggregatesByIssueIDs(context.Background(), []int64{1}, nil)
+			Expect(err).To(BeNil())
+			Expect(aggregates[1].MaxSeverity).To(Equal(entity.SeverityValuesMedium.String()))
+		})
+	})
+	When("there is an active rescore remediation in a single service", Label("WithRemediations"), func() {
+		var (
+			serviceCCRN  string
+			componentIDs []int64
+		)
+
+		findIssueSeverity := func(byComponent map[int64][]entity.VulnerabilityResult, issueID int64) string {
+			for _, vulns := range byComponent {
+				for _, v := range vulns {
+					if v.IssueID == issueID {
+						return v.MaxSeverity
+					}
+				}
+			}
+
+			return ""
+		}
+
+		BeforeEach(func() {
+			serviceCCRN = seedCollection.ServiceRows[0].CCRN.String
+
+			componentIDs = make([]int64, 0, len(seedCollection.ComponentRows))
+			for i := range seedCollection.ComponentRows {
+				componentIDs = append(componentIDs, seedCollection.ComponentRows[i].Id.Int64)
+			}
+
+			insertRescoreRemediation(&seedCollection.ServiceRows[0], entity.SeverityValuesLow)
+
+			Expect(seeder.RefreshMVVulnerabilityList()).To(BeNil())
+			Expect(seeder.RefreshMVVulnerabilityService()).To(BeNil())
+		})
+
+		It("returns the rescored severity only within the rescored service", func() {
+			scoped, err := db.GetVulnerabilitiesByComponentIDs(context.Background(), componentIDs, []*string{&serviceCCRN})
+			Expect(err).To(BeNil())
+			Expect(findIssueSeverity(scoped, 1)).To(Equal(entity.SeverityValuesLow.String()))
+		})
+	})
 })

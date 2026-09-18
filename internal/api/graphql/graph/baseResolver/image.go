@@ -134,7 +134,7 @@ func ImageBaseResolver(
 			g.Go(func() error {
 				var err error
 
-				vulnsMap, err = app.GetVulnerabilitiesByComponentIDs(gCtx, componentIDs)
+				vulnsMap, err = app.GetVulnerabilitiesByComponentIDs(gCtx, componentIDs, filter.Service)
 				if err != nil {
 					logrus.WithField("error", err).Warn("ImageBaseResolver: batch preload vulnerabilities failed")
 				}

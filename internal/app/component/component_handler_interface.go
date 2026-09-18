@@ -22,6 +22,6 @@ type ComponentHandler interface {
 	GetComponentVulnerabilityCounts(context.Context, *entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
 	GetVersionsByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64][]entity.ComponentVersionResult, error)
 	GetIssueCountsByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64]entity.IssueSeverityCounts, error)
-	GetVulnerabilitiesByComponentIDs(ctx context.Context, componentIDs []int64) (map[int64][]entity.VulnerabilityResult, error)
+	GetVulnerabilitiesByComponentIDs(ctx context.Context, componentIDs []int64, serviceCCRN []*string) (map[int64][]entity.VulnerabilityResult, error)
 	GetVulnerabilityCountsByComponentIDs(ctx context.Context, componentIDs []int64) (map[int64]int, error)
 }

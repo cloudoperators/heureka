@@ -39,6 +39,41 @@ var MVProcedures [][]MVProcedure = [][]MVProcedure{
 	{RefreshMVAllComponentsByServiceVulnerabilityCounts},
 }
 
+func latestRescoreJoin(serviceExpr, issueExpr string) (string, []interface{}) {
+	inner := sq.Select(
+		"remediation_service_id",
+		"remediation_issue_id",
+		"remediation_severity",
+		"ROW_NUMBER() OVER (PARTITION BY remediation_service_id, remediation_issue_id ORDER BY remediation_created_at DESC, remediation_id DESC) AS rn",
+	).
+		From("Remediation").
+		Where(sq.Eq{"remediation_type": "rescore"}).
+		Where("remediation_deleted_at IS NULL").
+		Where(sq.Or{
+			sq.Eq{"remediation_expiration_date": nil},
+			sq.Expr("remediation_expiration_date >= CURDATE()"),
+		})
+
+	outer := sq.Select(
+		"remediation_service_id",
+		"remediation_issue_id",
+		"remediation_severity",
+	).
+		FromSelect(inner, "r").
+		Where(sq.Eq{"rn": 1})
+
+	subSQL, args, _ := outer.ToSql()
+
+	return fmt.Sprintf(
+		"(%s) LR ON LR.remediation_service_id = %s AND LR.remediation_issue_id = %s",
+		subSQL, serviceExpr, issueExpr,
+	), args
+}
+
+func effectiveRatingCol(baseExpr string) string {
+	return fmt.Sprintf("COALESCE(LR.remediation_severity, %s)", baseExpr)
+}
+
 func RefreshMVServiceIssueCounts(ctx context.Context, db DBTX) error {
 	if err := PrepareTmpTables(ctx, db, "mvServiceIssueCounts"); err != nil {
 		return err
@@ -785,10 +820,20 @@ func RefreshMVVulnerabilityList(ctx context.Context, db DBTX) error {
 		return err
 	}
 
+	effectiveRating := effectiveRatingCol("IM.issuematch_rating")
+
+	rescoreJoinExpr, rescoreJoinArgs := latestRescoreJoin("CI.componentinstance_service_id", "IM.issuematch_issue_id")
+
 	selectBuilder := sq.
 		Select(
 			"I.issue_id",
-			"MAX(IM.issuematch_rating)",
+			fmt.Sprintf(
+				`ELT(
+					MAX(FIELD(%s, 'None', 'Low', 'Medium', 'High', 'Critical')),
+					'None', 'Low', 'Medium', 'High', 'Critical'
+				)`,
+				effectiveRating,
+			),
 			"MIN(IM.issuematch_target_remediation_date)",
 			`(
 				SELECT MIN(IV.issuevariant_external_url)
@@ -800,6 +845,8 @@ func RefreshMVVulnerabilityList(ctx context.Context, db DBTX) error {
 		).
 		From("Issue I").
 		RightJoin("IssueMatch IM ON I.issue_id = IM.issuematch_issue_id").
+		LeftJoin("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id AND CI.componentinstance_deleted_at IS NULL").
+		LeftJoin(rescoreJoinExpr, rescoreJoinArgs...).
 		Where("IM.issuematch_status = 'new'").
 		Where("IM.issuematch_deleted_at IS NULL").
 		Where("I.issue_type = 'Vulnerability'").
@@ -833,19 +880,37 @@ func RefreshMVVulnerabilityService(ctx context.Context, db DBTX) error {
 		return err
 	}
 
+	effectiveRating := effectiveRatingCol("IM.issuematch_rating")
+	maxSeverity := fmt.Sprintf(`ELT(
+			COALESCE(
+				MAX(CASE WHEN IM.issuematch_status = 'new' THEN FIELD(%s, 'None', 'Low', 'Medium', 'High', 'Critical') END),
+				MAX(FIELD(%s, 'None', 'Low', 'Medium', 'High', 'Critical'))
+			),
+			'None', 'Low', 'Medium', 'High', 'Critical'
+		)`, effectiveRating, effectiveRating)
+
+	rescoreJoinExpr, rescoreJoinArgs := latestRescoreJoin("CI.componentinstance_service_id", "IM.issuematch_issue_id")
+
 	selectBuilder := sq.
-		Select("DISTINCT MVL.issue_id", "CI.componentinstance_service_id").
+		Select(
+			"MVL.issue_id",
+			"CI.componentinstance_service_id",
+			maxSeverity,
+		).
 		From("mvVulnerabilityList MVL").
 		Join("IssueMatch IM ON MVL.issue_id = IM.issuematch_issue_id").
 		Join("ComponentInstance CI ON IM.issuematch_component_instance_id = CI.componentinstance_id").
+		LeftJoin(rescoreJoinExpr, rescoreJoinArgs...).
 		Where("IM.issuematch_deleted_at IS NULL").
-		Where("CI.componentinstance_deleted_at IS NULL")
+		Where("CI.componentinstance_deleted_at IS NULL").
+		GroupBy("MVL.issue_id", "CI.componentinstance_service_id")
 
 	insertBuilder := sq.
 		Insert("mvVulnerabilityService_tmp").
 		Columns(
 			"issue_id",
 			"service_id",
+			"max_severity",
 		).
 		Select(selectBuilder)
 

@@ -228,6 +228,8 @@ func (rh *remediationHandler) CreateRemediation(
 		}
 	}
 
+	rh.InvalidateImageVulnerabilityCaches()
+
 	rh.PushEvent(&CreateRemediationEvent{Remediation: newRemediation})
 
 	return newRemediation, nil
@@ -369,6 +371,9 @@ func (rh *remediationHandler) UpdateRemediation(
 	}
 
 	updatedRemediation := result.Elements[0].Remediation
+
+	rh.InvalidateImageVulnerabilityCaches()
+
 	rh.PushEvent(&UpdateRemediationEvent{Remediation: updatedRemediation})
 
 	return updatedRemediation, nil
@@ -379,7 +384,30 @@ func (rh *remediationHandler) DeleteRemediation(ctx context.Context, id int64) e
 		return appErrors.E(appErrors.CallerOp(), "Remediation", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
 	}
 
-	return rh.Delete(ctx, id)
+	if err := rh.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	rh.InvalidateImageVulnerabilityCaches()
+
+	return nil
+}
+
+func (rh *remediationHandler) InvalidateImageVulnerabilityCaches() {
+	if rh.Cache() == nil {
+		return
+	}
+
+	op := appErrors.CallerOp()
+
+	if err := rh.Cache().InvalidateByMatch(func(decodedKey string) bool {
+		return strings.Contains(decodedKey, "GetVulnerabilityAggregatesByIssueIDs") ||
+			strings.Contains(decodedKey, "GetIssueCountsByComponentIDs") ||
+			strings.Contains(decodedKey, "GetVulnerabilitiesByComponentIDs") ||
+			strings.Contains(decodedKey, "GetVulnerabilityCountsByComponentIDs")
+	}); err != nil {
+		applog.LogError(logrus.StandardLogger(), appErrors.InternalError(string(op), "CacheInvalidation", "", err), logrus.Fields{})
+	}
 }
 
 func validateRiskAccepted(r *entity.Remediation) error {
