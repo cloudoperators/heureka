@@ -22,7 +22,7 @@ func formatNullableTime(t *time.Time) *string {
 		return nil
 	}
 
-	s := t.String()
+	s := t.UTC().Format(time.RFC3339)
 
 	return &s
 }
