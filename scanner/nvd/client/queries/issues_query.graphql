@@ -12,6 +12,7 @@ query GetIssues ($filter: IssueFilter) {
         primaryName
         description
         type
+        knownExploited
         issueVariants(first: 1) {
           edges {
             node {

@@ -1054,6 +1054,13 @@ func RefreshMVSingleComponentByServiceVulnerabilityCounts(ctx context.Context, d
 		return err
 	}
 
+	// Remove rows that were not refreshed (fully remediated).
+	if _, err = db.ExecContext(ctx, `
+		DELETE FROM mvSingleComponentByServiceVulnerabilityCounts
+		WHERE is_active = 0`); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1143,6 +1150,13 @@ func RefreshMVAllComponentsByServiceVulnerabilityCounts(ctx context.Context, db 
 			is_active      = 1`
 
 	if _, err = db.ExecContext(ctx, insertSQL, args...); err != nil {
+		return err
+	}
+
+	// Remove rows that were not refreshed (fully remediated).
+	if _, err = db.ExecContext(ctx, `
+		DELETE FROM mvAllComponentsByServiceVulnerabilityCounts
+		WHERE is_active = 0`); err != nil {
 		return err
 	}
 

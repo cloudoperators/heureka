@@ -16,6 +16,11 @@ import (
 	"golang.org/x/time/rate"
 )
 
+const (
+	issueInputTypeVulnerability = "Vulnerability"
+	issueVariantInputRatingNone = "None"
+)
+
 type Processor struct {
 	GraphqlClient       graphql.Client
 	IssueRepositoryName string
@@ -95,9 +100,12 @@ func (p *Processor) Process(ctx context.Context, cve *models.Cve) error {
 
 	// Create new Issue
 	createIssueInput := client.IssueInput{
-		PrimaryName: cve.Id,
-		Description: cve.GetDescription("en"),
-		Type:        "Vulnerability",
+		PrimaryName:             cve.Id,
+		Description:             cve.GetDescription("en"),
+		Type:                    issueInputTypeVulnerability,
+		KnownExploited:          cve.IsKnownExploited(),
+		KnownExploitedAddedDate: models.FormatKEVDateForAPI(cve.CISAExploitAdd),
+		KnownExploitedDueDate:   models.FormatKEVDateForAPI(cve.CISAActionDue),
 	}
 	issueMutationResp, err := client.CreateIssue(ctx, p.GraphqlClient, &createIssueInput)
 	if err != nil {
@@ -121,7 +129,7 @@ func (p *Processor) Process(ctx context.Context, cve *models.Cve) error {
 		IssueId:           issueId,
 		Severity: &client.SeverityInput{
 			Vector: cve.SeverityVector(),
-			Rating: "None",
+			Rating: issueVariantInputRatingNone,
 		},
 	}
 	variantMutationResp, err := client.CreateIssueVariant(
@@ -171,22 +179,28 @@ func (p *Processor) ProcessOrUpdate(ctx context.Context, cve *models.Cve) error 
 	newDescription := cve.GetDescription("en")
 	newVector := cve.SeverityVector()
 
-	issueChanged := existing.Description != newDescription
+	kevChanged := existing.KnownExploited != cve.IsKnownExploited()
+	issueChanged := existing.Description != newDescription || kevChanged
+
 	if issueChanged {
 		_, err = client.UpdateIssue(
 			ctx,
 			p.GraphqlClient,
 			existing.Id,
 			&client.IssueInput{
-				PrimaryName: existing.PrimaryName,
-				Description: newDescription,
-				Type:        "Vulnerability",
+				PrimaryName:             existing.PrimaryName,
+				Description:             newDescription,
+				Type:                    issueInputTypeVulnerability,
+				KnownExploited:          cve.IsKnownExploited(),
+				KnownExploitedAddedDate: models.FormatKEVDateForAPI(cve.CISAExploitAdd),
+				KnownExploitedDueDate:   models.FormatKEVDateForAPI(cve.CISAActionDue),
 			},
 		)
 		if err != nil {
 			return fmt.Errorf("couldn't update issue %s: %w", cve.Id, err)
 		}
-		log.WithFields(log.Fields{"cve": cve.Id}).Info("Updated Issue description")
+
+		log.WithFields(log.Fields{"cve": cve.Id}).Info("Updated Issue")
 	}
 
 	if existing.IssueVariants == nil || len(existing.IssueVariants.Edges) == 0 {
@@ -202,7 +216,7 @@ func (p *Processor) ProcessOrUpdate(ctx context.Context, cve *models.Cve) error 
 				IssueId:           existing.Id,
 				Severity: &client.SeverityInput{
 					Vector: newVector,
-					Rating: "None",
+					Rating: issueVariantInputRatingNone,
 				},
 			},
 		)
@@ -238,7 +252,7 @@ func (p *Processor) ProcessOrUpdate(ctx context.Context, cve *models.Cve) error 
 				IssueId:           existing.Id,
 				Severity: &client.SeverityInput{
 					Vector: newVector,
-					Rating: "None",
+					Rating: issueVariantInputRatingNone,
 				},
 			},
 		)

@@ -188,9 +188,10 @@ func LoadIssues(filename string) ([]mariadb.IssueRow, error) {
 	issues := make([]mariadb.IssueRow, len(tempIssues))
 	for i, ti := range tempIssues {
 		issues[i] = mariadb.IssueRow{
-			Type:        sql.NullString{String: ti.Type, Valid: true},
-			PrimaryName: sql.NullString{String: ti.PrimaryName, Valid: true},
-			Description: sql.NullString{String: ti.Description, Valid: true},
+			Type:           sql.NullString{String: ti.Type, Valid: true},
+			PrimaryName:    sql.NullString{String: ti.PrimaryName, Valid: true},
+			Description:    sql.NullString{String: ti.Description, Valid: true},
+			KnownExploited: sql.NullBool{Bool: false, Valid: true},
 		}
 	}
 
