@@ -5,6 +5,7 @@ package baseResolver
 
 import (
 	"context"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
@@ -159,6 +160,7 @@ func IssueMatchBaseResolver(
 		ServiceOwnerUsername:     filter.ServiceOwnerUsername,
 		ServiceOwnerUniqueUserId: filter.ServiceOwnerUniqueUserID,
 		State:                    model.GetStateFilterType(filter.State),
+		TargetRemediationDate:    parseDateTimeFilter(filter.TargetRemediationDate),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -194,4 +196,60 @@ func IssueMatchBaseResolver(
 	}
 
 	return &connection, nil
+}
+
+func parseDateTimeFilter(dtf *model.DateTimeFilter) *entity.TimeFilter {
+	if dtf == nil {
+		return nil
+	}
+
+	tf := &entity.TimeFilter{}
+
+	if dtf.After != nil {
+		if t, err := time.Parse(time.RFC3339, *dtf.After); err == nil {
+			tf.After = t
+		}
+	}
+
+	if dtf.Before != nil {
+		if t, err := time.Parse(time.RFC3339, *dtf.Before); err == nil {
+			tf.Before = t
+		}
+	}
+
+	if tf.After.IsZero() && tf.Before.IsZero() {
+		return nil
+	}
+
+	return tf
+}
+
+func IssueMatchesOverdueBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueMatchFilter,
+	first *int,
+	after *string,
+	orderBy []*model.IssueMatchOrderBy,
+	parent *model.NodeParent,
+) (*model.IssueMatchConnection, error) {
+	logrus.WithFields(logrus.Fields{
+		"parent": parent,
+	}).Debug("Called IssueMatchesOverdueBaseResolver")
+
+	if filter == nil {
+		filter = &model.IssueMatchFilter{}
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	filter.TargetRemediationDate = &model.DateTimeFilter{Before: &now}
+
+	nonResolved := []*model.IssueMatchStatusValues{
+		func() *model.IssueMatchStatusValues { v := model.IssueMatchStatusValuesNew; return &v }(),
+	}
+	if len(filter.Status) == 0 {
+		filter.Status = nonResolved
+	}
+
+	return IssueMatchBaseResolver(app, ctx, filter, first, after, orderBy, parent)
 }

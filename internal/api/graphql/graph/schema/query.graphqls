@@ -4,6 +4,7 @@
 type Query {
     Issues(filter: IssueFilter, first: Int, after: String, orderBy: [IssueOrderBy]): IssueConnection
     IssueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
+    IssueMatchesOverdue(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     Services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     Components(filter: ComponentFilter, first: Int, after: String): ComponentConnection
     ComponentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
