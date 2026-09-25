@@ -15,14 +15,17 @@ ${DB_MIGRATIONS_DIR}    ${CURDIR}/../../internal/database/mariadb/migrations
 ${MIGRATE_TOOL}         migrate
 
 *** Keywords ***
-Connection to database is established
+Connect to mariadb
     Connect to database
     ...    pymysql
-    ...    ${DB_NAME}
-    ...    ${DB_USER_NAME}
-    ...    ${DB_USER_PASSWORD}
-    ...    ${DB_HOST}
-    ...    ${DB_PORT}
+    ...    db_name=${DB_NAME}
+    ...    db_user=${DB_USER_NAME}
+    ...    db_password=${DB_USER_PASSWORD}
+    ...    db_host=${DB_HOST}
+    ...    db_port=${DB_PORT}
+
+Connection to database is established
+    Connect to mariadb
     Test teardown append    Disconnect from database
 
 Database migration dirty bit should be ${bitval}
@@ -67,13 +70,7 @@ Feed database from gzip
     ...    Database import failed with error: ${result.stdout}
 
 Reload database schema
-    Connect to database
-    ...    pymysql
-    ...    ${DB_NAME}
-    ...    ${DB_USER_NAME}
-    ...    ${DB_USER_PASSWORD}
-    ...    ${DB_HOST}
-    ...    ${DB_PORT}
+    Connect to mariadb
 
     Execute sql string    DROP DATABASE IF EXISTS ${DB_NAME};
     Execute sql string    CREATE DATABASE ${DB_NAME};
@@ -109,6 +106,12 @@ Run database down migrations
     Should be equal as integers    ${result.rc}    0
     ...    Database up migration failed with error: ${result.stdout}
 
-Clear database
+Database is cleared
     Reload database schema
     Run database up migrations
+
+Execute db command
+    [Arguments]    ${sqlcmd}
+    Connect to mariadb
+    Execute sql string    ${sqlcmd}
+    Disconnect from database

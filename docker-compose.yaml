@@ -54,6 +54,7 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-anthropic}
       AI_HTTP_RATE_LIMIT: ${AI_HTTP_RATE_LIMIT:-5}
       AI_HTTP_RATE_BURST: ${AI_HTTP_RATE_BURST:-5}
+      TESTING_ENABLE: true
     depends_on:
       heureka-db:
         condition: service_healthy

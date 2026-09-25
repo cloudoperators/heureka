@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-FROM node:22.13-bullseye AS builder
+FROM node:22.13-bookworm AS builder
 
 # Install jq and pnpm
 RUN apt-get update && apt-get install -y jq git && \
@@ -23,8 +23,8 @@ RUN if [ -d "$UI_GIT_DIR" ]; then \
 
 # Modify JSON config
 RUN cd "$UI_GIT_DIR" && \
-    jq '.apiEndpoint = "http://localhost:80/query" | .initialFilters.support_group = ["containers"]' \
-       apps/heureka/appProps.template.json > apps/heureka/appProps.json
+    jq '.apiEndpoint = "http://localhost:80/query" | .embedded = true | .initialFilters.support_group = ["containers"] | .basePath = "/" | .enableHashedRouting = false | .auth.userId = "1234567890" | .auth.userName = "John Doe" | .auth.token = "1234567890" | .auth.status = "authenticated"' \
+    apps/heureka/appProps.template.json > apps/heureka/appProps.json
 
 # Build
 RUN cd "$UI_GIT_DIR" && \

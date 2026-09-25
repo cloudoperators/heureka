@@ -19,7 +19,7 @@ Open browser to Heureka UI
     Test teardown append    Close Browser
 
 Wait for heureka UI logo
-    Wait until shadow element is visible    [data-testid="default-logo"]
+    Wait until shadow element is visible    [aria-label="/services/"]
 
 Heureka UI is opened
     Open browser to Heureka UI

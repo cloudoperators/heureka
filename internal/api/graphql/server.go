@@ -4,6 +4,8 @@
 package graphqlapi
 
 import (
+	"net/http"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
@@ -12,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
 	gqlmiddleware "github.com/cloudoperators/heureka/internal/api/graphql/middleware"
 	"github.com/cloudoperators/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/oyyblin/gqlgen-depth-limit-extension/depth"
@@ -25,6 +28,8 @@ type GraphQLAPI struct {
 	auth         *middleware.Auth
 	batchLimiter gqlmiddleware.BatchLimiter
 	rateLimiter  *gqlmiddleware.IPRateLimiter
+
+	cfg util.Config
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
@@ -42,12 +47,16 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 			rate.Limit(cfg.GQLHttpRateLimit),
 			cfg.GQLHttpRateBurst,
 		),
+		cfg: cfg,
 	}
 
 	return &graphQLAPI
 }
 
 func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
+	if g.cfg.TestingEnable {
+		router.POST("/internal/testing/mvrefresh", g.refreshMVs())
+	}
 	router.Use(g.rateLimiter.Middleware())
 	router.Use(g.auth.Middleware())
 	router.Use(gqlmiddleware.QueryCounter())
@@ -68,5 +77,19 @@ func (g *GraphQLAPI) playgroundHandler() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		h.ServeHTTP(c.Writer, c.Request.WithContext(c.Request.Context()))
+	}
+}
+
+func (g *GraphQLAPI) refreshMVs() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := mariadb.TriggerMVE(g.cfg); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+
+			return
+		}
+
+		c.Status(http.StatusNoContent)
 	}
 }
