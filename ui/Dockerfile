@@ -27,9 +27,13 @@ RUN cd "$UI_GIT_DIR" && \
     apps/heureka/appProps.template.json > apps/heureka/appProps.json
 
 # Build
+#RUN cd "$UI_GIT_DIR" && \
+#    pnpm run clean:cache && \
+#    pnpm run reinstall && \
+#    pnpm run build
+
 RUN cd "$UI_GIT_DIR" && \
-    pnpm run clean:cache && \
-    pnpm run reinstall && \
+    pnpm install --frozen-lockfile && \
     pnpm run build
 
 # Runtime stage

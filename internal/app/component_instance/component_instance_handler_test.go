@@ -87,6 +87,7 @@ var _ = Describe(
 		When("the list option does include the totalCount", func() {
 			BeforeEach(func() {
 				options.ShowTotalCount = true
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentInstanceResult{}, nil)
@@ -113,6 +114,7 @@ var _ = Describe(
 				func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 					filter.First = &pageSize
 					componentInstances := []entity.ComponentInstanceResult{}
+
 					for _, ci := range test.NNewFakeComponentInstances(resElements) {
 						cursor, _ := mariadb.EncodeCursor(
 							mariadb.WithComponentInstance([]entity.Order{}, ci),
@@ -135,6 +137,7 @@ var _ = Describe(
 									*m.ComponentInstance,
 								),
 							)
+
 							return cursor
 						},
 					)
@@ -148,11 +151,13 @@ var _ = Describe(
 						)
 						cursors = append(cursors, c)
 					}
+
 					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 					db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 						Return(componentInstances, nil)
 					db.On("GetAllComponentInstanceCursors", mock.Anything, filter, []entity.Order{}).
 						Return(cursors, nil)
+
 					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 					res, err := componentInstanceHandler.ListComponentInstances(
@@ -197,6 +202,7 @@ var _ = Describe(
 			It("should return Internal error", func() {
 				// Mock database error
 				dbError := errors.New("database connection failed")
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentInstanceResult{}, dbError)
@@ -233,6 +239,7 @@ var _ = Describe(
 
 			It("should return Internal error", func() {
 				componentInstances := []entity.ComponentInstanceResult{}
+
 				for _, ci := range test.NNewFakeComponentInstances(5) {
 					cursor, _ := mariadb.EncodeCursor(
 						mariadb.WithComponentInstance([]entity.Order{}, ci),
@@ -246,6 +253,7 @@ var _ = Describe(
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return(componentInstances, nil)
+
 				cursorsError := errors.New("cursor database error")
 				db.On("GetAllComponentInstanceCursors", mock.Anything, filter, []entity.Order{}).
 					Return([]string{}, cursorsError)
@@ -289,6 +297,7 @@ var _ = Describe(
 				BeforeEach(func() {
 					serviceIds := int64(-1)
 					filter.ServiceId = []*int64{&serviceIds}
+
 					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 					db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 						Return([]entity.ComponentInstanceResult{}, nil)
@@ -318,6 +327,7 @@ var _ = Describe(
 						systemUserId := int64(1)
 						filter.ServiceId = []*int64{&serviceId}
 						componentInstance = test.NewFakeComponentInstanceEntity()
+
 						db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 						db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 							Return([]entity.ComponentInstanceResult{{ComponentInstance: &componentInstance}}, nil)
@@ -407,6 +417,7 @@ var _ = Describe(
 			db = mocks.NewMockDatabase(GinkgoT())
 			er = event.NewEventRegistry(db, handlerContext.Authz)
 			componentInstance = test.NewFakeComponentInstanceEntity()
+
 			handlerContext.Authz.RemoveAllRelations()
 
 			handlerContext.DB = db
@@ -501,6 +512,7 @@ var _ = Describe(
 
 						// Use type assertion to convert a CreateServiceEvent into an Event
 						var event event.Event = createEvent
+
 						resourceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
 						r.ObjectId = openfga.ObjectId(resourceId)
 						// Simulate event
@@ -532,7 +544,9 @@ var _ = Describe(
 			db = mocks.NewMockDatabase(GinkgoT())
 			er = event.NewEventRegistry(db, handlerContext.Authz)
 			componentInstance = test.NewFakeComponentInstanceResult()
+
 			handlerContext.Authz.RemoveAllRelations()
+
 			first := 10
 			after := ""
 			filter = &entity.ComponentInstanceFilter{
@@ -550,6 +564,7 @@ var _ = Describe(
 					Return([]int64{123}, nil)
 					// Changed: return actual user ID
 				db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
+
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 				componentInstance.Region = "NewRegion"
@@ -667,6 +682,7 @@ var _ = Describe(
 					updateEvent := &ci.UpdateComponentInstanceEvent{
 						ComponentInstance: &ciFake,
 					}
+
 					var event event.Event = updateEvent
 
 					// Simulate event
@@ -754,6 +770,7 @@ var _ = Describe(
 					updateEvent := &ci.UpdateComponentInstanceEvent{
 						ComponentInstance: &ciFake,
 					}
+
 					var event event.Event = updateEvent
 
 					// Simulate event
@@ -815,6 +832,7 @@ var _ = Describe(
 			db = mocks.NewMockDatabase(GinkgoT())
 			er = event.NewEventRegistry(db, handlerContext.Authz)
 			handlerContext.Authz.RemoveAllRelations()
+
 			id = 1
 			first := 10
 			after := ""
@@ -839,8 +857,10 @@ var _ = Describe(
 					// Changed: specify exact user ID
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+
 				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentInstanceResult{}, nil)
+
 				err := componentInstanceHandler.DeleteComponentInstance(
 					common.NewAdminContext(),
 					id,
@@ -931,12 +951,14 @@ var _ = Describe(
 
 								// get the number of relations before deletion
 								relCountBefore := 0
+
 								for _, r := range relations {
 									relations, err := handlerContext.Authz.ListRelations(r)
 									Expect(err).To(BeNil(), "no error should be thrown")
 
 									relCountBefore += len(relations)
 								}
+
 								Expect(
 									relCountBefore,
 								).To(Equal(len(relations)), "all relations should exist before deletion")
@@ -954,6 +976,7 @@ var _ = Describe(
 
 								// get the number of relations after deletion
 								relCountAfter := 0
+
 								for _, r := range relations {
 									relations, err := handlerContext.Authz.ListRelations(r)
 									Expect(err).To(BeNil(), "no error should be thrown")

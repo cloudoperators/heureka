@@ -4,6 +4,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -835,6 +836,7 @@ func NewRemediationEntity(r *RemediationInput) entity.Remediation {
 		Type:            rType,
 		URL:             lo.FromPtr(r.URL),
 		RemediatedBy:    lo.FromPtr(r.RemediatedBy),
+		Assignee:        lo.FromPtr(r.Assignee),
 		RemediationDate: remediationDate,
 		ExpirationDate:  expirationDate,
 	}
@@ -861,6 +863,7 @@ func NewRemediation(r *entity.Remediation) Remediation {
 		RemediationDate: &remediationDate,
 		ExpirationDate:  &expirationDate,
 		RemediatedBy:    &r.RemediatedBy,
+		Assignee:        &r.Assignee,
 		Metadata:        getModelMetadata(r.Metadata),
 	}
 }
@@ -884,6 +887,7 @@ func NewSIEMAlertNode(im *entity.IssueMatch) SIEMAlertNode {
 		ID:            fmt.Sprintf("%d", im.Id),
 		Status:        &status,
 		DiscoveryDate: &discoveryDate,
+		Acknowledged:  &im.Acknowledged,
 	}
 
 	sevVal, _ := SeverityValue(im.Severity.Value)
@@ -911,7 +915,15 @@ func NewSIEMAlertNode(im *entity.IssueMatch) SIEMAlertNode {
 
 	if im.Issue != nil && len(im.Issue.IssueVariants) > 0 {
 		variant := im.Issue.IssueVariants[0]
-		node.URL = &variant.ExternalUrl
+
+		if variant.ExternalUrl != "" {
+			var links []*SIEMAlertLink
+			if err := json.Unmarshal([]byte(variant.ExternalUrl), &links); err == nil {
+				node.Links = links
+			} else {
+				node.Links = []*SIEMAlertLink{{Name: variant.ExternalUrl, URL: variant.ExternalUrl}}
+			}
+		}
 
 		if variant.IssueRepository != nil {
 			node.Source = &variant.IssueRepository.Name
@@ -970,6 +982,8 @@ func (sao *SIEMAlertOrderBy) ToOrderEntity() entity.Order {
 		switch *sao.By {
 		case SIEMAlertOrderByFieldSeverity:
 			order.By = entity.IssueMatchRating
+		case SIEMAlertOrderByFieldDiscoveryDate:
+			order.By = entity.IssueMatchCreatedAt
 		}
 	}
 

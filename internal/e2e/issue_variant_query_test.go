@@ -22,13 +22,16 @@ import (
 )
 
 var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -66,6 +69,7 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -98,6 +102,7 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 				respData := struct {
 					IssueVariants model.IssueVariantConnection `json:"IssueVariants"`
 				}{}
+
 				BeforeEach(func() {
 					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 						IssueVariants model.IssueVariantConnection `json:"IssueVariants"`
@@ -129,7 +134,6 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 					// resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
-
 					for _, issueVariant := range respData.IssueVariants.Edges {
 						Expect(issueVariant.Node.ID).ToNot(BeNil(), "issueVariant has a ID set")
 						Expect(
@@ -197,14 +201,17 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 })
 
 var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var issueVariant entity.IssueVariant
-	var db *mariadb.SqlDatabase
+	var (
+		seeder       *test.DatabaseSeeder
+		s            *server.Server
+		cfg          util.Config
+		issueVariant entity.IssueVariant
+		db           *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -222,6 +229,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			issueVariant = testentity.NewFakeIssueVariantEntity(nil)
@@ -303,13 +311,16 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 })
 
 var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -383,6 +394,7 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				Expect(
 					string(*respData.IssueVariant.Severity.Value),
 				).To(Equal(issueVariant.Severity.Value))
+
 				if respData.IssueVariant.Severity.Cvss != nil &&
 					respData.IssueVariant.Severity.Cvss.Vector != nil {
 					Expect(string(*respData.IssueVariant.Severity.Cvss.Vector)).To(BeEmpty())
@@ -393,13 +405,16 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 })
 
 var _ = Describe("Deleting IssueVariant via API", Label("e2e", "IssueVariants"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

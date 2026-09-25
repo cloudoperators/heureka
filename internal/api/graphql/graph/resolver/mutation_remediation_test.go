@@ -192,6 +192,7 @@ var _ = Describe("UpdateRemediation", func() {
 	Context("when the component is not found", func() {
 		It("returns an error mentioning 'component'", func() {
 			input := model.RemediationInput{Image: &imageVal}
+
 			mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
 				Return(emptyComponentList(), nil)
 
@@ -207,6 +208,7 @@ var _ = Describe("UpdateRemediation", func() {
 		Context("and the component type is containerImage", func() {
 			It("returns an error mentioning 'container image'", func() {
 				input := model.RemediationInput{Image: &imageVal}
+
 				mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
 					Return(multipleComponentList("containerImage"), nil)
 
@@ -221,6 +223,7 @@ var _ = Describe("UpdateRemediation", func() {
 		Context("and the component type is repository", func() {
 			It("returns an error mentioning 'repository'", func() {
 				input := model.RemediationInput{Image: &imageVal}
+
 				mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
 					Return(multipleComponentList("repository"), nil)
 

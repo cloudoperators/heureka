@@ -13,10 +13,10 @@ type Component implements Node {
 }
 
 input ComponentInput {
-    ccrn: String
-    repository: String
-    organization: String
-    url: String
+    ccrn: String @constraint(maxLength: 255)
+    repository: String @constraint(maxLength: 255)
+    organization: String @constraint(maxLength: 255)
+    url: String @constraint(maxLength: 2048, format: "url")
     type: ComponentTypeValues
 }
 

@@ -123,6 +123,7 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 	Attributes: []Attr{{Name: "ccrn", Order: entity.Order{By: entity.ComponentCcrn, Direction: entity.OrderDirectionAsc}}},
 	ExtraColumnsSelector: func(_ *entity.ComponentFilter, order *Order) []string {
 		s := []string{}
+
 		for _, o := range order.Sequence() {
 			switch o.By {
 			case entity.CriticalCount:
@@ -137,6 +138,7 @@ var componentObject = DbObject[*entity.Component, *entity.ComponentFilter, entit
 				s = append(s, "CVR.none_count")
 			}
 		}
+
 		return s
 	},
 	RowToData: func(e RowComposite, order []entity.Order) (*entity.Component, string) {

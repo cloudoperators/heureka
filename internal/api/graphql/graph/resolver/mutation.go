@@ -7,6 +7,7 @@ package resolver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -1327,11 +1328,17 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 		severity = input.Severity
 	}
 
-	var url *string
+	var links []*model.SIEMAlertLink
 	if issueVariant != nil && issueVariant.ExternalUrl != "" {
-		url = &issueVariant.ExternalUrl
-	} else if input.URL != nil {
-		url = input.URL
+		if err := json.Unmarshal([]byte(issueVariant.ExternalUrl), &links); err != nil {
+			links = []*model.SIEMAlertLink{{Name: issueVariant.ExternalUrl, URL: issueVariant.ExternalUrl}}
+		}
+	} else if len(input.Links) > 0 {
+		for _, l := range input.Links {
+			if l != nil {
+				links = append(links, &model.SIEMAlertLink{Name: l.Name, URL: l.URL})
+			}
+		}
 	}
 
 	var servicePtr *string
@@ -1396,7 +1403,7 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 		Name:         name,
 		Description:  description,
 		Severity:     severity,
-		URL:          url,
+		Links:        links,
 		Service:      servicePtr,
 		SupportGroup: supportGroupPtr,
 		Region:       regionPtr,
@@ -1408,6 +1415,60 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 	}
 
 	return &res, nil
+}
+
+func (r *mutationResolver) UpdateSIEMAlert(ctx context.Context, id string, input model.SIEMAlertUpdateInput, comment string) (*model.SIEMAlertNode, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return nil, baseResolver.NewResolverError(
+			"UpdateSIEMAlertMutationResolver",
+			"Internal Error - invalid SIEM alert id",
+		)
+	}
+
+	var assigneeId *int64
+
+	if comment == "" {
+		return nil, baseResolver.NewResolverError(
+			"UpdateSIEMAlertMutationResolver",
+			"Invalid Input - comment is required",
+		)
+	}
+
+	if input.AssigneeID != nil {
+		assigneeId, err = baseResolver.ParseCursor(input.AssigneeID)
+		if err != nil {
+			return nil, baseResolver.NewResolverError(
+				"UpdateSIEMAlertMutationResolver",
+				"Invalid Input - assigneeId is not a valid id",
+			)
+		}
+	}
+
+	var status *entity.IssueMatchStatusValue
+
+	if input.Status != nil {
+		v := entity.NewIssueMatchStatusValue(input.Status.String())
+		status = &v
+	}
+
+	updateInput := entity.UpdateIssueMatchInput{
+		Status:  status,
+		UserId:  assigneeId,
+		Comment: comment,
+	}
+
+	updated, err := r.App.UpdateSIEMAlert(ctx, *idInt, updateInput)
+	if err != nil {
+		return nil, baseResolver.NewResolverError(
+			"UpdateSIEMAlertMutationResolver",
+			"Internal Error - when updating SIEM alert",
+		)
+	}
+
+	node := model.NewSIEMAlertNode(updated)
+
+	return &node, nil
 }
 
 func (r *mutationResolver) DeleteSIEMAlert(ctx context.Context, id string) (string, error) {
@@ -1427,6 +1488,28 @@ func (r *mutationResolver) DeleteSIEMAlert(ctx context.Context, id string) (stri
 	}
 
 	return id, nil
+}
+
+func (r *mutationResolver) AcknowledgeSIEMAlert(ctx context.Context, id string) (*model.SIEMAlertNode, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return nil, baseResolver.NewResolverError(
+			"AcknowledgeSIEMAlertMutationResolver",
+			"Internal Error - when acknowledging SIEM alert",
+		)
+	}
+
+	im, err := r.App.AcknowledgeSIEMAlert(ctx, *idInt)
+	if err != nil {
+		return nil, baseResolver.NewResolverError(
+			"AcknowledgeSIEMAlertMutationResolver",
+			"Internal Error - when acknowledging SIEM alert",
+		)
+	}
+
+	node := model.NewSIEMAlertNode(im)
+
+	return &node, nil
 }
 
 func (r *mutationResolver) CreateSIEMAlertComment(ctx context.Context, alertID string, text string) (*model.SIEMAlertComment, error) {

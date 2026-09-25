@@ -36,6 +36,7 @@ const (
 
 	IssueMatchId
 	IssueMatchRating
+	IssueMatchCreatedAt
 	IssueMatchTargetRemediationDate
 	IssueEarliestTargetRemediationDate
 

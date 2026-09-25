@@ -7,10 +7,41 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime"
+	"strings"
 )
 
 // Op represents an operation in the call chain
 type Op string
+
+// CallerOp derives an Op from the calling function's name.
+// For a method like (*serviceHandler).CreateService it returns "serviceHandler.CreateService".
+// For a package-level function like OnIssueMatchCreateAuthz it returns "OnIssueMatchCreateAuthz".
+func CallerOp() Op {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		return Op("unknown")
+	}
+
+	fn := runtime.FuncForPC(pc)
+	if fn == nil {
+		return Op("unknown")
+	}
+
+	name := fn.Name()
+	// strip import path prefix, keep "pkg.TypeName.Method"
+	if idx := strings.LastIndex(name, "/"); idx >= 0 {
+		name = name[idx+1:]
+	}
+	// strip package name prefix, keep "TypeName.Method" or "FuncName"
+	if idx := strings.Index(name, "."); idx >= 0 {
+		name = name[idx+1:]
+	}
+	// clean up pointer receiver: "(*TypeName).Method" → "TypeName.Method"
+	name = strings.NewReplacer("(*", "", ")", "").Replace(name)
+
+	return Op(name)
+}
 
 // E creates a new Error from the provided arguments.
 // Each argument can be an Op, a string, a Code, an error, or a map[string]any.

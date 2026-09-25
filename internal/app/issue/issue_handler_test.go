@@ -200,6 +200,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			db.On("CountIssueTypes", mock.Anything, filter).Return(issueTypeCounts, nil)
 		})
@@ -221,6 +222,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 				filter.First = &pageSize
 				issues := []entity.IssueResult{}
+
 				for _, i := range test.NNewFakeIssueEntities(resElements) {
 					cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0, sql.NullTime{}))
 					issues = append(
@@ -236,6 +238,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 					cursor, _ := mariadb.EncodeCursor(
 						mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0, sql.NullTime{}),
 					)
+
 					return cursor
 				})
 
@@ -246,9 +249,11 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 					c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0, sql.NullTime{}))
 					cursors = append(cursors, c)
 				}
+
 				db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return(issues, nil)
 				db.On("GetAllIssueCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
 				db.On("CountIssueTypes", mock.Anything, filter).Return(issueTypeCounts, nil)
+
 				issueHandler = issue.NewIssueHandler(handlerContext)
 				res, err := issueHandler.ListIssues(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -383,6 +388,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		It("should return Internal error", func() {
 			// Mock successful GetIssues but failing GetAllIssueCursors
 			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return(test.NNewFakeIssueResults(5), nil)
+
 			cursorsError := errors.New("cursor database error")
 			db.On("GetAllIssueCursors", mock.Anything, filter, []entity.Order{}).Return([]string{}, cursorsError)
 
@@ -408,6 +414,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		It("should return Internal error", func() {
 			// Mock successful GetIssues but failing CountIssueTypes
 			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+
 			countError := errors.New("count database error")
 			db.On("CountIssueTypes", mock.Anything, filter).Return((*entity.IssueTypeCounts)(nil), countError)
 
@@ -799,6 +806,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	It("updates issueEntity", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssue", issueResult.Issue).Return(nil)
+
 		issueHandler = issue.NewIssueHandler(handlerContext)
 		issueResult.Issue.Description = "New Description"
 		filter.Id = []*int64{&issueResult.Issue.Id}
@@ -933,6 +941,7 @@ var _ = Describe(
 				Return(nil)
 			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.IssueResult{issueResult}, nil)
+
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			issue, err := issueHandler.AddComponentVersionToIssue(
 				context.Background(),
@@ -948,6 +957,7 @@ var _ = Describe(
 				Return(nil)
 			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.IssueResult{issueResult}, nil)
+
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			issue, err := issueHandler.RemoveComponentVersionFromIssue(
 				context.Background(),

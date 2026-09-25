@@ -11,9 +11,14 @@ ifdef TAG
 	INCLUDETAG_F:=--include ${TAG}
 endif
 
+XUNIT?=no
+ifeq ($(XUNIT),yes)
+    ROBOT_FLAGS+= --xunit ${REPO_DIR}/${E2E_RESULTS_DIR}/junit.xml
+endif
+
 test: clean
 	@mkdir -pv ${E2E_RESULTS_DIR} ${E2E_RUNTIME_DIR}
-	@sh -c "export PATH=\"\$$PATH:\$$HOME/go/bin\" && . ${E2E_PYTHON_VENV_DIR}/bin/activate && cd ${E2E_RUNTIME_DIR} && robot ${ROBOT_FLAGS} --pythonpath ${REPO_DIR}/tests ${INCLUDETAG_F} --outputdir ${REPO_DIR}/${E2E_RESULTS_DIR} ${REPO_DIR}/${E2E_TESTS_DIR};deactivate"
+	sh -c "export PATH=\"\$$PATH:\$$HOME/go/bin\" && . ${E2E_PYTHON_VENV_DIR}/bin/activate && cd ${E2E_RUNTIME_DIR} && robot ${ROBOT_FLAGS} --pythonpath ${REPO_DIR}/tests ${INCLUDETAG_F} --outputdir ${REPO_DIR}/${E2E_RESULTS_DIR} ${REPO_DIR}/${E2E_TESTS_DIR};status=\$$?; deactivate; exit \$$status"
 
 clean:
 	@rm -fvr ${E2E_RESULTS_DIR} ${E2E_RUNTIME_DIR}

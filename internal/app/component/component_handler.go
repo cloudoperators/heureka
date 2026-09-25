@@ -6,339 +6,170 @@ package component
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
-	"github.com/cloudoperators/heureka/internal/app/event"
-	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
-
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	CacheTtlGetComponentCcrns      = 12 * time.Hour
-	CacheTtlGetAllComponentCursors = 12 * time.Hour
-	CacheTtlCountComponents        = 12 * time.Hour
 )
 
 type componentHandler struct {
-	database      database.Database
-	eventRegistry event.EventRegistry
-	cache         cache.Cache
-	authz         openfga.Authorization
-	logger        *logrus.Logger
+	common.BaseHandler[entity.ComponentResult, *entity.ComponentFilter]
 }
 
-func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler {
+func NewComponentHandler(hc common.HandlerContext) ComponentHandler {
 	return &componentHandler{
-		database:      handlerContext.DB,
-		eventRegistry: handlerContext.EventReg,
-		cache:         handlerContext.Cache,
-		authz:         handlerContext.Authz,
-		logger:        logrus.New(),
+		BaseHandler: common.NewBaseHandler(hc, common.BaseConfig[entity.ComponentResult, *entity.ComponentFilter]{
+			Op:              appErrors.Op("componentHandler"),
+			Entity:          "Components",
+			CursorEntity:    "ComponentCursors",
+			CountEntity:     "ComponentCount",
+			GetFn:           hc.DB.GetComponents,
+			CursorsFn:       hc.DB.GetAllComponentCursors,
+			CountFn:         hc.DB.CountComponents,
+			Authz:           hc.Authz,
+			AuthzObjectType: openfga.TypeComponent,
+			AuthzApplyFn: func(f *entity.ComponentFilter, ids []*int64) {
+				f.Id = common.CombineFilterWithAccessibleIds(f.Id, ids)
+			},
+			ListEventFn: func(f *entity.ComponentFilter, o *entity.ListOptions, r *entity.List[entity.ComponentResult]) any {
+				return &ListComponentsEvent{Filter: f, Options: o, Components: r}
+			},
+			DeleteFn:      hc.DB.DeleteComponent,
+			DeleteEventFn: func(id int64) any { return &DeleteComponentEvent{ComponentID: id} },
+		}),
 	}
 }
 
-type ComponentHandlerError struct {
-	msg string
-}
-
-func (e *ComponentHandlerError) Error() string {
-	return fmt.Sprintf("ComponentHandlerError: %s", e.msg)
-}
-
-func NewComponentHandlerError(msg string) *ComponentHandlerError {
-	return &ComponentHandlerError{msg: msg}
-}
-
-func (cs *componentHandler) ListComponents(
+func (ch *componentHandler) ListComponents(
 	ctx context.Context,
 	filter *entity.ComponentFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.ComponentResult], error) {
-	var (
-		count    int64
-		pageInfo *entity.PageInfo
-	)
-
-	op := appErrors.Op("componentHandler.ListComponents")
-
-	common.EnsurePaginated(&filter.Paginated)
-
-	options = common.EnsureListOptions(options)
-
-	// get current user id
-	currentUserId, err := common.GetCurrentUserId(ctx, cs.database)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
-		applog.LogError(cs.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Authorization check
-	accessibleComponentIds, err := cs.authz.GetListOfAccessibleObjectIds(
-		openfga.UserId(fmt.Sprint(currentUserId)),
-		openfga.TypeComponent,
-	)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
-		applog.LogError(cs.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Update the filter.Id based on accessibleComponentIds
-	filter.Id = common.CombineFilterWithAccessibleIds(filter.Id, accessibleComponentIds)
-
-	res, err := cs.database.GetComponents(ctx, filter, options.Order)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
-		applog.LogError(cs.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	if options.ShowPageInfo {
-		if len(res) > 0 {
-			cursors, err := cache.CallCached[[]string](
-				cs.cache,
-				cache.NewCacheCallParams(
-					CacheTtlGetAllComponentCursors,
-					ctx,
-					"GetAllComponentCursors",
-					cs.database.GetAllComponentCursors,
-					filter,
-					options.Order,
-				),
-			)
-			if err != nil {
-				wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
-				applog.LogError(cs.logger, wrappedErr, logrus.Fields{
-					"filter": filter,
-				})
-
-				return nil, wrappedErr
-			}
-
-			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
-			count = int64(len(cursors))
-		}
-	} else if options.ShowTotalCount {
-		count, err = cache.CallCached[int64](
-			cs.cache,
-			cache.NewCacheCallParams(
-				CacheTtlCountComponents,
-				ctx,
-				"CountComponents",
-				cs.database.CountComponents,
-				filter,
-			),
-		)
-		if err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
-			applog.LogError(cs.logger, wrappedErr, logrus.Fields{
-				"filter": filter,
-			})
-
-			return nil, wrappedErr
-		}
-	}
-
-	ret := &entity.List[entity.ComponentResult]{
-		TotalCount: &count,
-		PageInfo:   pageInfo,
-		Elements:   res,
-	}
-
-	cs.eventRegistry.PushEvent(
-		&ListComponentsEvent{Filter: filter, Options: options, Components: ret},
-	)
-
-	return ret, nil
+	return ch.List(ctx, appErrors.CallerOp(), filter, options)
 }
 
-func (cs *componentHandler) CreateComponent(
+func (ch *componentHandler) CreateComponent(
 	ctx context.Context,
 	component *entity.Component,
 ) (*entity.Component, error) {
+	op := appErrors.CallerOp()
+
 	f := &entity.ComponentFilter{
 		CCRN: []*string{&component.CCRN},
 	}
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  CreateComponentEventName,
-		"object": component,
-		"filter": f,
-	})
-
 	var err error
 
-	component.CreatedBy, err = common.GetCurrentUserId(ctx, cs.database)
+	component.CreatedBy, err = common.GetCurrentUserId(ctx, ch.DB())
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Internal error while creating component (GetUserId).")
+		return nil, appErrors.InternalError(string(op), "Component", "", err)
 	}
 
 	component.UpdatedBy = component.CreatedBy
 
 	lo := entity.NewListOptions()
 
-	components, err := cs.ListComponents(ctx, f, lo)
+	components, err := ch.ListComponents(ctx, f, lo)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Internal error while creating component.")
+		return nil, appErrors.InternalError(string(op), "Component", "", err)
 	}
 
 	if len(components.Elements) > 0 {
-		return nil, NewComponentHandlerError(
-			fmt.Sprintf("Duplicated entry %s for ccrn.", component.CCRN),
-		)
+		return nil, appErrors.AlreadyExistsError(string(op), "Component", component.CCRN)
 	}
 
-	newComponent, err := cs.database.CreateComponent(component)
+	newComponent, err := ch.DB().CreateComponent(component)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Internal error while creating component.")
+		return nil, appErrors.InternalError(string(op), "Component", "", err)
 	}
 
-	cs.eventRegistry.PushEvent(&CreateComponentEvent{Component: newComponent})
+	ch.PushEvent(&CreateComponentEvent{Component: newComponent})
 
 	return newComponent, nil
 }
 
-func (cs *componentHandler) UpdateComponent(
+func (ch *componentHandler) UpdateComponent(
 	ctx context.Context,
 	component *entity.Component,
 ) (*entity.Component, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  UpdateComponentEventName,
-		"object": component,
-	})
+	op := appErrors.CallerOp()
 
 	var err error
 
-	component.UpdatedBy, err = common.GetCurrentUserId(ctx, cs.database)
+	component.UpdatedBy, err = common.GetCurrentUserId(ctx, ch.DB())
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Internal error while updating component (GetUserId).")
+		return nil, appErrors.InternalError(string(op), "Component", "", err)
 	}
 
-	err = cs.database.UpdateComponent(component)
+	err = ch.DB().UpdateComponent(component)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Internal error while updating component.")
+		return nil, appErrors.InternalError(string(op), "Component", "", err)
 	}
 
 	lo := entity.NewListOptions()
 
-	componentResult, err := cs.ListComponents(
+	componentResult, err := ch.ListComponents(
 		ctx,
 		&entity.ComponentFilter{Id: []*int64{&component.Id}},
 		lo,
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Internal error while retrieving updated component.")
+		return nil, appErrors.InternalError(string(op), "Component", "", err)
 	}
 
 	if len(componentResult.Elements) != 1 {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Multiple components found.")
+		return nil, appErrors.InternalError(string(op), "Component", "", fmt.Errorf("unexpected result count: %d", len(componentResult.Elements)))
 	}
 
-	cs.eventRegistry.PushEvent(&UpdateComponentEvent{Component: component})
+	ch.PushEvent(&UpdateComponentEvent{Component: component})
 
 	return componentResult.Elements[0].Component, nil
 }
 
-func (cs *componentHandler) DeleteComponent(ctx context.Context, id int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event": DeleteComponentEventName,
-		"id":    id,
-	})
-
-	userId, err := common.GetCurrentUserId(ctx, cs.database)
-	if err != nil {
-		l.Error(err)
-		return NewComponentHandlerError("Internal error while deleting component (GetUserId).")
-	}
-
-	err = cs.database.DeleteComponent(id, userId)
-	if err != nil {
-		l.Error(err)
-		return NewComponentHandlerError("Internal error while deleting component.")
-	}
-
-	cs.eventRegistry.PushEvent(&DeleteComponentEvent{ComponentID: id})
-
-	return nil
+func (ch *componentHandler) DeleteComponent(ctx context.Context, id int64) error {
+	return ch.Delete(ctx, id)
 }
 
-func (cs *componentHandler) ListComponentCcrns(
+func (ch *componentHandler) ListComponentCcrns(
 	ctx context.Context,
 	filter *entity.ComponentFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListComponentCcrnsEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
 	componentCcrns, err := cache.CallCached[[]string](
-		cs.cache,
+		ch.Cache(),
 		cache.NewCacheCallParams(
-			CacheTtlGetComponentCcrns,
+			common.DefaultCacheTTL,
 			ctx,
 			"GetComponentCcrns",
-			cs.database.GetComponentCcrns,
+			ch.DB().GetComponentCcrns,
 			filter,
 		),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Internal error while retrieving componentCcrns.")
+		return nil, appErrors.InternalError(string(op), "ComponentCcrns", "", err)
 	}
 
-	cs.eventRegistry.PushEvent(
-		&ListComponentCcrnsEvent{Filter: filter, Options: options, CCRNs: componentCcrns},
-	)
+	ch.PushEvent(&ListComponentCcrnsEvent{Filter: filter, Options: options, CCRNs: componentCcrns})
 
 	return componentCcrns, nil
 }
 
-func (cs *componentHandler) GetComponentVulnerabilityCounts(
+func (ch *componentHandler) GetComponentVulnerabilityCounts(
 	ctx context.Context,
 	filter *entity.ComponentFilter,
 ) ([]entity.IssueSeverityCounts, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  GetComponentIssueSeverityCountsEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
-	counts, err := cs.database.CountComponentVulnerabilities(ctx, filter)
+	counts, err := ch.DB().CountComponentVulnerabilities(ctx, filter)
 	if err != nil {
-		l.Error(err)
-
-		return nil, NewComponentHandlerError(
-			"Internal error while retrieving issue severity counts.",
-		)
+		return nil, appErrors.InternalError(string(op), "ComponentVulnerabilityCounts", "", err)
 	}
 
-	cs.eventRegistry.PushEvent(
-		&GetComponentIssueSeverityCountsEvent{Filter: filter, Counts: counts},
-	)
+	ch.PushEvent(&GetComponentIssueSeverityCountsEvent{Filter: filter, Counts: counts})
 
 	return counts, nil
 }

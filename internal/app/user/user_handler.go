@@ -6,53 +6,40 @@ package user
 import (
 	"context"
 	"fmt"
-	"time"
+	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
-	"github.com/cloudoperators/heureka/internal/app/event"
-	applog "github.com/cloudoperators/heureka/internal/app/logging"
-	"github.com/cloudoperators/heureka/internal/cache"
-	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
-
-	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	CacheTtlGetAllUserCursors = 12 * time.Hour
-	CacheTtlGetUsers          = 12 * time.Hour
 )
 
 type userHandler struct {
-	database      database.Database
-	cache         cache.Cache
-	eventRegistry event.EventRegistry
-	authz         openfga.Authorization
-	logger        *logrus.Logger
+	common.BaseHandler[entity.UserResult, *entity.UserFilter]
 }
 
 func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
 	return &userHandler{
-		database:      handlerContext.DB,
-		cache:         handlerContext.Cache,
-		eventRegistry: handlerContext.EventReg,
-		authz:         handlerContext.Authz,
-		logger:        logrus.New(),
+		BaseHandler: common.NewBaseHandler(handlerContext, common.BaseConfig[entity.UserResult, *entity.UserFilter]{
+			Op:              appErrors.Op("userHandler"),
+			Entity:          "Users",
+			CursorEntity:    "UserCursors",
+			CountEntity:     "UserCount",
+			GetFn:           handlerContext.DB.GetUsers,
+			CursorsFn:       handlerContext.DB.GetAllUserCursors,
+			CountFn:         handlerContext.DB.CountUsers,
+			Authz:           handlerContext.Authz,
+			AuthzObjectType: openfga.TypeSupportGroup,
+			AuthzApplyFn: func(f *entity.UserFilter, ids []*int64) {
+				f.SupportGroupId = common.CombineFilterWithAccessibleIds(f.SupportGroupId, ids)
+			},
+			ListEventFn: func(f *entity.UserFilter, o *entity.ListOptions, r *entity.List[entity.UserResult]) any {
+				return &ListUsersEvent{Filter: f, Options: o, Users: r}
+			},
+			DeleteFn:      handlerContext.DB.DeleteUser,
+			DeleteEventFn: func(id int64) any { return &DeleteUserEvent{UserID: id} },
+		}),
 	}
-}
-
-type UserHandlerError struct {
-	msg string
-}
-
-func (e *UserHandlerError) Error() string {
-	return fmt.Sprintf("UserHandlerError: %s", e.msg)
-}
-
-func NewUserHandlerError(msg string) *UserHandlerError {
-	return &UserHandlerError{msg: msg}
 }
 
 func (u *userHandler) ListUsers(
@@ -60,218 +47,80 @@ func (u *userHandler) ListUsers(
 	filter *entity.UserFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.UserResult], error) {
-	var (
-		count    int64
-		pageInfo *entity.PageInfo
-	)
-
-	op := appErrors.Op("userHandler.ListUsers")
-
-	common.EnsurePaginated(&filter.Paginated)
-
-	// get current user id
-	currentUserId, err := common.GetCurrentUserId(ctx, u.database)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
-		applog.LogError(u.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Authorization check
-	accessibleSupportGroupIds, err := u.authz.GetListOfAccessibleObjectIds(
-		openfga.UserId(fmt.Sprint(currentUserId)),
-		openfga.TypeSupportGroup,
-	)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
-		applog.LogError(u.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Update the filter.Id based on accessibleSupportGroupIds
-	filter.SupportGroupId = common.CombineFilterWithAccessibleIds(
-		filter.SupportGroupId,
-		accessibleSupportGroupIds,
-	)
-
-	res, err := cache.CallCached[[]entity.UserResult](
-		u.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetUsers,
-			ctx,
-			"GetUsers",
-			u.database.GetUsers,
-			filter,
-			options.Order,
-		),
-	)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
-		applog.LogError(u.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	if options.ShowPageInfo {
-		if len(res) > 0 {
-			cursors, err := cache.CallCached[[]string](
-				u.cache,
-				cache.NewCacheCallParams(
-					CacheTtlGetAllUserCursors,
-					ctx,
-					"GetAllUserCursors",
-					u.database.GetAllUserCursors,
-					filter,
-					options.Order,
-				),
-			)
-			if err != nil {
-				wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
-				applog.LogError(u.logger, wrappedErr, logrus.Fields{
-					"filter": filter,
-				})
-
-				return nil, wrappedErr
-			}
-
-			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
-			count = int64(len(cursors))
-		}
-	} else if options.ShowTotalCount {
-		count, err = u.database.CountUsers(ctx, filter)
-		if err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
-			applog.LogError(u.logger, wrappedErr, logrus.Fields{
-				"filter": filter,
-			})
-
-			return nil, wrappedErr
-		}
-	}
-
-	ret := &entity.List[entity.UserResult]{
-		TotalCount: &count,
-		PageInfo:   pageInfo,
-		Elements:   res,
-	}
-
-	u.eventRegistry.PushEvent(&ListUsersEvent{Filter: filter, Options: options, Users: ret})
-
-	return ret, nil
+	return u.List(ctx, appErrors.CallerOp(), filter, options)
 }
 
 func (u *userHandler) CreateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
-	f := &entity.UserFilter{
-		UniqueUserID: []*string{&user.UniqueUserID},
-	}
-
-	l := logrus.WithFields(logrus.Fields{
-		"event":  CreateUserEventName,
-		"object": user,
-	})
+	op := appErrors.CallerOp()
 
 	var err error
 
-	user.CreatedBy, err = common.GetCurrentUserId(ctx, u.database)
+	user.CreatedBy, err = common.GetCurrentUserId(ctx, u.DB())
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while creating user (GetUserId).")
+		return nil, appErrors.InternalError(string(op), "User", "", err)
 	}
 
 	user.UpdatedBy = user.CreatedBy
 
-	users, err := u.ListUsers(ctx, f, &entity.ListOptions{})
+	existing, err := u.ListUsers(
+		ctx,
+		&entity.UserFilter{UniqueUserID: []*string{&user.UniqueUserID}},
+		entity.NewListOptions(),
+	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while creating user.")
+		return nil, appErrors.InternalError(string(op), "User", "", err)
 	}
 
-	if len(users.Elements) > 0 {
-		return nil, NewUserHandlerError(
-			fmt.Sprintf("Duplicated entry %s for UniqueUserID.", user.UniqueUserID),
-		)
+	if len(existing.Elements) > 0 {
+		return nil, appErrors.AlreadyExistsError(string(op), "User", user.UniqueUserID)
 	}
 
-	newUser, err := u.database.CreateUser(user)
+	newUser, err := u.DB().CreateUser(user)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while creating user.")
+		return nil, appErrors.InternalError(string(op), "User", "", err)
 	}
 
-	u.eventRegistry.PushEvent(&CreateUserEvent{User: newUser})
+	u.PushEvent(&CreateUserEvent{User: newUser})
 
 	return newUser, nil
 }
 
 func (u *userHandler) UpdateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  UpdateUserEventName,
-		"object": user,
-	})
+	op := appErrors.CallerOp()
+	id := strconv.FormatInt(user.Id, 10)
 
 	var err error
 
-	user.UpdatedBy, err = common.GetCurrentUserId(ctx, u.database)
+	user.UpdatedBy, err = common.GetCurrentUserId(ctx, u.DB())
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while updating user (GetUserId).")
+		return nil, appErrors.InternalError(string(op), "User", id, err)
 	}
 
-	err = u.database.UpdateUser(user)
-	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while updating user.")
+	if err = u.DB().UpdateUser(user); err != nil {
+		return nil, appErrors.InternalError(string(op), "User", id, err)
 	}
 
-	userResult, err := u.ListUsers(
+	result, err := u.ListUsers(
 		ctx,
 		&entity.UserFilter{Id: []*int64{&user.Id}},
-		&entity.ListOptions{},
+		entity.NewListOptions(),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while retrieving updated user.")
+		return nil, appErrors.InternalError(string(op), "User", id, err)
 	}
 
-	if len(userResult.Elements) != 1 {
-		l.Error(err)
-		return nil, NewUserHandlerError("Multiple users found.")
+	if len(result.Elements) != 1 {
+		return nil, appErrors.E(op, "User", id, appErrors.Internal,
+			fmt.Sprintf("unexpected result count: %d", len(result.Elements)))
 	}
 
-	u.eventRegistry.PushEvent(&UpdateUserEvent{User: user})
+	u.PushEvent(&UpdateUserEvent{User: user})
 
-	return userResult.Elements[0].User, nil
+	return result.Elements[0].User, nil
 }
 
 func (u *userHandler) DeleteUser(ctx context.Context, id int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event": DeleteUserEventName,
-		"id":    id,
-	})
-
-	userId, err := common.GetCurrentUserId(ctx, u.database)
-	if err != nil {
-		l.Error(err)
-		return NewUserHandlerError("Internal error while deleting user (GetUserId).")
-	}
-
-	err = u.database.DeleteUser(id, userId)
-	if err != nil {
-		l.Error(err)
-		return NewUserHandlerError("Internal error while deleting user.")
-	}
-
-	u.eventRegistry.PushEvent(&DeleteUserEvent{UserID: id})
-
-	return nil
+	return u.Delete(ctx, id)
 }
 
 func (u *userHandler) ListUserNames(
@@ -279,20 +128,14 @@ func (u *userHandler) ListUserNames(
 	filter *entity.UserFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListUserNamesEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
-	userNames, err := u.database.GetUserNames(ctx, filter)
+	userNames, err := u.DB().GetUserNames(ctx, filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while retrieving userNames.")
+		return nil, appErrors.InternalError(string(op), "UserNames", "", err)
 	}
 
-	u.eventRegistry.PushEvent(
-		&ListUserNamesEvent{Filter: filter, Options: options, Names: userNames},
-	)
+	u.PushEvent(&ListUserNamesEvent{Filter: filter, Options: options, Names: userNames})
 
 	return userNames, nil
 }
@@ -302,22 +145,16 @@ func (u *userHandler) ListUniqueUserIDs(
 	filter *entity.UserFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListUniqueUserIDsEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
-	uniqueUserID, err := u.database.GetUniqueUserIDs(ctx, filter)
+	uniqueUserIDs, err := u.DB().GetUniqueUserIDs(ctx, filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while retrieving uniqueUserID.")
+		return nil, appErrors.InternalError(string(op), "UniqueUserIDs", "", err)
 	}
 
-	u.eventRegistry.PushEvent(
-		&ListUniqueUserIDsEvent{Filter: filter, Options: options, IDs: uniqueUserID},
-	)
+	u.PushEvent(&ListUniqueUserIDsEvent{Filter: filter, Options: options, IDs: uniqueUserIDs})
 
-	return uniqueUserID, nil
+	return uniqueUserIDs, nil
 }
 
 func (u *userHandler) ListUserNamesAndIds(
@@ -325,28 +162,22 @@ func (u *userHandler) ListUserNamesAndIds(
 	filter *entity.UserFilter,
 	options *entity.ListOptions,
 ) ([]string, []string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListUserNamesAndIdsEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
-	users, err := u.database.GetUsers(ctx, filter, options.Order)
+	users, err := u.DB().GetUsers(ctx, filter, options.Order)
 	if err != nil {
-		l.Error(err)
-		return nil, nil, NewUserHandlerError("Internal error while retrieving user.")
+		return nil, nil, appErrors.InternalError(string(op), "Users", "", err)
 	}
 
 	names := []string{}
 	ids := []string{}
 
-	for _, u := range users {
-		names = append(names, u.Name)
-		ids = append(ids, u.UniqueUserID)
+	for _, user := range users {
+		names = append(names, user.Name)
+		ids = append(ids, user.UniqueUserID)
 	}
 
-	u.eventRegistry.PushEvent(
-		&ListUserNamesAndIdsEvent{Filter: filter, Options: options, Names: names, Ids: ids},
-	)
+	u.PushEvent(&ListUserNamesAndIdsEvent{Filter: filter, Options: options, Names: names, Ids: ids})
 
 	return names, ids, nil
 }

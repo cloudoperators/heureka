@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -173,7 +175,7 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 		issueVariant *entity.IssueVariant
 	)
 
-	if input.URL != nil && *input.URL != "" {
+	if len(input.Links) > 0 {
 		if input.Name != nil && *input.Name != "" {
 			ivs, err := r.App.ListIssueVariants(
 				ctx,
@@ -181,8 +183,9 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 				&entity.ListOptions{},
 			)
 			if err == nil {
+				linksJSON, _ := json.Marshal(input.Links)
 				for _, v := range ivs.Elements {
-					if v.ExternalUrl == *input.URL {
+					if v.ExternalUrl == string(linksJSON) {
 						issueVariant = v.IssueVariant
 						break
 					}
@@ -282,11 +285,13 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 				return ""
 			}(),
 			ExternalUrl: func() string {
-				if input.URL != nil {
-					return *input.URL
+				if len(input.Links) == 0 {
+					return ""
 				}
 
-				return ""
+				linksJSON, _ := json.Marshal(input.Links)
+
+				return string(linksJSON)
 			}(),
 		}
 
@@ -345,6 +350,16 @@ func (r *mutationResolver) createIssueMatchIfCI(
 			"CreateSIEMAlertMutationResolver",
 			"Internal Error - when creating issue match",
 		)
+	}
+
+	if ci.ComponentVersionId != 0 {
+		_, err = r.App.AddComponentVersionToIssue(ctx, issue.Id, ci.ComponentVersionId)
+		if err != nil && !appErrors.IsAlreadyExists(err) {
+			return baseResolver.NewResolverError(
+				"CreateSIEMAlertMutationResolver",
+				"Internal Error - when linking issue to component version",
+			)
+		}
 	}
 
 	return nil

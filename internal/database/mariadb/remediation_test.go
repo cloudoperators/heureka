@@ -18,10 +18,14 @@ import (
 )
 
 var _ = Describe("Remediation", Label("database", "Remediation"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -34,6 +38,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetRemediations(context.Background(), nil, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -44,6 +49,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 		})
 		Context("and we have 10 remediations in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -63,10 +69,8 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -412,6 +416,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 										*entries[len(entries)-1].Remediation,
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.RemediationRows),
@@ -430,6 +435,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 	When("Remediation Ordering", func() {
 		BeforeEach(func() {
 			var err error
+
 			db = dbm.NewTestSchema()
 			seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 			Expect(err).To(BeNil())
@@ -443,14 +449,17 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				{By: entity.RemediationIssue, Direction: entity.OrderDirectionAsc},
 			}
 			entries, err := db.GetRemediations(context.Background(), nil, order)
+
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
+
 			prev := ""
 			for _, e := range entries {
 				if prev != "" {
 					Expect(e.Issue >= prev).To(BeTrue())
 				}
+
 				prev = e.Issue
 			}
 		})
@@ -459,11 +468,14 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				{By: entity.RemediationSeverity, Direction: entity.OrderDirectionDesc},
 			}
 			entries, err := db.GetRemediations(context.Background(), nil, order)
+
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
+
 			weight := map[string]int{"None": 1, "Low": 2, "Medium": 3, "High": 4, "Critical": 5}
 			prevW := 100
+
 			for _, e := range entries {
 				w := weight[string(e.Severity)]
 				Expect(w).To(BeNumerically("<=", prevW))
@@ -475,6 +487,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				{By: entity.RemediationExpirationDate, Direction: entity.OrderDirectionAsc},
 			}
 			entries, err := db.GetRemediations(context.Background(), nil, order)
+
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
@@ -484,6 +497,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				if !prev.IsZero() {
 					Expect(e.ExpirationDate.Before(prev)).To(BeFalse())
 				}
+
 				prev = e.ExpirationDate
 			}
 		})
@@ -503,9 +517,12 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var remediationRows []mariadb.RemediationRow
-			var count int
+			var (
+				seedCollection  *test.SeedCollection
+				remediationRows []mariadb.RemediationRow
+				count           int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				remediationRows = seedCollection.RemediationRows
@@ -547,10 +564,14 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 	})
 	When("Insert Remediation", Label("InsertRemediation"), func() {
 		Context("and we have 10 Remediations in the database", func() {
-			var newRemediationRow mariadb.RemediationRow
-			var newRemediation entity.Remediation
+			var (
+				newRemediationRow mariadb.RemediationRow
+				newRemediation    entity.Remediation
+			)
+
 			BeforeEach(func() {
 				seeder.SeedDbWithNFakeData(10)
+
 				newRemediationRow = mariadb.RemediationRow{
 					Type: sql.NullString{
 						String: entity.RemediationTypeFalsePositive.String(),
@@ -588,6 +609,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				}
 
 				r, err := db.GetRemediations(context.Background(), remediationFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -600,6 +622,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 	When("Update Remediation", Label("UpdateRemediation"), func() {
 		Context("and we have 10 Remediations in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -618,6 +641,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				}
 
 				r, err := db.GetRemediations(context.Background(), remediationFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -633,6 +657,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 	When("Delete Remediation", Label("DeleteRemediation"), func() {
 		Context("and we have 10 Remediations in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -650,6 +675,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				}
 
 				r, err := db.GetRemediations(context.Background(), remediationFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})

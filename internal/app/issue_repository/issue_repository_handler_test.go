@@ -75,6 +75,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).
 				Return([]entity.IssueRepositoryResult{}, nil)
 			db.On("CountIssueRepositories", mock.Anything, filter).Return(int64(1337), nil)
@@ -116,6 +117,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 					cursor, _ := mariadb.EncodeCursor(
 						mariadb.WithIssueRepository([]entity.Order{}, *m.IssueRepository),
 					)
+
 					return cursor
 				})
 
@@ -127,6 +129,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 
 				db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).Return(irResults, nil)
 				db.On("GetAllIssueRepositoryCursors", mock.Anything, filter, mock.Anything).Return(cursors, nil)
+
 				issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 				res, err := issueRepositoryHandler.ListIssueRepositories(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -165,7 +168,9 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
+
 		var after string
+
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -185,10 +190,12 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 
 	It("creates issueRepository", func() {
 		filter.Name = []*string{&issueRepository.Name}
+
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
 		db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).
 			Return([]entity.IssueRepositoryResult{}, nil)
+
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(
 			common.NewAdminContext(),
@@ -251,7 +258,9 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
+
 		var after string
+
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -268,6 +277,7 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 	It("updates issueRepository", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueRepository", &issueRepository).Return(nil)
+
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		issueRepository.Name = "SecretRepository"
 		filter.Id = []*int64{&issueRepository.Id}
@@ -298,7 +308,9 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
+
 		var after string
+
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -315,9 +327,12 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 	It("deletes issueRepository", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
+
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
+
 		db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).
 			Return([]entity.IssueRepositoryResult{}, nil)
+
 		err := issueRepositoryHandler.DeleteIssueRepository(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 

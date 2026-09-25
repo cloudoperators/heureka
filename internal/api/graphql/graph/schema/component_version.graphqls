@@ -17,11 +17,11 @@ type ComponentVersion implements Node {
 }
 
 input ComponentVersionInput {
-  version: String
-  componentId: String
-  tag: String
-  repository: String
-  organization: String
+  version: String @constraint(maxLength: 255)
+  componentId: String @constraint(maxLength: 255)
+  tag: String @constraint(maxLength: 255)
+  repository: String @constraint(maxLength: 255)
+  organization: String @constraint(maxLength: 255)
   endOfLife: Boolean
 }
 

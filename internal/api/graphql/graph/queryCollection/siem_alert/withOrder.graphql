@@ -25,6 +25,7 @@ query ($filter: SIEMAlertFilter, $first: Int, $after: String, $orderBy: [SIEMAle
                 pod
                 container
                 source
+                acknowledged
             }
             cursor
         }

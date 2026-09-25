@@ -19,6 +19,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		NewProperty("issuematch_status", func(im *entity.IssueMatch) (any, bool) {
 			return im.Status, im.Status != "" && im.Status != entity.IssueMatchStatusValuesNone
 		}),
+		NewProperty("issuematch_acknowledged", func(im *entity.IssueMatch) (any, bool) { return im.Acknowledged, true }),
 		NewProperty("issuematch_remediation_date", func(im *entity.IssueMatch) (any, bool) { return im.RemediationDate, !im.RemediationDate.IsZero() }),
 		NewProperty("issuematch_target_remediation_date", func(im *entity.IssueMatch) (any, bool) {
 			return im.TargetRemediationDate, !im.TargetRemediationDate.IsZero()
@@ -39,10 +40,18 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		NewFilterProperty("CI.componentinstance_service_id = ?", func(filter *entity.IssueMatchFilter) any { return filter.ServiceId }),
 		NewFilterProperty("IM.issuematch_rating = ?", func(filter *entity.IssueMatchFilter) any { return filter.SeverityValue }),
 		NewFilterProperty("IM.issuematch_status = ?", func(filter *entity.IssueMatchFilter) any { return filter.Status }),
+		NewFilterProperty("IM.issuematch_acknowledged = ?", func(filter *entity.IssueMatchFilter) any {
+			if filter.Acknowledged == nil {
+				return []*bool{}
+			}
+
+			return []*bool{filter.Acknowledged}
+		}),
 		NewFilterProperty("SG.supportgroup_ccrn = ?", func(filter *entity.IssueMatchFilter) any { return filter.SupportGroupCCRN }),
 		NewFilterProperty("I.issue_primary_name = ?", func(filter *entity.IssueMatchFilter) any { return filter.PrimaryName }),
 		NewFilterProperty("C.component_ccrn = ?", func(filter *entity.IssueMatchFilter) any { return filter.ComponentCCRN }),
 		NewFilterProperty("I.issue_type = ?", func(filter *entity.IssueMatchFilter) any { return filter.IssueType }),
+		NewFilterProperty("CI.componentinstance_region = ?", func(filter *entity.IssueMatchFilter) any { return filter.Region }),
 		NewFilterProperty("U.user_name = ?", func(filter *entity.IssueMatchFilter) any { return filter.ServiceOwnerUsername }),
 		NewFilterProperty("U.user_unique_user_id = ?", func(filter *entity.IssueMatchFilter) any { return filter.ServiceOwnerUniqueUserId }),
 		NewNFilterProperty(
@@ -68,7 +77,9 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			Table:     "IssueVariant IV",
 			On:        "I.issue_id = IV.issuevariant_issue_id",
 			DependsOn: []string{"I"},
-			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool { return len(f.Search) > 0 },
+			Condition: func(f *entity.IssueMatchFilter, _ *Order) bool {
+				return len(f.Search) > 0 || f.IncludeIssueVariants
+			},
 		},
 		{
 			Name:  "CI",
@@ -157,6 +168,10 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			s = append(s, "CI.*")
 		}
 
+		if f.IncludeIssueVariants {
+			s = append(s, "IV.*")
+		}
+
 		if f.IncludeService {
 			s = append(s, "S.*", "SG.*")
 		}
@@ -180,6 +195,10 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 		im := e.AsIssueMatch()
 		if e.IssueRow != nil {
 			im.Issue = lo.ToPtr(e.IssueRow.AsIssue())
+			if e.IssueVariantRow != nil {
+				iv := e.AsIssueVariant()
+				im.Issue.IssueVariants = []entity.IssueVariant{iv}
+			}
 		}
 
 		if e.ComponentInstanceRow != nil {
@@ -190,8 +209,10 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 					sg := e.AsSupportGroup()
 					svc.SupportGroup = &sg
 				}
+
 				ci.Service = &svc
 			}
+
 			im.ComponentInstance = &ci
 		}
 

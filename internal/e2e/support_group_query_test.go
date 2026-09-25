@@ -23,13 +23,16 @@ import (
 )
 
 var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -67,6 +70,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -101,6 +105,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 					respData := struct {
 						SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
 					}{}
+
 					BeforeEach(func() {
 						resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 							SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
@@ -132,7 +137,6 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 						// does resolve some reasonable data and is not doing
 						// a complete verification
 						// additional checks are added based on bugs discovered during usage
-
 						for _, sg := range respData.SupportGroups.Edges {
 							Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
 							Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
@@ -183,7 +187,6 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 								Expect(
 									userFound,
 								).To(BeTrue(), "attached user does exist and belongs to supportGroup")
-
 							}
 						}
 					})
@@ -249,14 +252,17 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 })
 
 var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var supportGroup entity.SupportGroup
-	var db *mariadb.SqlDatabase
+	var (
+		seeder       *test.DatabaseSeeder
+		s            *server.Server
+		cfg          util.Config
+		supportGroup entity.SupportGroup
+		db           *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -275,6 +281,7 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 	When("the database has 10 entries", func() {
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
+
 			supportGroup = testentity.NewFakeSupportGroupEntity()
 		})
 
@@ -301,13 +308,16 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 })
 
 var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -357,13 +367,16 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 })
 
 var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -412,13 +425,16 @@ var _ = Describe(
 	"Modifying Services of SupportGroup via API",
 	Label("e2e", "SupportGroups"),
 	func() {
-		var seeder *test.DatabaseSeeder
-		var s *server.Server
-		var cfg util.Config
-		var db *mariadb.SqlDatabase
+		var (
+			seeder *test.DatabaseSeeder
+			s      *server.Server
+			cfg    util.Config
+			db     *mariadb.SqlDatabase
+		)
 
 		BeforeEach(func() {
 			var err error
+
 			db = dbm.NewTestSchemaWithoutMigration()
 			seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 			Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -451,6 +467,7 @@ var _ = Describe(
 							if row.SupportGroupId.Int64 == supportGroup.Id {
 								return row.ServiceId.Int64, true
 							}
+
 							return 0, false
 						},
 					)
@@ -476,6 +493,7 @@ var _ = Describe(
 					)
 
 					Expect(err).ToNot(HaveOccurred())
+
 					_, found := lo.Find(
 						respData.SupportGroup.Services.Edges,
 						func(edge *model.ServiceEdge) bool {
@@ -510,6 +528,7 @@ var _ = Describe(
 					)
 
 					Expect(err).ToNot(HaveOccurred())
+
 					_, found := lo.Find(
 						respData.SupportGroup.Services.Edges,
 						func(edge *model.ServiceEdge) bool {
@@ -526,13 +545,16 @@ var _ = Describe(
 )
 
 var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -565,6 +587,7 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 						if row.SupportGroupId.Int64 == supportGroup.Id {
 							return row.UserId.Int64, true
 						}
+
 						return 0, false
 					},
 				)

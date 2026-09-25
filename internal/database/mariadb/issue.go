@@ -40,18 +40,33 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				if len(vals) > 0 && vals[0] {
 					return "IM.issuematch_deleted_at IS NULL"
 				}
+
 				return ""
 			}),
 			func(filter *entity.IssueFilter) any {
 				if filter.HasIssueMatches || len(filter.IssueMatchStatus) > 0 || len(filter.IssueMatchId) > 0 || len(filter.IssueMatchSeverity) > 0 {
 					return []bool{true}
 				}
+
 				return []bool{}
 			},
 		),
 		NewFilterProperty("MVL.max_severity = ?", func(filter *entity.IssueFilter) any { return filter.MvSeverity }),
 		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchId }),
-		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any { return filter.ComponentVersionId }),
+		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any {
+			if filter.HasIssueMatches {
+				return []int64{}
+			}
+
+			return filter.ComponentVersionId
+		}),
+		NewFilterProperty("CI.componentinstance_component_version_id = ?", func(filter *entity.IssueFilter) any {
+			if !filter.HasIssueMatches {
+				return []int64{}
+			}
+
+			return filter.ComponentVersionId
+		}),
 		NewFilterProperty("IV.issuevariant_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueVariantId }),
 		NewFilterProperty("I.issue_type = ?", func(filter *entity.IssueFilter) any { return filter.Type }),
 		NewFilterProperty("I.issue_primary_name = ?", func(filter *entity.IssueFilter) any { return filter.PrimaryName }),
@@ -69,6 +84,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				if filter.HasIssueMatches {
 					return filter.ComponentId
 				}
+
 				return []int64{}
 			},
 		),
@@ -83,12 +99,14 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				if len(is) != 1 {
 					panic(fmt.Sprintf("Unexpected number of elements for IssueStatus: %d", len(is)))
 				}
+
 				switch is[0] {
 				case entity.IssueStatusOpen:
 					return "R.remediation_id IS NULL"
 				case entity.IssueStatusRemediated:
 					return "R.remediation_id IS NOT NULL"
 				}
+
 				return ""
 			}),
 			func(filter *entity.IssueFilter) any { return []entity.IssueStatus{filter.Status} },
@@ -117,7 +135,9 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
 			DependsOn: []string{"IM_RJ"},
-			Condition: DependentJoin[*entity.IssueFilter],
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return len(f.ComponentVersionId) > 0
+			},
 		},
 		{
 			Name:      "CI with IM_LJ",
@@ -203,6 +223,12 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table: "ComponentVersionIssue CVI",
 			On:    "I.issue_id = CVI.componentversionissue_issue_id",
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				// On the IM_RJ path (HasIssueMatches) we scope via CI directly;
+				// CVI is not needed and may not exist (SIEM alert path).
+				if f.HasIssueMatches {
+					return len(f.ComponentId) > 0
+				}
+
 				return len(f.ComponentVersionId) > 0 || len(f.ComponentId) > 0
 			},
 		},
@@ -229,6 +255,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
+
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && hasComponent
 			},
 		}, // Missing test
@@ -241,6 +268,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
+
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && !hasComponent
 			},
 		}, // Missing test
@@ -253,6 +281,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
+
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && hasComponent
 			},
 		}, // Missing test
@@ -264,6 +293,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
+
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && !hasComponent
 			},
 		},
@@ -320,6 +350,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 	Attributes: []Attr{{Name: "primary_name", Order: entity.Order{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc}}},
 	ExtraColumnsSelector: func(f *entity.IssueFilter, order *Order) []string {
 		var cols []string
+
 		for _, o := range order.Sequence() {
 			switch o.By {
 			case entity.IssueVariantRating:
@@ -344,8 +375,11 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 	RowToData: func(e RowComposite, order []entity.Order) (*entity.Issue, string) {
 		issue := e.IssueRow.AsIssue()
 
-		var ivRating int64
-		var earliestTargetRemediation sql.NullTime
+		var (
+			ivRating                  int64
+			earliestTargetRemediation sql.NullTime
+		)
+
 		if e.IssueVariantRow != nil {
 			ivRating = e.RatingNumerical.Int64
 			earliestTargetRemediation = e.EarliestTargetRemediation

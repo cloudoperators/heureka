@@ -25,7 +25,7 @@ services:
       # - MARIADB_RANDOM_ROOT_PASSWORD=yes
     healthcheck:
       test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
-      start_period: 10s
+      start_period: 45s
       interval: 10s
       timeout: 5s
       retries: 3
@@ -143,7 +143,6 @@ services:
       # GRPC server
       - "8081:8081"
       # Playground
-      - "3000:3000"
-
+      - "8082:3000"
 volumes:
   valkey-data:

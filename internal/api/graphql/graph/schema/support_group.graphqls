@@ -10,7 +10,7 @@ type SupportGroup implements Node {
 }
 
 input SupportGroupInput {
-    ccrn: String
+    ccrn: String @constraint(maxLength: 255)
 }
 
 type SupportGroupConnection implements Connection {

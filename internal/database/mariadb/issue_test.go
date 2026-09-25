@@ -22,10 +22,14 @@ import (
 )
 
 var _ = Describe("Issue", Label("database", "Issue"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -38,6 +42,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetIssues(context.Background(), nil, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -48,6 +53,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		})
 		Context("and we have 10 issues in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -67,10 +73,8 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Issue.Id > prev).Should(BeTrue())
 							prev = r.Issue.Id
-
 						}
 					})
 
@@ -102,7 +106,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			Context("and using a filter", func() {
 				It("can filter by a single service name", func() {
 					var row mariadb.BaseServiceRow
+
 					searchingRow := true
+
 					var issueRows []mariadb.IssueRow
 
 					// get a service that should return at least 1 issue
@@ -111,6 +117,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) == 0
 					}
+
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
 					entries, err := db.GetIssues(context.Background(), filter, nil)
@@ -140,7 +147,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("can filter by multiple existing service names", func() {
 					serviceCcrns := make([]*string, len(seedCollection.ServiceRows))
+
 					var expectedIssues []mariadb.IssueRow
+
 					for i, row := range seedCollection.ServiceRows {
 						x := row.CCRN.String
 						expectedIssues = append(
@@ -149,6 +158,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						)
 						serviceCcrns[i] = &x
 					}
+
 					expectedIssues = lo.Uniq(expectedIssues)
 					filter := &entity.IssueFilter{ServiceCCRN: serviceCcrns}
 
@@ -246,6 +256,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					// collect all issue ids that belong to the component version
 					issueIds := []int64{}
+
 					for _, cvvRow := range seedCollection.ComponentVersionIssueRows {
 						if cvvRow.ComponentVersionId.Int64 == cvRow.Id.Int64 {
 							issueIds = append(issueIds, cvvRow.IssueId.Int64)
@@ -272,6 +283,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					// collect all componentVersion ids that belong to the component
 					cvIds := []int64{}
+
 					for _, cvRow := range seedCollection.ComponentVersionRows {
 						if cvRow.ComponentId.Int64 == cRow.Id.Int64 {
 							cvIds = append(cvIds, cvRow.Id.Int64)
@@ -280,6 +292,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					// collect all issue ids that belong to the component version ids
 					issueIds := []int64{}
+
 					for _, cviRow := range seedCollection.ComponentVersionIssueRows {
 						if lo.Contains(cvIds, cviRow.ComponentVersionId.Int64) {
 							issueIds = append(issueIds, cviRow.IssueId.Int64)
@@ -344,6 +357,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					Expect(err).To(BeNil())
+
 					for _, entry := range entries {
 						hasMatch := lo.ContainsBy(
 							seedCollection.IssueMatchRows,
@@ -372,6 +386,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						entries, err := db.GetIssues(context.Background(), filter, nil)
 
 						Expect(err).To(BeNil())
+
 						for _, entry := range entries {
 							Expect(
 								lo.Contains(issueIds, entry.Issue.Id),
@@ -428,6 +443,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				When("filtered by IssueStatus", func() {
 					var remediation entity.Remediation
+
 					BeforeEach(func() {
 						issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 						remediation = entity_test.NewFakeRemediationEntity()
@@ -500,6 +516,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 										sql.NullTime{},
 									),
 								)
+
 								return after
 							},
 							len(seedCollection.IssueRows),
@@ -609,6 +626,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			)
 			Context("and counting issue types", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
@@ -651,6 +669,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		Context("and using a filter", func() {
 			Context("and having 20 elements in the Database", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
@@ -675,7 +694,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("does show the correct amount when filtering for a service name", func() {
 					var row mariadb.BaseServiceRow
+
 					searchingRow := true
+
 					var issueRows []mariadb.IssueRow
 
 					// get a service that should return at least 1 issue
@@ -684,6 +705,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) > 0
 					}
+
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
 					count, err := db.CountIssues(context.Background(), filter)
@@ -698,7 +720,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("does show the correct amount when filtering for a service id", func() {
 					var row mariadb.BaseServiceRow
+
 					searchingRow := true
+
 					var issueRows []mariadb.IssueRow
 
 					// get a service that should return at least 1 issue
@@ -707,6 +731,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) > 0
 					}
+
 					filter := &entity.IssueFilter{ServiceId: []*int64{&row.Id.Int64}}
 
 					count, err := db.CountIssues(context.Background(), filter)
@@ -739,9 +764,13 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				Expect(issueSeverityCounts.Total).To(BeEquivalentTo(counts.Total))
 			})
 		}
+
 		Context("and counting issue severities", func() {
-			var seedCollection *test.SeedCollection
-			var err error
+			var (
+				seedCollection *test.SeedCollection
+				err            error
+			)
+
 			BeforeEach(func() {
 				seedCollection, err = seeder.SeedForIssueCounts()
 				Expect(err).To(BeNil())
@@ -772,7 +801,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				Expect(err).To(BeNil())
 
 				for _, sg := range seedCollection.SupportGroupRows {
-
 					filter := &entity.IssueFilter{
 						AllServices:      true,
 						SupportGroupCCRN: []*string{&sg.CCRN.String},
@@ -828,7 +856,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				Expect(err).To(BeNil())
 
 				for _, sg := range seedCollection.SupportGroupRows {
-
 					filter := &entity.IssueFilter{
 						SupportGroupCCRN: []*string{&sg.CCRN.String},
 					}
@@ -864,9 +891,12 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	})
 	When("Insert Issue", Label("InsertIssue"), func() {
 		Context("and we have 10 Issues in the database", func() {
-			var newIssueRow mariadb.IssueRow
-			var newIssue entity.Issue
-			var seedCollection *test.SeedCollection
+			var (
+				newIssueRow    mariadb.IssueRow
+				newIssue       entity.Issue
+				seedCollection *test.SeedCollection
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newIssueRow = test.NewFakeIssue()
@@ -887,6 +917,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				}
 
 				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -916,6 +947,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	When("Update Issue", Label("UpdateIssue"), func() {
 		Context("and we have 10 Issues in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -934,6 +966,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				}
 
 				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -949,6 +982,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	When("Delete Issue", Label("DeleteIssue"), func() {
 		Context("and we have 10 Issues in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -966,6 +1000,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				}
 
 				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -977,11 +1012,13 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	})
 	When("Add Component Version to Issue", Label("AddComponentVersionToIssue"), func() {
 		Context("and we have 10 Issues in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newComponentVersionRow mariadb.ComponentVersionRow
-			var newComponentVersion entity.ComponentVersion
-			var componentVersion *entity.ComponentVersion
-			var issue entity.Issue
+			var (
+				seedCollection         *test.SeedCollection
+				newComponentVersionRow mariadb.ComponentVersionRow
+				newComponentVersion    entity.ComponentVersion
+				componentVersion       *entity.ComponentVersion
+				issue                  entity.Issue
+			)
 
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -1031,8 +1068,11 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	})
 	When("Remove Component Version from Issue", Label("RemoveComponentVersionFromIssue"), func() {
 		Context("and we have 10 Issues in the database", func() {
-			var seedCollection *test.SeedCollection
-			var componentVersionIssueRow mariadb.ComponentVersionIssueRow
+			var (
+				seedCollection           *test.SeedCollection
+				componentVersionIssueRow mariadb.ComponentVersionIssueRow
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				componentVersionIssueRow = seedCollection.ComponentVersionIssueRows[0]
@@ -1054,9 +1094,11 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				}
 
 				issues, err := db.GetIssues(context.Background(), issueFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
+
 				for _, issue := range issues {
 					Expect(
 						issue.Issue.Id,
@@ -1068,12 +1110,15 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 })
 
 var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
+	var (
+		db             *mariadb.SqlDatabase
+		seeder         *test.DatabaseSeeder
+		seedCollection *test.SeedCollection
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -1130,6 +1175,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 
 			testOrder(order, func(res []entity.IssueResult) {
 				prev := ""
+
 				for _, r := range res {
 					Expect(r).ShouldNot(BeNil())
 					Expect(r.PrimaryName >= prev).Should(BeTrue())
@@ -1145,6 +1191,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 
 			testOrder(order, func(res []entity.IssueResult) {
 				prev := -10
+
 				for _, r := range res {
 					variants := seedCollection.GetIssueVariantsByIssueId(r.Issue.Id)
 					ratings := lo.Map(variants, func(iv mariadb.IssueVariantRow, _ int) int {
@@ -1185,6 +1232,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 
 			testOrder(order, func(res []entity.IssueResult) {
 				prev := "\U0010FFFF"
+
 				for _, r := range res {
 					Expect(r).ShouldNot(BeNil())
 					Expect(r.PrimaryName <= prev).Should(BeTrue())
@@ -1200,6 +1248,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 
 			testOrder(order, func(res []entity.IssueResult) {
 				prev := 9999
+
 				for _, r := range res {
 					variants := seedCollection.GetIssueVariantsByIssueId(r.Issue.Id)
 					ratings := lo.Map(variants, func(iv mariadb.IssueVariantRow, _ int) int {

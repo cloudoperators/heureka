@@ -66,12 +66,12 @@ Get '${alias}' vulnerability primary name
     ${supportGroupId}=    Create supportGroup    containers
     ${vulnerabilityPrimaryName}=    Get '${alias}' vulnerability primary name
     ${issueId}=    Create issue    primaryName=${vulnerabilityPrimaryName}    description=${alias}Description    type=${ISSUE_TYPE_VULNERABILITY}
-    ${issueRepositoryId}=    Create issueRepository    name=${alias}IRName    url=${alias}.url.co
+    ${issueRepositoryId}=    Create issueRepository    name=${alias}IRName    url=http://${alias}.url.co
     ${severity}=    Create dictionary    rating=High
     Create issueVariant
     ...    secondaryName=${alias}SecondaryName
     ...    description=${alias}Description
-    ...    externalUrl=${alias}.external.url
+    ...    externalUrl=http://${alias}.external.url
     ...    severity=${severity}
     ...    issueRepositoryId=${issueRepositoryId}
     ...    issueId=${issueId}
@@ -223,7 +223,7 @@ Set remediation change severity description
     Input text   ${description_text_field_element}    ${description_text}
 
 '${alias}' vulnerability is not visible on the list of active vulnerabilities
-    Shadow element text should contain    ${LIST_CELL_SELECTOR}    No vulnerabilities found!
+    Wait for shadow element text to contain    ${LIST_CELL_SELECTOR}    No vulnerabilities found!
 
 '${alias}' vulnerability is visible on the list of remediated vulnerabilities
     Click shadow element with text    li[class*="juno-tab"][role="tab"]    Remediated Vulnerabilities

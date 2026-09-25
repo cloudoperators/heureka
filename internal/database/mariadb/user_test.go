@@ -17,10 +17,14 @@ import (
 )
 
 var _ = Describe("User", Label("database", "User"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -44,8 +48,11 @@ var _ = Describe("User", Label("database", "User"), func() {
 			})
 		})
 		Context("and we have 20 Users in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
+			var (
+				seedCollection *test.SeedCollection
+				ids            []int64
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 
@@ -69,10 +76,8 @@ var _ = Describe("User", Label("database", "User"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r > prev).Should(BeTrue())
 							prev = r
-
 						}
 					})
 
@@ -124,6 +129,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 		})
 		Context("and we have 10 Users in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -131,6 +137,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 				It("can fetch the items correctly", func() {
 					res, err := db.GetUsers(context.Background(), nil, nil)
 					res = e2e_common.SubtractSystemUsersEntity(res)
+
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
 					})
@@ -142,10 +149,8 @@ var _ = Describe("User", Label("database", "User"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -202,6 +207,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					}
 
 					var userIds []int64
+
 					for _, e := range seedCollection.SupportGroupUserRows {
 						if e.SupportGroupId.Int64 == sgu.SupportGroupId.Int64 {
 							userIds = append(userIds, e.UserId.Int64)
@@ -231,6 +237,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					}
 
 					var userIds []int64
+
 					for _, e := range seedCollection.OwnerRows {
 						if e.ServiceId.Int64 == owner.ServiceId.Int64 {
 							userIds = append(userIds, e.UserId.Int64)
@@ -296,6 +303,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 						Type: []entity.UserType{entity.HumanUserType},
 					}
 					humanUserEntries, cErr := db.GetUsers(context.Background(), humanUserTypeFilter, nil)
+
 					By("throwing no error when filtering human user type", func() {
 						Expect(cErr).To(BeNil())
 					})
@@ -312,6 +320,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 						Type: []entity.UserType{entity.TechnicalUserType},
 					}
 					technicalUserEntries, tErr := db.GetUsers(context.Background(), technicalUserTypeFilter, nil)
+
 					By("throwing no error when filtering technical user type", func() {
 						Expect(tErr).To(BeNil())
 					})
@@ -353,9 +362,12 @@ var _ = Describe("User", Label("database", "User"), func() {
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var sgRows []mariadb.UserRow
-			var count int
+			var (
+				seedCollection *test.SeedCollection
+				sgRows         []mariadb.UserRow
+				count          int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				sgRows = seedCollection.UserRows
@@ -398,9 +410,12 @@ var _ = Describe("User", Label("database", "User"), func() {
 	})
 	When("Insert User", Label("InsertUser"), func() {
 		Context("and we have 10 Users in the database", func() {
-			var newUserRow mariadb.UserRow
-			var newUser entity.User
-			var seedCollection *test.SeedCollection
+			var (
+				newUserRow     mariadb.UserRow
+				newUser        entity.User
+				seedCollection *test.SeedCollection
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newUserRow = test.NewFakeUser()
@@ -421,6 +436,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 				}
 
 				u, err := db.GetUsers(context.Background(), userFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -451,6 +467,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 	When("Update User", Label("UpdateUser"), func() {
 		Context("and we have 10 Users in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -469,6 +486,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 				}
 
 				u, err := db.GetUsers(context.Background(), userFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -497,6 +515,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 				}
 
 				u, err := db.GetUsers(context.Background(), userFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -525,6 +544,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 				}
 
 				u, err := db.GetUsers(context.Background(), userFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -543,6 +563,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 	When("Delete User", Label("DeleteUser"), func() {
 		Context("and we have 10 Users in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -560,6 +581,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 				}
 
 				u, err := db.GetUsers(context.Background(), userFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -574,6 +596,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			It("can perform the list query", func() {
 				res, err := db.GetUserNames(context.Background(), nil)
 				res = e2e_common.SubtractSystemUserNameVL(res)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -584,6 +607,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 		})
 		Context("and we have 10 services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -616,8 +640,11 @@ var _ = Describe("User", Label("database", "User"), func() {
 				})
 			})
 			Context("and using a UserNames filter", func() {
-				var filter *entity.UserFilter
-				var expectedUserNames []string
+				var (
+					filter            *entity.UserFilter
+					expectedUserNames []string
+				)
+
 				BeforeEach(func() {
 					namePointers := []*string{}
 
@@ -647,6 +674,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 					It("and using another filter", func() {
 						var anotherFilter *entity.UserFilter
+
 						BeforeEach(func() {
 							nonExistentUserName := "NonexistentUserName"
 
@@ -680,6 +708,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			It("can perform the list query", func() {
 				res, err := db.GetUniqueUserIDs(context.Background(), nil)
 				res = e2e_common.SubtractSystemUserUniqueUserIdVL(res)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -690,6 +719,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 		})
 		Context("and we have 10 services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -722,8 +752,11 @@ var _ = Describe("User", Label("database", "User"), func() {
 				})
 			})
 			Context("and using a UniqueUserID filter", func() {
-				var filter *entity.UserFilter
-				var expectedUniqueUserIDs []string
+				var (
+					filter                *entity.UserFilter
+					expectedUniqueUserIDs []string
+				)
+
 				BeforeEach(func() {
 					uuidPointers := []*string{}
 
@@ -753,6 +786,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 					It("and using another filter", func() {
 						var anotherFilter *entity.UserFilter
+
 						BeforeEach(func() {
 							nonExistentUniqueUserID := "NonexistentUniqueUserIDs"
 

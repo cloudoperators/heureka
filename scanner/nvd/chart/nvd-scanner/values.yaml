@@ -17,6 +17,13 @@ scanner:
     start_date: ""
     end_date: ""
 
+# Configuration for the update-check job that polls NVD for modified CVEs
+# and updates existing Heureka issues when data changes.
+updateScanner:
+  enabled: true
+  schedule: "0 2 * * *"
+  reviewIntervalDays: 7
+
 image:
   repository: ghcr.io/cloudoperators/heureka-scanner-nvd
   pullPolicy: Always

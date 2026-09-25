@@ -21,13 +21,16 @@ import (
 )
 
 var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueRepositories"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -65,6 +68,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -99,6 +103,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 					respData := struct {
 						IssueRepositories model.IssueRepositoryConnection `json:"IssueRepositories"`
 					}{}
+
 					BeforeEach(func() {
 						resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 							IssueRepositories model.IssueRepositoryConnection `json:"IssueRepositories"`
@@ -130,7 +135,6 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 						// does resolve some reasonable data and is not doing
 						// a complete verification
 						// additional checks are added based on bugs discovered during usage
-
 						for _, ir := range respData.IssueRepositories.Edges {
 							Expect(ir.Node.ID).ToNot(BeNil(), "issueRepository has a ID set")
 							Expect(ir.Node.Name).ToNot(BeNil(), "issueRepository has a name set")
@@ -213,14 +217,17 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 })
 
 var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueRepositories"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var issueRepository entity.IssueRepository
-	var db *mariadb.SqlDatabase
+	var (
+		seeder          *test.DatabaseSeeder
+		s               *server.Server
+		cfg             util.Config
+		issueRepository entity.IssueRepository
+		db              *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -239,6 +246,7 @@ var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueReposito
 	When("the database has 10 entries", func() {
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
+
 			issueRepository = testentity.NewFakeIssueRepositoryEntity()
 		})
 
@@ -267,13 +275,16 @@ var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueReposito
 })
 
 var _ = Describe("Updating issueRepository via API", Label("e2e", "IssueRepositories"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -326,13 +337,16 @@ var _ = Describe("Updating issueRepository via API", Label("e2e", "IssueReposito
 })
 
 var _ = Describe("Deleting IssueRepository via API", Label("e2e", "IssueRepositories"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

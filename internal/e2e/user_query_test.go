@@ -22,13 +22,16 @@ import (
 )
 
 var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -66,6 +69,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -101,6 +105,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 					respData := struct {
 						Users model.UserConnection `json:"Users"`
 					}{}
+
 					BeforeEach(func() {
 						resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 							Users model.UserConnection `json:"Users"`
@@ -133,7 +138,6 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 						// does resolve some reasonable data and is not doing
 						// a complete verification
 						// additional checks are added based on bugs discovered during usage
-
 						for _, user := range respData.Users.Edges {
 							Expect(user.Node.ID).ToNot(BeNil(), "user has a ID set")
 							Expect(user.Node.Name).ToNot(BeNil(), "user has a name set")
@@ -185,7 +189,6 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 								Expect(
 									sgFound,
 								).To(BeTrue(), "attached supportGroup does exist and belongs to user")
-
 							}
 						}
 					})
@@ -213,14 +216,17 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 })
 
 var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var user entity.User
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		user   entity.User
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -239,6 +245,7 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 	When("the database has 10 entries", func() {
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
+
 			user = testentity.NewFakeUserEntity()
 		})
 
@@ -263,13 +270,16 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 })
 
 var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -316,13 +326,16 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 })
 
 var _ = Describe("Deleting User via API", Label("e2e", "Users"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

@@ -20,13 +20,16 @@ import (
 )
 
 var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -51,6 +54,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 		if err != nil {
 			return nil, nil, err
 		}
+
 		cvIssues, err := test.LoadComponentVersionIssues(
 			test.GetTestDataPath(
 				"../database/mariadb/testdata/component_version_order/component_version_issue.json",
@@ -59,6 +63,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 		if err != nil {
 			return nil, nil, err
 		}
+
 		return issueVariants, cvIssues, nil
 	}
 
@@ -77,19 +82,24 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 			for _, iv := range issueVariants {
 				_, err := seeder.InsertFakeIssueVariant(iv)
 				Expect(err).To(BeNil())
+
 				issueVariantByIssueId[iv.IssueId.Int64] = iv
 			}
+
 			for _, cv := range componentVersions {
 				ci := test.NewFakeComponentInstance()
 				ci.ComponentVersionId = cv.Id
 				ci.ServiceId = services[0].Id
 				ciId, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
+
 				versionInstanceIds[cv.Id.Int64] = ciId
 			}
+
 			for _, cvi := range componentVersionIssues {
 				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 				Expect(err).To(BeNil())
+
 				im := test.NewFakeIssueMatch()
 				im.IssueId = cvi.IssueId
 				im.Status = sql.NullString{
@@ -107,6 +117,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 				_, err = seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 			}
+
 			seeder.RefreshCountIssueRatings()
 		})
 
@@ -140,9 +151,11 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 				).To(BeNumerically(">", 0), "ImageVersion has occurences")
 
 				vc := entity.IssueSeverityCounts{}
+
 				for _, vulnerability := range iv.Vulnerabilities.Edges {
 					Expect(vulnerability.Node.ID).ToNot(BeNil(), "vulnerability has a ID set")
 					Expect(vulnerability.Node.Name).ToNot(BeNil(), "vulnerability has name set")
+
 					switch vulnerability.Node.Severity.String() {
 					case entity.SeverityValuesCritical.String():
 						vc.Critical++
@@ -160,9 +173,11 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 						vc.None++
 						totalVc.None++
 					}
+
 					vc.Total++
 					totalVc.Total++
 				}
+
 				Expect(
 					iv.VulnerabilityCounts.Critical,
 				).To(BeEquivalentTo(vc.Critical), "Critical count matches")
@@ -187,6 +202,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 					Expect(*o.Node.ComponentVersionID).To(BeEquivalentTo(iv.ID))
 				}
 			}
+
 			Expect(
 				respData.ImageVersions.Counts.Critical,
 			).To(BeEquivalentTo(totalVc.Critical), "Total Critical count matches")

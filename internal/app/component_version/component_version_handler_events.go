@@ -4,6 +4,7 @@
 package component_version
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -62,7 +63,7 @@ func OnComponentVersionCreateAuthz(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnComponentVersionCreateAuthz")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentVersionCreateAuthz",
@@ -88,9 +89,7 @@ func OnComponentVersionCreateAuthz(
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewComponentVersionHandlerError(
-			"OnComponentVersionCreateAuthz: triggered with wrong event type",
-		)
+		err := fmt.Errorf("OnComponentVersionCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
 		l.Error(wrappedErr)
 	}
@@ -104,7 +103,7 @@ func OnComponentVersionUpdateAuthz(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnComponentVersionUpdateAuthz")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentVersionUpdateAuthz",
@@ -139,9 +138,7 @@ func OnComponentVersionUpdateAuthz(
 			}
 		}
 	} else {
-		err := NewComponentVersionHandlerError(
-			"OnComponentVersionUpdateAuthz: triggered with wrong event type",
-		)
+		err := fmt.Errorf("OnComponentVersionUpdateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
 		l.Error(wrappedErr)
 	}
@@ -153,7 +150,7 @@ func OnComponentVersionDeleteAuthz(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnComponentVersionDeleteAuthz")
+	op := appErrors.CallerOp()
 
 	deleteInput := []openfga.RelationInput{}
 
@@ -182,9 +179,7 @@ func OnComponentVersionDeleteAuthz(
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewComponentVersionHandlerError(
-			"OnComponentVersionDeleteAuthz: triggered with wrong event type",
-		)
+		err := fmt.Errorf("OnComponentVersionDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
 		l.Error(wrappedErr)
 	}

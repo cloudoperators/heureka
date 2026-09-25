@@ -79,6 +79,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.ComponentVersionResult{}, nil)
@@ -102,6 +103,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 				filter.First = &pageSize
 				componentVersions := []entity.ComponentVersionResult{}
+
 				for _, cv := range test.NNewFakeComponentVersionEntities(resElements) {
 					cursor, _ := mariadb.EncodeCursor(
 						mariadb.WithComponentVersion(
@@ -129,6 +131,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 								entity.IssueSeverityCounts{},
 							),
 						)
+
 						return cursor
 					},
 				)
@@ -146,11 +149,13 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 					)
 					cursors = append(cursors, c)
 				}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 					Return(componentVersions, nil)
 				db.On("GetAllComponentVersionCursors", mock.Anything, filter, []entity.Order{}).
 					Return(cursors, nil)
+
 				cvHandler = cv.NewComponentVersionHandler(handlerContext)
 				res, err := cvHandler.ListComponentVersions(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -183,6 +188,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		It("filters results correctly", func() {
 			// Create test data with a specific tag
 			testTag := "test-filter-tag"
+
 			componentVersions := test.NNewFakeComponentVersionResults(3)
 			for i := range componentVersions {
 				componentVersions[i].Tag = testTag
@@ -196,6 +202,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", mock.Anything, tagFilter, []entity.Order{}).
 				Return(componentVersions, nil)
+
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", mock.Anything, tagFilter).
 					Return(int64(len(componentVersions)), nil)
@@ -219,6 +226,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		It("filters results correctly", func() {
 			// Create test data with a specific repository
 			testRepo := "test-filter-repo"
+
 			componentVersions := test.NNewFakeComponentVersionResults(3)
 			for i := range componentVersions {
 				componentVersions[i].Repository = testRepo
@@ -232,6 +240,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", mock.Anything, repoFilter, []entity.Order{}).
 				Return(componentVersions, nil)
+
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", mock.Anything, repoFilter).
 					Return(int64(len(componentVersions)), nil)
@@ -255,6 +264,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		It("filters results correctly", func() {
 			// Create test data with a specific organization
 			testOrg := "test-filter-org"
+
 			componentVersions := test.NNewFakeComponentVersionResults(3)
 			for i := range componentVersions {
 				componentVersions[i].Organization = testOrg
@@ -268,6 +278,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", mock.Anything, orgFilter, []entity.Order{}).
 				Return(componentVersions, nil)
+
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", mock.Anything, orgFilter).
 					Return(int64(len(componentVersions)), nil)
@@ -307,6 +318,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			BeforeEach(func() {
 				compIds := int64(-1)
 				filter.ComponentId = []*int64{&compIds}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentVersionResult{}, nil)
@@ -331,6 +343,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 					systemUserId := int64(1)
 					filter.ComponentId = []*int64{&compId}
 					componentVersion = test.NewFakeComponentVersionEntity()
+
 					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 					db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 						Return([]entity.ComponentVersionResult{{ComponentVersion: &componentVersion}}, nil)
@@ -391,6 +404,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		componentVersion = test.NewFakeComponentVersionEntity()
+
 		handlerContext.Authz.RemoveAllRelations()
 
 		handlerContext.DB = db
@@ -400,6 +414,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 	It("creates componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
+
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		newComponentVersion, err := componenVersionService.CreateComponentVersion(
 			common.NewAdminContext(),
@@ -447,6 +462,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 
 					// Use type assertion to convert a CreateServiceEvent into an Event
 					var event event.Event = createEvent
+
 					resourceId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
 					r.ObjectId = openfga.ObjectId(resourceId)
 					// Simulate event
@@ -474,6 +490,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		componentVersion = test.NewFakeComponentVersionResult()
+
 		handlerContext.Authz.RemoveAllRelations()
 
 		first := 10
@@ -491,6 +508,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 	It("updates componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentVersion", componentVersion.ComponentVersion).Return(nil)
+
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		componentVersion.Version = "7.3.3.1"
 		componentVersion.Tag = "updated-tag"
@@ -549,6 +567,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 				updateEvent := &cv.UpdateComponentVersionEvent{
 					ComponentVersion: &cvFake,
 				}
+
 				var event event.Event = updateEvent
 
 				// Simulate event
@@ -607,9 +626,12 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 	It("deletes componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
+
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+
 		db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).
 			Return([]entity.ComponentVersionResult{}, nil)
+
 		err := componenVersionService.DeleteComponentVersion(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -681,11 +703,14 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 
 					// get the number of relations before deletion
 					relCountBefore := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountBefore += len(relations)
 					}
+
 					Expect(
 						relCountBefore,
 					).To(Equal(len(relations)), "all relations should exist before deletion")
@@ -703,11 +728,14 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 
 					// get the number of relations after deletion
 					relCountAfter := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountAfter += len(relations)
 					}
+
 					Expect(
 						relCountAfter < relCountBefore,
 					).To(BeTrue(), "less relations after deletion")

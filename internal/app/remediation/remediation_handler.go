@@ -6,43 +6,39 @@ package remediation
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
-	"github.com/cloudoperators/heureka/internal/app/event"
 	applog "github.com/cloudoperators/heureka/internal/app/logging"
-	"github.com/cloudoperators/heureka/internal/cache"
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	CacheTtlGetRemediations          = 12 * time.Hour
-	CacheTtlGetAllRemediationCursors = 12 * time.Hour
-	CacheTtlCountRemediations        = 12 * time.Hour
-)
-
 type remediationHandler struct {
-	database      database.Database
-	eventRegistry event.EventRegistry
-	cache         cache.Cache
-	authz         openfga.Authorization
-	logger        *logrus.Logger
+	common.BaseHandler[entity.RemediationResult, *entity.RemediationFilter]
 }
 
 func NewRemediationHandler(handlerContext common.HandlerContext) RemediationHandler {
 	return &remediationHandler{
-		database:      handlerContext.DB,
-		eventRegistry: handlerContext.EventReg,
-		cache:         handlerContext.Cache,
-		authz:         handlerContext.Authz,
-		logger:        logrus.New(),
+		BaseHandler: common.NewBaseHandler(handlerContext, common.BaseConfig[entity.RemediationResult, *entity.RemediationFilter]{
+			Op:           appErrors.Op("remediationHandler"),
+			Entity:       "Remediations",
+			CursorEntity: "RemediationCursors",
+			CountEntity:  "RemediationCount",
+			GetFn:        handlerContext.DB.GetRemediations,
+			CursorsFn:    handlerContext.DB.GetAllRemediationCursors,
+			CountFn:      handlerContext.DB.CountRemediations,
+			Authz:        handlerContext.Authz,
+			ListEventFn: func(f *entity.RemediationFilter, o *entity.ListOptions, r *entity.List[entity.RemediationResult]) any {
+				return &ListRemediationsEvent{Filter: f, Options: o, Remediations: r}
+			},
+			DeleteFn:      handlerContext.DB.DeleteRemediation,
+			DeleteEventFn: func(id int64) any { return &DeleteRemediationEvent{RemediationID: id} },
+		}),
 	}
 }
 
@@ -51,149 +47,77 @@ func (rh *remediationHandler) ListRemediations(
 	filter *entity.RemediationFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.RemediationResult], error) {
-	op := appErrors.Op("remediationHandler.ListRemediations")
+	return rh.List(ctx, appErrors.CallerOp(), filter, options)
+}
 
-	var (
-		count    int64
-		pageInfo *entity.PageInfo
-	)
+func validateFilteredRemediationDescription(description string, op appErrors.Op) error {
+	if description == "" {
+		return appErrors.E(op, "Remediation", appErrors.InvalidArgument, "Description is required for filtered remediation")
+	}
 
-	common.EnsurePaginated(&filter.Paginated)
+	return nil
+}
 
-	res, err := cache.CallCached[[]entity.RemediationResult](
-		rh.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetRemediations,
-			ctx,
-			"GetRemediations",
-			rh.database.GetRemediations,
-			filter,
-			options.Order,
-		),
-	)
+func (rh *remediationHandler) validateFilteredRemediationIssue(
+	ctx context.Context,
+	issueID int64,
+	id string,
+	op appErrors.Op,
+) error {
+	issues, err := rh.DB().GetIssues(ctx, &entity.IssueFilter{
+		Id: []*int64{&issueID},
+	}, nil)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediations", "", err)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
+		return appErrors.InternalError(string(op), "Remediation", id, err)
 	}
 
-	if options.ShowPageInfo {
-		if len(res) > 0 {
-			cursors, err := cache.CallCached[[]string](
-				rh.cache,
-				cache.NewCacheCallParams(
-					CacheTtlGetAllRemediationCursors,
-					ctx,
-					"GetAllRemediationCursors",
-					rh.database.GetAllRemediationCursors,
-					filter,
-					options.Order,
-				),
-			)
-			if err != nil {
-				wrappedErr := appErrors.InternalError(string(op), "RemediationCursors", "", err)
-				applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-					"filter": filter,
-				})
-
-				return nil, wrappedErr
-			}
-
-			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
-			count = int64(len(cursors))
-		}
-	} else if options.ShowTotalCount {
-		count, err = cache.CallCached[int64](
-			rh.cache,
-			cache.NewCacheCallParams(
-				CacheTtlCountRemediations,
-				ctx,
-				"CountRemediations",
-				rh.database.CountRemediations,
-				filter,
-			),
-		)
-		if err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "RemediationCount", "", err)
-			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-				"filter": filter,
-			})
-
-			return nil, wrappedErr
-		}
+	if len(issues) != 1 || issues[0].Type != entity.IssueTypeSecurityEvent {
+		return appErrors.E(op, "Remediation", appErrors.InvalidArgument, "filtered remediation can only be applied to SIEM alerts")
 	}
 
-	result := &entity.List[entity.RemediationResult]{
-		TotalCount: &count,
-		PageInfo:   pageInfo,
-		Elements:   res,
-	}
-
-	rh.eventRegistry.PushEvent(&ListRemediationsEvent{
-		Filter:       filter,
-		Options:      options,
-		Remediations: result,
-	})
-
-	return result, nil
+	return nil
 }
 
 func (rh *remediationHandler) CreateRemediation(
 	ctx context.Context,
 	remediation *entity.Remediation,
 ) (*entity.Remediation, error) {
-	op := appErrors.Op("remediationHandler.CreateRemediation")
+	op := appErrors.CallerOp()
 
-	// Input validation - check for required fields
 	if remediation == nil {
-		err := appErrors.E(
-			op,
-			"Remediation",
-			appErrors.InvalidArgument,
-			"remediation cannot be nil",
-		)
-		applog.LogError(rh.logger, err, logrus.Fields{})
-
-		return nil, err
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, "remediation cannot be nil")
 	}
 
 	if remediation.Service == "" {
-		err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "Service is required")
-		applog.LogError(rh.logger, err, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, err
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, "Service is required")
 	}
 
-	if remediation.Type == entity.RemediationTypeRiskAccepted {
-		if remediation.URL == "" {
-			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation": remediation,
-			})
+	if err := validateByType(remediation); err != nil {
+		applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
 
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, err.Error())
+	}
+
+	if remediation.Type == entity.RemediationTypeFiltered {
+		if err := validateFilteredRemediationDescription(remediation.Description, op); err != nil {
+			applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
+			return nil, err
+		}
+
+		if err := rh.validateFilteredRemediationIssue(ctx, remediation.IssueId, "", op); err != nil {
+			applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
 			return nil, err
 		}
 	}
 
-	// Get current user for audit fields
 	var err error
 
-	remediation.CreatedBy, err = common.GetCurrentUserId(ctx, rh.database)
+	remediation.CreatedBy, err = common.GetCurrentUserId(ctx, rh.DB())
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Remediation", "", err)
 	}
 
-	hasPermission, err := rh.authz.CheckPermission(openfga.RelationInput{
+	hasPermission, err := rh.Authz().CheckPermission(openfga.RelationInput{
 		UserType:   openfga.TypeUser,
 		UserId:     openfga.UserId(fmt.Sprint(remediation.CreatedBy)),
 		Relation:   openfga.RelCanWrite,
@@ -201,22 +125,11 @@ func (rh *remediationHandler) CreateRemediation(
 		ObjectId:   openfga.ObjectId(fmt.Sprint(remediation.ServiceId)),
 	})
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Remediation", "", err)
 	}
 
 	if !hasPermission {
-		wrappedErr := appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(remediation.ServiceId))
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"serviceId": remediation.ServiceId,
-			"userId":    remediation.CreatedBy,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(remediation.ServiceId))
 	}
 
 	remediation.UpdatedBy = remediation.CreatedBy
@@ -224,55 +137,63 @@ func (rh *remediationHandler) CreateRemediation(
 	if remediation.RemediatedBy == "" {
 		remediation.RemediatedBy, err = common.GetCurrentUniqueUserId(ctx)
 		if err != nil {
+			return nil, appErrors.InternalError(string(op), "Remediation", "", err)
+		}
+	}
+
+	remediation.RemediatedById, err = common.GetUserIdByUniqueId(ctx, rh.DB(), remediation.RemediatedBy)
+	if err != nil {
+		return nil, appErrors.InternalError(string(op), "Remediation", "", err)
+	}
+
+	if remediation.Assignee != "" {
+		remediation.AssigneeId, err = common.GetUserIdByUniqueId(
+			ctx,
+			rh.DB(),
+			remediation.Assignee,
+		)
+		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
 				"remediation": remediation,
 			})
 
 			return nil, wrappedErr
 		}
-	}
 
-	remediation.RemediatedById, err = common.GetUserIdByUniqueId(
-		ctx,
-		rh.database,
-		remediation.RemediatedBy,
-	)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
+		if remediation.AssigneeId == 0 {
+			err := appErrors.E(
+				op, "Remediation", appErrors.InvalidArgument,
+				fmt.Sprintf("assignee %q not found", remediation.Assignee),
+			)
+			applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
 
-		return nil, wrappedErr
+			return nil, err
+		}
 	}
 
 	// Check for existing remediation
-	filter := &entity.RemediationFilter{
+	existingRemediations, err := rh.DB().GetRemediations(ctx, &entity.RemediationFilter{
 		ServiceId: []*int64{&remediation.ServiceId},
 		IssueId:   []*int64{&remediation.IssueId},
 		State:     []entity.StateFilterType{entity.Active},
-	}
-
-	existingRemediations, err := rh.database.GetRemediations(ctx, filter, nil)
+	}, nil)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Remediation", "", err)
 	}
 
 	for _, er := range existingRemediations {
+		if er.Remediation == nil {
+			continue
+		}
+
 		sameComponent := (remediation.ComponentId <= 0 && er.ComponentId <= 0) ||
 			(remediation.ComponentId == er.ComponentId)
 		if !sameComponent {
 			continue
 		}
 
-		isExpired := !er.ExpirationDate.IsZero() && er.ExpirationDate.Before(time.Now())
-		if isExpired {
+		if !er.ExpirationDate.IsZero() && er.ExpirationDate.Before(time.Now()) {
 			continue
 		}
 
@@ -280,56 +201,36 @@ func (rh *remediationHandler) CreateRemediation(
 			continue
 		}
 
-		// Reject if the existing one has no expiration (permanent) or if the new
-		// expiration date is not strictly later than the existing one.
 		existingIsOpen := er.ExpirationDate.IsZero()
+
 		newIsLater := !remediation.ExpirationDate.IsZero() && remediation.ExpirationDate.After(er.ExpirationDate)
-
 		if existingIsOpen || !newIsLater {
-			err := appErrors.E(
-				op,
-				"Remediation",
-				appErrors.InvalidArgument,
-				"A remediation of this type is already in progress; the new expiration date must be later than the existing one.",
-			)
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation":          remediation,
-				"existing_remediation": er,
-			})
-
-			return nil, err
+			return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument,
+				"A remediation of this type is already in progress; the new expiration date must be later than the existing one.")
 		}
 	}
 
-	newRemediation, err := rh.database.CreateRemediation(remediation)
+	newRemediation, err := rh.DB().CreateRemediation(remediation)
 	if err != nil {
-		// Generic database error
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Remediation", "", err)
 	}
 
-	if rh.cache != nil {
-		if err := rh.cache.InvalidateByMatch(func(decodedKey string) bool {
+	if rh.Cache() != nil {
+		if err := rh.Cache().InvalidateByMatch(func(decodedKey string) bool {
 			return (strings.Contains(decodedKey, fmt.Sprintf("\"issue_id\":[%d]", newRemediation.IssueId)) ||
 				strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]", newRemediation.IssueId))) &&
 				(strings.Contains(decodedKey, "GetIssuesWithAggregations") || strings.Contains(decodedKey, "GetIssues") ||
 					strings.Contains(decodedKey, "GetAllIssueCursors") || strings.Contains(decodedKey, "GetIssueVariants") ||
 					strings.Contains(decodedKey, "GetIssueMatches"))
 		}); err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-				"remediation": remediation,
-			})
+			// non-fatal: log and continue
+			applog.LogError(logrus.StandardLogger(), appErrors.InternalError(string(op), "CacheInvalidation", "", err), logrus.Fields{})
 		}
 	}
 
-	rh.eventRegistry.PushEvent(&CreateRemediationEvent{
-		Remediation: newRemediation,
-	})
+	rh.InvalidateImageVulnerabilityCaches()
+
+	rh.PushEvent(&CreateRemediationEvent{Remediation: newRemediation})
 
 	return newRemediation, nil
 }
@@ -338,93 +239,49 @@ func (rh *remediationHandler) UpdateRemediation(
 	ctx context.Context,
 	remediation *entity.Remediation,
 ) (*entity.Remediation, error) {
-	op := appErrors.Op("remediationHandler.UpdateRemediation")
+	op := appErrors.CallerOp()
 
-	// Input validation
 	if remediation == nil {
-		err := appErrors.E(
-			op,
-			"Remediation",
-			appErrors.InvalidArgument,
-			"remediation cannot be nil",
-		)
-		applog.LogError(rh.logger, err, logrus.Fields{})
-
-		return nil, err
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, "remediation cannot be nil")
 	}
 
 	if remediation.Id <= 0 {
-		err := appErrors.E(
-			op,
-			"Remediation",
-			appErrors.InvalidArgument,
-			fmt.Sprintf("invalid ID: %d", remediation.Id),
-		)
-		applog.LogError(rh.logger, err, logrus.Fields{"id": remediation.Id})
-
-		return nil, err
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", remediation.Id))
 	}
 
-	// Get current user for audit fields
+	id := strconv.FormatInt(remediation.Id, 10)
+
 	var err error
 
-	remediation.UpdatedBy, err = common.GetCurrentUserId(ctx, rh.database)
+	remediation.UpdatedBy, err = common.GetCurrentUserId(ctx, rh.DB())
 	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"Remediation",
-			strconv.FormatInt(remediation.Id, 10),
-			err,
-		)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Remediation", id, err)
 	}
 
-	lo := entity.NewListOptions()
-
-	existingRemediations, err := rh.ListRemediations(
-		ctx,
-		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},
-		lo,
-	)
+	existing, err := rh.ListRemediations(ctx, &entity.RemediationFilter{Id: []*int64{&remediation.Id}}, entity.NewListOptions())
 	if err != nil {
-		wrappedErr := appErrors.E(
-			op,
-			"Remediation",
-			strconv.FormatInt(remediation.Id, 10),
-			appErrors.Internal,
-			err,
-		)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Remediation", id, err)
 	}
 
-	if len(existingRemediations.Elements) != 1 {
+	if len(existing.Elements) != 1 {
+		return nil, appErrors.E(op, "Remediation", id, appErrors.Internal,
+			fmt.Sprintf("unexpected result count: %d", len(existing.Elements)))
+	}
+
+	existingRemediation := existing.Elements[0].Remediation
+
+	if existingRemediation == nil {
 		err := appErrors.E(
 			op,
 			"Remediation",
 			strconv.FormatInt(remediation.Id, 10),
 			appErrors.Internal,
-			fmt.Sprintf(
-				"unexpected number of remediations found after update: expected 1, got %d",
-				len(existingRemediations.Elements),
-			),
+			"existing remediation record has a nil pointer",
 		)
-		applog.LogError(rh.logger, err, logrus.Fields{
-			"id":          remediation.Id,
-			"found_count": len(existingRemediations.Elements),
-		})
+		applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"id": remediation.Id})
 
 		return nil, err
 	}
-
-	existingRemediation := existingRemediations.Elements[0].Remediation
 
 	finalType := existingRemediation.Type
 	if remediation.Type != "" {
@@ -436,144 +293,150 @@ func (rh *remediationHandler) UpdateRemediation(
 		finalURL = remediation.URL
 	}
 
-	if finalType == entity.RemediationTypeRiskAccepted {
-		if finalURL == "" {
-			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation": remediation,
-			})
+	finalDescription := existingRemediation.Description
+	if remediation.Description != "" {
+		finalDescription = remediation.Description
+	}
 
+	scratch := &entity.Remediation{Type: finalType, URL: finalURL, Description: finalDescription}
+
+	if err := validateByType(scratch); err != nil {
+		applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
+
+		return nil, appErrors.E(op, "Remediation", appErrors.InvalidArgument, err.Error())
+	}
+
+	if finalType == entity.RemediationTypeFiltered {
+		finalDescription := existingRemediation.Description
+		if remediation.Description != "" {
+			finalDescription = remediation.Description
+		}
+
+		if err := validateFilteredRemediationDescription(finalDescription, op); err != nil {
+			applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
 			return nil, err
 		}
 
-		if parsedURL, err := url.Parse(finalURL); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "invalid external URL for risk accepted remediation")
-			applog.LogError(rh.logger, err, logrus.Fields{
-				"remediation": remediation,
-			})
-
+		if err := rh.validateFilteredRemediationIssue(ctx, existingRemediation.IssueId, strconv.FormatInt(remediation.Id, 10), op); err != nil {
+			applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
 			return nil, err
 		}
 	}
 
 	remediation.URL = finalURL
 	remediation.Type = finalType
+	remediation.Description = finalDescription
 
-	// Update the component instance in database
-	err = rh.database.UpdateRemediation(remediation)
+	if remediation.Assignee != "" {
+		remediation.AssigneeId, err = common.GetUserIdByUniqueId(
+			ctx,
+			rh.DB(),
+			remediation.Assignee,
+		)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(
+				string(op),
+				"Remediation",
+				strconv.FormatInt(remediation.Id, 10),
+				err,
+			)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{"remediation": remediation})
+
+			return nil, wrappedErr
+		}
+
+		if remediation.AssigneeId == 0 {
+			err := appErrors.E(
+				op, "Remediation", appErrors.InvalidArgument,
+				fmt.Sprintf("assignee %q not found", remediation.Assignee),
+			)
+			applog.LogError(logrus.StandardLogger(), err, logrus.Fields{"remediation": remediation})
+
+			return nil, err
+		}
+	}
+
+	if err = rh.DB().UpdateRemediation(remediation); err != nil {
+		return nil, appErrors.InternalError(string(op), "Remediation", id, err)
+	}
+
+	result, err := rh.ListRemediations(ctx, &entity.RemediationFilter{Id: []*int64{&remediation.Id}}, entity.NewListOptions())
 	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"Remediation",
-			strconv.FormatInt(remediation.Id, 10),
-			err,
-		)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Remediation", id, err)
 	}
 
-	remediationResult, err := rh.ListRemediations(
-		ctx,
-		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},
-		lo,
-	)
-	if err != nil {
-		wrappedErr := appErrors.E(
-			op,
-			"Remediation",
-			strconv.FormatInt(remediation.Id, 10),
-			appErrors.Internal,
-			err,
-		)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"remediation": remediation,
-		})
-
-		return nil, wrappedErr
+	if len(result.Elements) != 1 {
+		return nil, appErrors.E(op, "Remediation", id, appErrors.Internal,
+			fmt.Sprintf("unexpected result count: %d", len(result.Elements)))
 	}
 
-	if len(remediationResult.Elements) != 1 {
-		err := appErrors.E(
-			op,
-			"Remediation",
-			strconv.FormatInt(remediation.Id, 10),
-			appErrors.Internal,
-			fmt.Sprintf(
-				"unexpected number of remediations found after update: expected 1, got %d",
-				len(remediationResult.Elements),
-			),
-		)
-		applog.LogError(rh.logger, err, logrus.Fields{
-			"id":          remediation.Id,
-			"found_count": len(remediationResult.Elements),
-		})
+	updatedRemediation := result.Elements[0].Remediation
 
-		return nil, err
-	}
+	rh.InvalidateImageVulnerabilityCaches()
 
-	updatedRemediation := remediationResult.Elements[0].Remediation
-
-	rh.eventRegistry.PushEvent(&UpdateRemediationEvent{
-		Remediation: updatedRemediation,
-	})
+	rh.PushEvent(&UpdateRemediationEvent{Remediation: updatedRemediation})
 
 	return updatedRemediation, nil
 }
 
 func (rh *remediationHandler) DeleteRemediation(ctx context.Context, id int64) error {
-	op := appErrors.Op("remediationHandler.DeleteRemediation")
-
-	// Input validation
 	if id <= 0 {
-		err := appErrors.E(
-			op,
-			"Remediation",
-			appErrors.InvalidArgument,
-			fmt.Sprintf("invalid ID: %d", id),
-		)
-		applog.LogError(rh.logger, err, logrus.Fields{"id": id})
+		return appErrors.E(appErrors.CallerOp(), "Remediation", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
+	}
 
+	if err := rh.Delete(ctx, id); err != nil {
 		return err
 	}
 
-	// Get current user for audit fields
-	userId, err := common.GetCurrentUserId(ctx, rh.database)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"Remediation",
-			strconv.FormatInt(id, 10),
-			err,
-		)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"id": id,
-		})
+	rh.InvalidateImageVulnerabilityCaches()
 
-		return wrappedErr
+	return nil
+}
+
+func (rh *remediationHandler) InvalidateImageVulnerabilityCaches() {
+	if rh.Cache() == nil {
+		return
 	}
 
-	err = rh.database.DeleteRemediation(id, userId)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(
-			string(op),
-			"Remediation",
-			strconv.FormatInt(id, 10),
-			err,
-		)
-		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-			"id":      id,
-			"user_id": userId,
-		})
+	op := appErrors.CallerOp()
 
-		return wrappedErr
+	if err := rh.Cache().InvalidateByMatch(func(decodedKey string) bool {
+		return strings.Contains(decodedKey, "GetVulnerabilityAggregatesByIssueIDs") ||
+			strings.Contains(decodedKey, "GetIssueCountsByComponentIDs") ||
+			strings.Contains(decodedKey, "GetVulnerabilitiesByComponentIDs") ||
+			strings.Contains(decodedKey, "GetVulnerabilityCountsByComponentIDs")
+	}); err != nil {
+		applog.LogError(logrus.StandardLogger(), appErrors.InternalError(string(op), "CacheInvalidation", "", err), logrus.Fields{})
+	}
+}
+
+func validateRiskAccepted(r *entity.Remediation) error {
+	if r.URL == "" {
+		return fmt.Errorf("URL is required for risk_accepted remediation")
 	}
 
-	rh.eventRegistry.PushEvent(&DeleteRemediationEvent{
-		RemediationID: id,
-	})
+	return nil
+}
+
+func validateEscalation(r *entity.Remediation) error {
+	if r.Description == "" {
+		return fmt.Errorf("description is required for escalation remediation")
+	}
+
+	if r.URL == "" {
+		return fmt.Errorf("URL is required for escalation remediation")
+	}
+
+	return nil
+}
+
+func validateByType(r *entity.Remediation) error {
+	switch r.Type {
+	case entity.RemediationTypeRiskAccepted:
+		return validateRiskAccepted(r)
+	case entity.RemediationTypeEscalation:
+		return validateEscalation(r)
+	}
 
 	return nil
 }

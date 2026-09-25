@@ -109,6 +109,7 @@ var _ = Describe(
 					ComponentInstanceId: componentInstance.Id,
 					IssueId:             issueEntity.Id,
 				}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{1}, nil)
 				db.On("CreateIssueMatch", matchIssueMatch(expectedMatch)).Return(expectedMatch, nil)
 
@@ -121,6 +122,7 @@ var _ = Describe(
 
 			It("skips creation if match already exists", func() {
 				existingMatch := test.NewFakeIssueMatchResult()
+
 				db.On("GetServiceIssueVariants", mock.Anything, &entity.ServiceIssueVariantFilter{
 					ComponentInstanceId: []*int64{&componentInstance.Id},
 					IssueId:             []*int64{&issueEntity.Id},

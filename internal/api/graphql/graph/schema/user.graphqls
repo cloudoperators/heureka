@@ -13,10 +13,10 @@ type User implements Node {
 }
 
 input UserInput {
-    uniqueUserId: String
-    type: String
-    name: String
-    email: String
+    uniqueUserId: String @constraint(maxLength: 255)
+    type: String @constraint(maxLength: 64)
+    name: String @constraint(maxLength: 255)
+    email: String @constraint(maxLength: 255)
 }
 
 type UserConnection implements Connection {

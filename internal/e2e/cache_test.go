@@ -11,7 +11,7 @@ import (
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 
-	"github.com/cloudoperators/heureka/internal/app/service"
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
@@ -92,11 +92,16 @@ func newCacheTest(
 	ct.cfg.CacheThrottleIntervalMSec = throttleIntervalMSec
 	ct.cfg.CacheThrottlePerInterval = throttlePerInterval
 
+	originalTTL := common.DefaultCacheTTL
+	common.DefaultCacheTTL = ttl
+
+	DeferCleanup(func() {
+		common.DefaultCacheTTL = originalTTL
+	})
+
 	ct.server = e2e_common.NewRunningServer(ct.cfg)
 
 	ct.seedCollection = ct.seeder.SeedDbWithNFakeData(testResourceCount)
-
-	service.CacheTtlGetServiceAttrs = ttl
 
 	return &ct
 }

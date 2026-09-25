@@ -19,7 +19,7 @@ func CombineFilterWithAccessibleIds(filterIds []*int64, accessibleIds []*int64) 
 
 			// If intersection is empty, return [-1] to indicate no access
 			if len(filterIds) == 0 {
-				filterIds = []*int64{Int64Ptr(-1)}
+				filterIds = []*int64{new(int64(-1))}
 			}
 		} else {
 			// No filterIds: use accessibleIds as filter

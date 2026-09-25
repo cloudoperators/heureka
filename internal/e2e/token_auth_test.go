@@ -19,10 +19,12 @@ import (
 )
 
 var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), func() {
-	var s *server.Server
-	var cfg util.Config
-	var queryUrl string
-	var db *mariadb.SqlDatabase
+	var (
+		s        *server.Server
+		cfg      util.Config
+		queryUrl string
+		db       *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		db = dbm.NewTestSchemaWithoutMigration()

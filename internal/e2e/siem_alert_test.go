@@ -6,6 +6,7 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -20,13 +21,16 @@ import (
 )
 
 var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -55,6 +59,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					alertDescription := "some description"
 					alertSeverity := "High"
 					alertURL := "https://example.test/alert/123"
+					alertLinkName := "Alert Link"
 					region := "eu-de-1"
 					clusterName := "eu-de-1"
 					namespace := "vault"
@@ -68,7 +73,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 						"name":         alertName,
 						"description":  alertDescription,
 						"severity":     alertSeverity,
-						"url":          alertURL,
+						"links":        []map[string]any{{"name": alertLinkName, "url": alertURL}},
 						"region":       region,
 						"cluster":      clusterName,
 						"namespace":    namespace,
@@ -91,7 +96,9 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 
 					Expect(*respData.SIEM.Name).To(Equal(alertName))
 					Expect(*respData.SIEM.Severity).To(Equal(model.SeverityValues(alertSeverity)))
-					Expect(*respData.SIEM.URL).To(Equal(alertURL))
+					Expect(respData.SIEM.Links).To(HaveLen(1))
+					Expect(respData.SIEM.Links[0].Name).To(Equal(alertLinkName))
+					Expect(respData.SIEM.Links[0].URL).To(Equal(alertURL))
 
 					issues, err := db.GetIssues(
 						context.Background(),
@@ -111,16 +118,18 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					Expect(len(ivs)).To(BeNumerically(">=", 1))
 
 					Expect(ivs).To(ContainElement(
-						HaveField("ExternalUrl", Equal(alertURL)),
+						HaveField("ExternalUrl", ContainSubstring(alertURL)),
 					))
 
 					issueVariantWithSeverity := false
+
 					for _, v := range ivs {
-						if v.ExternalUrl == alertURL && v.Severity.Value == alertSeverity {
+						if strings.Contains(v.ExternalUrl, alertURL) && v.Severity.Value == alertSeverity {
 							issueVariantWithSeverity = true
 							break
 						}
 					}
+
 					Expect(issueVariantWithSeverity).To(BeTrue())
 
 					serviceFilter := &entity.ServiceFilter{CCRN: []*string{&service}}
@@ -185,7 +194,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					"name":         alertName,
 					"description":  alertDescription,
 					"severity":     alertSeverity,
-					"url":          alertURL,
+					"links":        []map[string]any{{"name": "Alert Link", "url": alertURL}},
 					"region":       region,
 					"cluster":      clusterName,
 					"namespace":    namespace,
@@ -224,6 +233,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					nil,
 				)
 				Expect(err).To(BeNil())
+
 				issueId := issues[0].Issue.Id
 
 				ivs, err := db.GetIssueVariants(
@@ -256,7 +266,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					"name":         alertName,
 					"description":  alertDescription,
 					"severity":     alertSeverity,
-					"url":          alertURL,
+					"links":        []map[string]any{{"name": "Alert Link", "url": alertURL}},
 					"region":       region,
 					"cluster":      clusterName,
 					"namespace":    namespace,
@@ -289,6 +299,90 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 				Expect(
 					len(issues),
 				).To(Equal(0), "Alert should not be created when ComponentInstance data is missing")
+			})
+		})
+	})
+})
+
+var _ = Describe("Acknowledging SIEMAlert via API", Label("e2e", "SIEMAlert"), func() {
+	var (
+		seeder         *test.DatabaseSeeder
+		s              *server.Server
+		cfg            util.Config
+		db             *mariadb.SqlDatabase
+		seedCollection *test.SeedCollection
+	)
+
+	BeforeEach(func() {
+		var err error
+
+		db = dbm.NewTestSchemaWithoutMigration()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
+		s = e2e_common.NewRunningServer(cfg)
+	})
+
+	AfterEach(func() {
+		e2e_common.ServerTeardown(s)
+		dbm.TestTearDown(db)
+	})
+
+	When("the database has seeded SecurityEvent IssueMatches", func() {
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithSecurityEvents(10)
+		})
+
+		Context("and we acknowledge an existing SIEM alert", func() {
+			It("sets acknowledged to true and returns the updated node", func() {
+				im := seedCollection.GetValidIssueMatchRows()[0]
+				id := fmt.Sprintf("%d", im.Id.Int64)
+
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Alert model.SIEMAlertNode `json:"acknowledgeSIEMAlert"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/acknowledge.graphql",
+					map[string]any{"id": id},
+				)
+
+				Expect(err).To(BeNil())
+				Expect(respData.Alert.ID).To(Equal(id))
+				Expect(respData.Alert.Acknowledged).NotTo(BeNil())
+				Expect(*respData.Alert.Acknowledged).To(BeTrue())
+			})
+		})
+
+		Context("and we acknowledge a non-existent SIEM alert", func() {
+			It("returns an error", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Alert model.SIEMAlertNode `json:"acknowledgeSIEMAlert"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/acknowledge.graphql",
+					map[string]any{"id": "999999999"},
+				)
+
+				Expect(err).NotTo(BeNil())
+			})
+		})
+	})
+
+	When("the database is empty", func() {
+		Context("and we acknowledge a SIEM alert", func() {
+			It("returns an error", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Alert model.SIEMAlertNode `json:"acknowledgeSIEMAlert"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/siem_alert/acknowledge.graphql",
+					map[string]any{"id": "1"},
+				)
+
+				Expect(err).NotTo(BeNil())
 			})
 		})
 	})

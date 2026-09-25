@@ -256,6 +256,7 @@ func (apt *autoPatchTest) ExpectComponentVersionIssuesToBeDeleted(
 
 var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 	var apt *autoPatchTest
+
 	BeforeEach(func() {
 		apt = newAutoPatchTest()
 	})

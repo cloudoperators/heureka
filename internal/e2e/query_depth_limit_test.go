@@ -81,13 +81,17 @@ const (
 )
 
 var _ = Describe("Getting data via API", Label("e2e", "Depth Limiting"), func() {
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		s   *server.Server
+		cfg util.Config
+		db  *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
+
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()

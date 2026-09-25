@@ -105,6 +105,7 @@ func NewHeurekaApp(
 
 	ih := issue.NewIssueHandler(handlerContext)
 	imh := issue_match.NewIssueMatchHandler(handlerContext, sh)
+	ch := comment.NewCommentHandler(handlerContext)
 
 	heureka := &HeurekaApp{
 		ComponentHandler:         component.NewComponentHandler(handlerContext),
@@ -121,8 +122,8 @@ func NewHeurekaApp(
 		UserHandler:              user.NewUserHandler(handlerContext),
 		RemediationHandler:       remediationHandler,
 		PatchHandler:             patch.NewPatchHandler(handlerContext),
-		CommentHandler:           comment.NewCommentHandler(handlerContext),
-		SIEMAlertHandler:         siem_alert.NewSIEMAlertHandler(handlerContext, imh, ivh, ih),
+		CommentHandler:           ch,
+		SIEMAlertHandler:         siem_alert.NewSIEMAlertHandler(handlerContext, imh, ivh, ih, ch),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
 		cache:                    handlerContext.Cache,
@@ -135,6 +136,7 @@ func NewHeurekaApp(
 
 	heureka.SubscribeHandlers()
 	heureka.SubscribeAuthzHandlers()
+	heureka.registerMveCallbacks()
 
 	return heureka
 }
@@ -189,10 +191,38 @@ func (h *HeurekaApp) SubscribeHandlers() {
 			issue.AddComponentVersionToIssueEventName,
 			event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
 		},
+		{
+			remediation.CreateRemediationEventName,
+			event.EventHandlerFunc(h.onRemediationChange),
+		},
+		{
+			remediation.UpdateRemediationEventName,
+			event.EventHandlerFunc(h.onRemediationChange),
+		},
+		{
+			remediation.DeleteRemediationEventName,
+			event.EventHandlerFunc(h.onRemediationChange),
+		},
 	}
 
 	for _, hdl := range handlers {
 		h.eventRegistry.RegisterEventHandler(hdl.eventName, hdl.handler)
+	}
+}
+
+func (h *HeurekaApp) onRemediationChange(_ database.Database, _ event.Event, _ openfga.Authorization) {
+	if h.mve != nil {
+		h.mve.TriggerAsync()
+	}
+}
+
+func (h *HeurekaApp) registerMveCallbacks() {
+	if h.mve == nil {
+		return
+	}
+
+	h.mve.OnRefreshComplete = func() {
+		h.InvalidateImageVulnerabilityCaches()
 	}
 }
 

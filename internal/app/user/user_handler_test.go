@@ -92,6 +92,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
 			db.On("CountUsers", mock.Anything, filter).Return(int64(1337), nil)
@@ -194,6 +195,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			BeforeEach(func() {
 				sgIds := int64(-1)
 				filter.SupportGroupId = []*int64{&sgIds}
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
 			})
@@ -214,6 +216,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 				systemUserId := int64(1)
 				filter.SupportGroupId = []*int64{&sgId}
 				user = test.NewFakeUserEntity()
+
 				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{{User: &user}}, nil)
 
@@ -265,7 +268,9 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
+
 		var after string
+
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -281,9 +286,11 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 
 	It("creates user", func() {
 		filter.UniqueUserID = []*string{&user.UniqueUserID}
+
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateUser", &user).Return(&user, nil)
 		db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
+
 		userHandler = u.NewUserHandler(handlerContext)
 		newUser, err := userHandler.CreateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -308,7 +315,9 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
+
 		var after string
+
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -325,6 +334,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 	It("updates user", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateUser", &user).Return(nil)
+
 		userHandler = u.NewUserHandler(handlerContext)
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
@@ -356,7 +366,9 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
+
 		var after string
+
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -369,14 +381,18 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 			Authz:    authz,
 		}
 		handlerContext.Authz.RemoveAllRelations()
+
 		ctx = common.NewAdminContext()
 	})
 
 	It("deletes user", func() {
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteUser", id, mock.Anything).Return(nil)
+
 		userHandler = u.NewUserHandler(handlerContext)
+
 		db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
+
 		err := userHandler.DeleteUser(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -469,11 +485,14 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 
 					// get the number of relations before deletion
 					relCountBefore := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountBefore += len(relations)
 					}
+
 					Expect(
 						relCountBefore,
 					).To(Equal(len(relations)), "all relations should exist before deletion")
@@ -491,11 +510,14 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 
 					// get the number of relations after deletion
 					relCountAfter := 0
+
 					for _, r := range relations {
 						relations, err := handlerContext.Authz.ListRelations(r)
 						Expect(err).To(BeNil(), "no error should be thrown")
+
 						relCountAfter += len(relations)
 					}
+
 					Expect(
 						relCountAfter < relCountBefore,
 					).To(BeTrue(), "less relations after deletion")

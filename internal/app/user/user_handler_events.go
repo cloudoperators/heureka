@@ -4,6 +4,8 @@
 package user
 
 import (
+	"errors"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -89,7 +91,7 @@ func (e *ListUserNamesAndIdsEvent) Name() event.EventName {
 
 // OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
 func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnUserDeleteAuthz")
+	op := appErrors.CallerOp()
 
 	deleteInput := []openfga.RelationInput{}
 
@@ -150,7 +152,7 @@ func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Author
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewUserHandlerError("OnUserDeleteAuthz: triggered with wrong event type")
+		err := errors.New("OnUserDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "User", "", err)
 		l.Error(wrappedErr)
 	}

@@ -1,0 +1,117 @@
+name: E2E Test2
+on: [pull_request]
+#on:
+#  push:
+#    branches: [ main, master ]
+#  pull_request:
+#    branches: [ main, master ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # Database and application environment defaults match your compose file
+      DB_USER: my_username
+      DB_PASSWORD: my_password
+      DB_ROOT_PASSWORD: my_password
+      DB_NAME: heureka
+      LOCAL_TEST_DB: true
+      SEED_MODE: true
+      VALKEY_PORT: 6379
+      AUTHZ_FGA_API_TOKEN: test_token
+      AUTHZ_FGA_API_URL: http://localhost:8080
+      AUTHZ_FGA_STORE_NAME: heureka_store
+      AUTHZ_MODEL_FILE_PATH: ./../internal/openfga/model/model.fga
+      TAG: xxx # Replace with a specific tag filter if preferred
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+          cache: 'pip'           # Cache pip packages
+          cache-dependency-path: 'e2e/e2e-requirements.txt'
+
+      - name: Install E2E Python dependencies
+        working-directory: ./e2e
+        run: |
+          python3 -m venv .venv
+          .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r e2e-requirements.txt
+
+      - name: Install migration tool
+        run: make install-migrate
+
+      # Build environment dependencies (Mockery & Gqlgen)
+      - name: Install Tools & Generate Mock/Gql Code
+        run: |
+          go install github.com/onsi/ginkgo/v2/ginkgo
+          go install github.com/vektra/mockery/v2@v2.53.5
+          make mockery
+          make gqlgen
+
+      # Setup advanced build kit cache layers for Docker Compose
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Pre-bake & Cache 'heureka-app' (Backend Go binary image)
+      - name: Cache & Build Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: heureka-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Pre-bake & Cache 'ui' (Juno UI assets)
+      - name: Cache & Build UI Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ui
+          file: ./ui/Dockerfile
+          build-args: |
+            UI_GIT_REPO=https://github.com/cloudoperators/juno/
+            UI_GIT_DIR=./ui/juno/
+          push: false
+          load: true # Load image from local docker daemon on GHA
+          tags: juno-ui:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Setup Docker Compose setup engine
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v2
+
+      # Spin up all container clusters across required runtime profiles
+      - name: Start Stack (DB, Valkey, Backend, UI, OpenFGA)
+        run: |
+          # Use local tags created by Buildx steps by referencing built structures
+          docker compose --profile db --profile heureka --profile ui --profile openfga up -d
+          sleep 10
+
+      - name: Run E2E Tests
+        working-directory: ./e2e
+        run: |
+          make TAG=${{ env.TAG }} XUNIT=yes test
+
+      - name: Upload Robot Framework results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-framework-results
+          path: e2e/out/e2e/results/
+          retention-days: 7
+          if-no-files-found: warn

@@ -1,26 +1,42 @@
 # SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+input SIEMAlertLinkInput {
+    name: String! @constraint(maxLength: 255)
+    url: String! @constraint(maxLength: 2048, format: "url")
+}
+
+input SIEMAlertUpdateInput {
+    status: IssueMatchStatusValues
+    assigneeId: ID
+}
+
 input SIEMAlertInput {
-    name: String
-    description: String
+    name: String @constraint(maxLength: 255)
+    description: String @constraint(maxLength: 4096)
     severity: SeverityValues
-    url: String
-    service: String
-    supportGroup: String
-    region: String
-    cluster: String
-    namespace: String
-    pod: String
-    container: String
-    source: String
+    links: [SIEMAlertLinkInput]
+    service: String @constraint(maxLength: 255)
+    supportGroup: String @constraint(maxLength: 255)
+    region: String @constraint(maxLength: 255)
+    cluster: String @constraint(maxLength: 255)
+    namespace: String @constraint(maxLength: 255)
+    pod: String @constraint(maxLength: 255)
+    container: String @constraint(maxLength: 255)
+    source: String @constraint(maxLength: 255)
+    acknowledged: Boolean
+}
+
+type SIEMAlertLink {
+    name: String!
+    url: String!
 }
 
 type SIEMAlert {
     name: String
     description: String
     severity: SeverityValues
-    url: String
+    links: [SIEMAlertLink]
     service: String
     supportGroup: String
     region: String
@@ -36,7 +52,7 @@ type SIEMAlertNode implements Node {
     name: String
     description: String
     severity: SeverityValues
-    url: String
+    links: [SIEMAlertLink]
     service: String
     supportGroup: String
     region: String
@@ -47,6 +63,7 @@ type SIEMAlertNode implements Node {
     source: String
     status: IssueMatchStatusValues
     discoveryDate: DateTime
+    acknowledged: Boolean
     comments(filter: SIEMAlertCommentFilter, first: Int, after: String): SIEMAlertCommentConnection
 }
 
@@ -62,10 +79,13 @@ type SIEMAlertEdge implements Edge {
 }
 
 input SIEMAlertFilter {
+    name: [String]
     severity: [SeverityValues]
     service: [String]
     status: [IssueMatchStatusValues]
     supportGroup: [String]
+    region: [String]
+    acknowledged: Boolean
 }
 
 input SIEMAlertOrderBy {
@@ -75,4 +95,5 @@ input SIEMAlertOrderBy {
 
 enum SIEMAlertOrderByField {
     severity
+    discoveryDate
 }

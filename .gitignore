@@ -41,3 +41,6 @@ __pycache__/
 
 # e2e reports
 e2e/out/
+
+# exclude TODO files
+TODO*

@@ -25,21 +25,21 @@ type ComponentInstance implements Node {
 }
 
 input ComponentInstanceInput {
-    ccrn: String
+    ccrn: String @constraint(maxLength: 255)
     count: Int
-    componentVersionId: String
-    serviceId: String
-    region: String
-    cluster: String
-    namespace: String
-    domain: String
-    project: String
-    pod: String
-    container: String
+    componentVersionId: String @constraint(maxLength: 255)
+    serviceId: String @constraint(maxLength: 255)
+    region: String @constraint(maxLength: 255)
+    cluster: String @constraint(maxLength: 255)
+    namespace: String @constraint(maxLength: 255)
+    domain: String @constraint(maxLength: 255)
+    project: String @constraint(maxLength: 255)
+    pod: String @constraint(maxLength: 255)
+    container: String @constraint(maxLength: 255)
     type: ComponentInstanceTypes
     context: Json
-    uuid: String
-    parentId: String
+    uuid: String @constraint(maxLength: 36)
+    parentId: String @constraint(maxLength: 255)
 }
 
 type ComponentInstanceConnection implements Connection {

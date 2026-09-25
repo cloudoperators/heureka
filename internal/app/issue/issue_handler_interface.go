@@ -27,5 +27,5 @@ type IssueHandler interface {
 	GetSourceURLsByIssueIDs(context.Context, []int64) (map[int64]string, error)
 	GetServicesByIssueIDs(context.Context, []int64) (map[int64][]entity.ServiceResult, error)
 	GetSupportGroupsByIssueIDs(context.Context, []int64) (map[int64][]entity.SupportGroupResult, error)
-	GetVulnerabilityAggregatesByIssueIDs(context.Context, []int64) (map[int64]entity.VulnerabilityAggregate, error)
+	GetVulnerabilityAggregatesByIssueIDs(context.Context, []int64, []*string) (map[int64]entity.VulnerabilityAggregate, error)
 }

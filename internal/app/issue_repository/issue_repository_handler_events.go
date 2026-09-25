@@ -5,6 +5,7 @@ package issue_repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -58,7 +59,7 @@ func (e *DeleteIssueRepositoryEvent) Name() event.EventName {
 // OnIssueRepositoryCreate is a handler for the CreateIssueRepositoryEvent
 // Is adding the default priority  for the default issue repository
 func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnIssueRepositoryCreate")
+	op := appErrors.CallerOp()
 
 	defaultPrio := db.GetDefaultIssuePriority()
 
@@ -102,9 +103,7 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.
 			}
 		}
 	} else {
-		err := NewIssueRepositoryHandlerError(
-			"OnIssueRepositoryCreate: triggered with wrong event type",
-		)
+		err := errors.New("OnIssueRepositoryCreate: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
 		l.Error(wrappedErr)
 	}

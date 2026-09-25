@@ -328,6 +328,7 @@ func waitForPostMigration() {
 
 var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrations"), func() {
 	var migrationTest DbMigrationTest
+
 	BeforeEach(func() {
 		migrationTest.setup()
 	})
@@ -363,6 +364,7 @@ var _ = Describe(
 	Label("e2e", "PostMigration"),
 	func() {
 		var migrationTest DbMigrationTest
+
 		BeforeEach(func() {
 			migrationTest.setup()
 		})

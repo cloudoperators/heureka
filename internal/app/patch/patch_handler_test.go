@@ -66,6 +66,7 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+
 			db.On("GetPatches", mock.Anything, filter, []entity.Order{}).Return([]entity.PatchResult{}, nil)
 			db.On("CountPatches", mock.Anything, filter).Return(int64(1337), nil)
 		})
@@ -86,6 +87,7 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 				filter.First = &pageSize
 				patches := []entity.PatchResult{}
+
 				for _, patch := range test.NNewFakePatches(resElements) {
 					cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
 					patches = append(
@@ -109,8 +111,10 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 					c, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
 					cursors = append(cursors, c)
 				}
+
 				db.On("GetPatches", mock.Anything, filter, []entity.Order{}).Return(patches, nil)
 				db.On("GetAllPatchCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
+
 				patchHandler = ph.NewPatchHandler(handlerContext)
 				res, err := patchHandler.ListPatches(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -171,6 +175,7 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 
 		It("should return Internal error", func() {
 			patches := []entity.PatchResult{}
+
 			for _, patch := range test.NNewFakePatches(5) {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
 				patches = append(patches, entity.PatchResult{
@@ -180,6 +185,7 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 			}
 
 			db.On("GetPatches", mock.Anything, filter, []entity.Order{}).Return(patches, nil)
+
 			cursorsError := errors.New("cursor database error")
 			db.On("GetAllPatchCursors", mock.Anything, filter, []entity.Order{}).Return([]string{}, cursorsError)
 

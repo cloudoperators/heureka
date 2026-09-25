@@ -6,7 +6,10 @@ mutation CreateNewSIEMAlert($input: SIEMAlertInput!){
         name
         description
         severity
-        url
+        links {
+            name
+            url
+        }
         service
         supportGroup
         region

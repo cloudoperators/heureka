@@ -24,13 +24,16 @@ import (
 )
 
 var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -67,6 +70,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		type remediationRespDataType struct {
 			Remediations model.RemediationConnection `json:"Remediations"`
 		}
@@ -142,15 +146,18 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var remediation entity.Remediation
-	var db *mariadb.SqlDatabase
-	var seedCollection *test.SeedCollection
+	var (
+		seeder         *test.DatabaseSeeder
+		s              *server.Server
+		cfg            util.Config
+		remediation    entity.Remediation
+		db             *mariadb.SqlDatabase
+		seedCollection *test.SeedCollection
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -172,6 +179,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 			remediation = testentity.NewFakeRemediationEntity()
 			service, component, issue, ok := seedCollection.FindLinkedRemediationData()
 			Expect(ok).To(BeTrue(), "linked service/component/issue data must exist in seed")
+
 			remediation.Service = service.CCRN.String
 			remediation.Component = component.Repository.String
 			remediation.Issue = issue.PrimaryName.String
@@ -323,6 +331,73 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 				Expect(err).ToNot(HaveOccurred())
 			})
 
+			It("throws error if type is escalation and description is not provided", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"type":           entity.RemediationTypeEscalation.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+							"url":            "https://jira.example.com/SEC-123",
+						},
+					},
+				)
+
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("throws error if type is escalation and URL is not provided", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"description":    remediation.Description,
+							"type":           entity.RemediationTypeEscalation.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+						},
+					},
+				)
+
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("creates remediation with escalation type when both description and URL are provided", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"description":    remediation.Description,
+							"type":           entity.RemediationTypeEscalation.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+							"url":            "https://jira.example.com/SEC-123",
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+			})
+
 			It("rejects url exceeding 2048 characters", func() {
 				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 					Remediation model.Remediation `json:"createRemediation"`
@@ -461,13 +536,16 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -485,6 +563,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		type remediationUpdateRespDataType struct {
 			Remediation model.Remediation `json:"updateRemediation"`
 		}
@@ -720,13 +799,16 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

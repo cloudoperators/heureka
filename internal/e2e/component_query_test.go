@@ -23,13 +23,16 @@ import (
 )
 
 var _ = Describe("Getting Components via API", Label("e2e", "Components"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -67,6 +70,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -97,6 +101,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				respData := struct {
 					Components model.ComponentConnection `json:"Components"`
 				}{}
+
 				BeforeEach(func() {
 					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 						Components model.ComponentConnection `json:"Components"`
@@ -112,6 +117,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 					)
 
 					Expect(err).ToNot(HaveOccurred())
+
 					respData = resp
 				})
 
@@ -127,7 +133,6 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 					// resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
-
 					for _, component := range respData.Components.Edges {
 						Expect(component.Node.ID).ToNot(BeNil(), "component has a ID set")
 						Expect(component.Node.Ccrn).ToNot(BeNil(), "component has a CCRN set")
@@ -191,14 +196,17 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 })
 
 var _ = Describe("Creating Component via API", Label("e2e", "Components"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var component entity.Component
-	var db *mariadb.SqlDatabase
+	var (
+		seeder    *test.DatabaseSeeder
+		s         *server.Server
+		cfg       util.Config
+		component entity.Component
+		db        *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -217,6 +225,7 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 	When("the database has 10 entries", func() {
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
+
 			component = testentity.NewFakeComponentEntity()
 			component.Type = "virtualMachineImage"
 		})
@@ -249,13 +258,16 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 })
 
 var _ = Describe("Updating Component via API", Label("e2e", "Components"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -305,13 +317,16 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 })
 
 var _ = Describe("Deleting Component via API", Label("e2e", "Components"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

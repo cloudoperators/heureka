@@ -6,76 +6,53 @@ package service
 import (
 	"context"
 	"fmt"
-	"time"
+	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
-	"github.com/cloudoperators/heureka/internal/app/event"
-	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	CacheTtlGetServiceAttrs              = 12 * time.Hour
-	CacheTtlGetServicesWithAggregations  = 12 * time.Hour
-	CacheTtlGetServices                  = 12 * time.Hour
-	CacheTtlGetAllSericeCursors          = 12 * time.Hour
-	CacheTtlCountServices                = 12 * time.Hour
-	CacheTtlGetOwnersByServiceIDs        = 12 * time.Hour
-	CacheTtlGetSupportGroupsByServiceIDs = 12 * time.Hour
-	CacheTtlGetIssueCountsByServiceIDs   = 12 * time.Hour
 )
 
 type serviceHandler struct {
-	database      database.Database
-	eventRegistry event.EventRegistry
-	cache         cache.Cache
-	authz         openfga.Authorization
-	logger        *logrus.Logger
+	common.BaseHandler[entity.ServiceResult, *entity.ServiceFilter]
 }
 
 func NewServiceHandler(handlerContext common.HandlerContext) ServiceHandler {
 	return &serviceHandler{
-		database:      handlerContext.DB,
-		eventRegistry: handlerContext.EventReg,
-		cache:         handlerContext.Cache,
-		authz:         handlerContext.Authz,
-		logger:        logrus.New(),
+		BaseHandler: common.NewBaseHandler(handlerContext, common.BaseConfig[entity.ServiceResult, *entity.ServiceFilter]{
+			Op:                    appErrors.Op("serviceHandler"),
+			Entity:                "Services",
+			CursorEntity:          "ServiceCursors",
+			CountEntity:           "ServiceCount",
+			GetFn:                 handlerContext.DB.GetServices,
+			GetWithAggregationsFn: handlerContext.DB.GetServicesWithAggregations,
+			CursorsFn:             handlerContext.DB.GetAllServiceCursors,
+			CountFn:               handlerContext.DB.CountServices,
+			Authz:                 handlerContext.Authz,
+			AuthzObjectType:       openfga.TypeSupportGroup,
+			AuthzApplyFn: func(f *entity.ServiceFilter, ids []*int64) {
+				f.SupportGroupId = common.CombineFilterWithAccessibleIds(f.SupportGroupId, ids)
+			},
+			ListEventFn: func(f *entity.ServiceFilter, o *entity.ListOptions, r *entity.List[entity.ServiceResult]) any {
+				return &ListServicesEvent{Filter: f, Options: o, Services: r}
+			},
+			DeleteFn:      handlerContext.DB.DeleteService,
+			DeleteEventFn: func(id int64) any { return &DeleteServiceEvent{ServiceID: id} },
+		}),
 	}
-}
-
-type ServiceHandlerError struct {
-	msg string
-}
-
-func (e *ServiceHandlerError) Error() string {
-	return fmt.Sprintf("ServiceHandlerError: %s", e.msg)
-}
-
-func NewServiceHandlerError(msg string) *ServiceHandlerError {
-	return &ServiceHandlerError{msg: msg}
 }
 
 func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*entity.Service, error) {
-	op := appErrors.Op("serviceHandler.GetService")
+	op := appErrors.CallerOp()
 
-	// get current user id
-	currentUserId, err := common.GetCurrentUserId(ctx, s.database)
+	currentUserId, err := common.GetCurrentUserId(ctx, s.DB())
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Services", fmt.Sprint(serviceId), err)
-		applog.LogError(s.logger, wrappedErr, logrus.Fields{
-			"serviceId": serviceId,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
 
-	// Authorization check
-	hasPermission, err := s.authz.CheckPermission(openfga.RelationInput{
+	hasPermission, err := s.Authz().CheckPermission(openfga.RelationInput{
 		UserType:   openfga.TypeUser,
 		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
 		Relation:   openfga.RelCanView,
@@ -83,361 +60,125 @@ func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*enti
 		ObjectId:   openfga.ObjectId(fmt.Sprint(serviceId)),
 	})
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Services", fmt.Sprint(serviceId), err)
-		applog.LogError(s.logger, wrappedErr, logrus.Fields{
-			"serviceId": serviceId,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
 
 	if !hasPermission {
-		wrappedErr := appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(serviceId))
-		applog.LogError(s.logger, wrappedErr, logrus.Fields{
-			"serviceId": serviceId,
-			"userId":    currentUserId,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(serviceId))
 	}
 
-	serviceFilter := entity.ServiceFilter{Id: []*int64{&serviceId}}
-	lo := entity.NewListOptions()
-
-	services, err := s.ListServices(ctx, &serviceFilter, lo)
+	result, err := s.ListServices(ctx, &entity.ServiceFilter{Id: []*int64{&serviceId}}, entity.NewListOptions())
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Services", fmt.Sprint(serviceId), err)
-		applog.LogError(s.logger, wrappedErr, logrus.Fields{
-			"serviceId": serviceId,
-		})
-
-		return nil, wrappedErr
+		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
 
-	if len(services.Elements) != 1 {
-		wrappedErr := appErrors.NotFoundError(string(op), "Service", fmt.Sprint(serviceId))
-		applog.LogError(s.logger, wrappedErr, logrus.Fields{
-			"serviceId": serviceId,
-		})
-
-		return nil, wrappedErr
+	if len(result.Elements) != 1 {
+		return nil, appErrors.NotFoundError(string(op), "Service", fmt.Sprint(serviceId))
 	}
 
-	s.eventRegistry.PushEvent(
-		&GetServiceEvent{ServiceID: serviceId, Service: services.Elements[0].Service},
-	)
+	s.PushEvent(&GetServiceEvent{ServiceID: serviceId, Service: result.Elements[0].Service})
 
-	return services.Elements[0].Service, nil
+	return result.Elements[0].Service, nil
 }
 
-func (s *serviceHandler) ListServices(ctx context.Context,
-	filter *entity.ServiceFilter, options *entity.ListOptions,
-) (*entity.List[entity.ServiceResult], error) {
-	var (
-		count    int64
-		pageInfo *entity.PageInfo
-		res      []entity.ServiceResult
-		err      error
-	)
-
-	op := appErrors.Op("serviceHandler.ListServices")
-
-	common.EnsurePaginated(&filter.Paginated)
-
-	options = common.EnsureListOptions(options)
-
-	// get current user id
-	currentUserId, err := common.GetCurrentUserId(ctx, s.database)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
-		applog.LogError(s.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Authorization check
-	accessibleSupportGroupIds, err := s.authz.GetListOfAccessibleObjectIds(
-		openfga.UserId(fmt.Sprint(currentUserId)),
-		openfga.TypeSupportGroup,
-	)
-	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
-		applog.LogError(s.logger, wrappedErr, logrus.Fields{
-			"filter": filter,
-		})
-
-		return nil, wrappedErr
-	}
-
-	// Update the filter.Id based on accessibleSupportGroupIds
-	filter.SupportGroupId = common.CombineFilterWithAccessibleIds(
-		filter.SupportGroupId,
-		accessibleSupportGroupIds,
-	)
-
-	if options.IncludeAggregations {
-		res, err = cache.CallCached[[]entity.ServiceResult](
-			s.cache,
-			cache.NewCacheCallParams(
-				CacheTtlGetServicesWithAggregations,
-				ctx,
-				"GetServicesWithAggregations",
-				s.database.GetServicesWithAggregations,
-				filter,
-				options.Order,
-			),
-		)
-		if err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
-			applog.LogError(s.logger, wrappedErr, logrus.Fields{
-				"filter": filter,
-			})
-
-			return nil, wrappedErr
-		}
-	} else {
-		res, err = cache.CallCached[[]entity.ServiceResult](
-			s.cache,
-			cache.NewCacheCallParams(
-				CacheTtlGetServices,
-				ctx,
-				"GetServices",
-				s.database.GetServices,
-				filter,
-				options.Order,
-			),
-		)
-		if err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
-			applog.LogError(s.logger, wrappedErr, logrus.Fields{
-				"filter": filter,
-			})
-
-			return nil, wrappedErr
-		}
-	}
-
-	if options.ShowPageInfo {
-		if len(res) > 0 {
-			cursors, err := cache.CallCached[[]string](
-				s.cache,
-				cache.NewCacheCallParams(
-					CacheTtlGetAllSericeCursors,
-					ctx,
-					"GetAllServiceCursors",
-					s.database.GetAllServiceCursors,
-					filter,
-					options.Order,
-				),
-			)
-			if err != nil {
-				wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
-				applog.LogError(s.logger, wrappedErr, logrus.Fields{
-					"filter": filter,
-				})
-
-				return nil, wrappedErr
-			}
-
-			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
-			count = int64(len(cursors))
-		}
-	} else if options.ShowTotalCount {
-		count, err = cache.CallCached[int64](
-			s.cache,
-			cache.NewCacheCallParams(
-				CacheTtlCountServices,
-				ctx,
-				"CountServices",
-				s.database.CountServices,
-				filter,
-			),
-		)
-		if err != nil {
-			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
-			applog.LogError(s.logger, wrappedErr, logrus.Fields{
-				"filter": filter,
-			})
-
-			return nil, wrappedErr
-		}
-	}
-
-	ret := &entity.List[entity.ServiceResult]{
-		TotalCount: &count,
-		PageInfo:   pageInfo,
-		Elements:   res,
-	}
-
-	s.eventRegistry.PushEvent(&ListServicesEvent{Filter: filter, Options: options, Services: ret})
-
-	return ret, nil
-}
-
-func (s *serviceHandler) CreateService(
+func (s *serviceHandler) ListServices(
 	ctx context.Context,
-	service *entity.Service,
-) (*entity.Service, error) {
-	f := &entity.ServiceFilter{
-		CCRN: []*string{&service.CCRN},
-	}
+	filter *entity.ServiceFilter,
+	options *entity.ListOptions,
+) (*entity.List[entity.ServiceResult], error) {
+	return s.List(ctx, appErrors.CallerOp(), filter, options)
+}
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  CreateServiceEventName,
-		"object": service,
-		"filter": f,
-	})
+func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Service) (*entity.Service, error) {
+	op := appErrors.CallerOp()
 
 	var err error
 
-	service.BaseService.CreatedBy, err = common.GetCurrentUserId(ctx, s.database)
+	service.BaseService.CreatedBy, err = common.GetCurrentUserId(ctx, s.DB())
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while creating service (GetUserId).")
+		return nil, appErrors.InternalError(string(op), "Service", "", err)
 	}
 
 	service.BaseService.UpdatedBy = service.BaseService.CreatedBy
-	lo := entity.NewListOptions()
 
-	services, err := s.ListServices(ctx, f, lo)
+	existing, err := s.ListServices(ctx, &entity.ServiceFilter{CCRN: []*string{&service.CCRN}}, entity.NewListOptions())
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while creating service.")
+		return nil, appErrors.InternalError(string(op), "Service", "", err)
 	}
 
-	if len(services.Elements) > 0 {
-		return nil, NewServiceHandlerError(
-			fmt.Sprintf("Duplicated entry %s for name.", service.CCRN),
-		)
+	if len(existing.Elements) > 0 {
+		return nil, appErrors.AlreadyExistsError(string(op), "Service", service.CCRN)
 	}
 
-	newService, err := s.database.CreateService(service)
+	newService, err := s.DB().CreateService(service)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while creating service.")
+		return nil, appErrors.InternalError(string(op), "Service", "", err)
 	}
 
-	s.eventRegistry.PushEvent(&CreateServiceEvent{Service: newService})
+	s.PushEvent(&CreateServiceEvent{Service: newService})
 
 	return newService, nil
 }
 
-func (s *serviceHandler) UpdateService(
-	ctx context.Context,
-	service *entity.Service,
-) (*entity.Service, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  UpdateServiceEventName,
-		"object": service,
-	})
+func (s *serviceHandler) UpdateService(ctx context.Context, service *entity.Service) (*entity.Service, error) {
+	op := appErrors.CallerOp()
+	id := strconv.FormatInt(service.Id, 10)
 
 	var err error
 
-	service.BaseService.UpdatedBy, err = common.GetCurrentUserId(ctx, s.database)
+	service.BaseService.UpdatedBy, err = common.GetCurrentUserId(ctx, s.DB())
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while updating service (GetUserId).")
+		return nil, appErrors.InternalError(string(op), "Service", id, err)
 	}
 
-	err = s.database.UpdateService(service)
-	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while updating service.")
+	if err = s.DB().UpdateService(service); err != nil {
+		return nil, appErrors.InternalError(string(op), "Service", id, err)
 	}
 
-	s.eventRegistry.PushEvent(&UpdateServiceEvent{Service: service})
+	s.PushEvent(&UpdateServiceEvent{Service: service})
 
 	return s.GetService(ctx, service.Id)
 }
 
 func (s *serviceHandler) DeleteService(ctx context.Context, id int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event": DeleteServiceEventName,
-		"id":    id,
-	})
-
-	userId, err := common.GetCurrentUserId(ctx, s.database)
-	if err != nil {
-		l.Error(err)
-		return NewServiceHandlerError("Internal error while deleting service (GetUserId).")
-	}
-
-	err = s.database.DeleteService(id, userId)
-	if err != nil {
-		l.Error(err)
-		return NewServiceHandlerError("Internal error while deleting service.")
-	}
-
-	s.eventRegistry.PushEvent(&DeleteServiceEvent{ServiceID: id})
-
-	return nil
+	return s.Delete(ctx, id)
 }
 
-func (s *serviceHandler) AddOwnerToService(
-	ctx context.Context,
-	serviceId, ownerId int64,
-) (*entity.Service, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":     AddOwnerToServiceEventName,
-		"serviceId": serviceId,
-		"ownerId":   ownerId,
-	})
+func (s *serviceHandler) AddOwnerToService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
+	op := appErrors.CallerOp()
 
-	err := s.database.AddOwnerToService(serviceId, ownerId)
-	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while adding owner to service.")
+	if err := s.DB().AddOwnerToService(serviceId, ownerId); err != nil {
+		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
 
-	s.eventRegistry.PushEvent(&AddOwnerToServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
+	s.PushEvent(&AddOwnerToServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
 
 	return s.GetService(ctx, serviceId)
 }
 
-func (s *serviceHandler) RemoveOwnerFromService(
-	ctx context.Context,
-	serviceId, ownerId int64,
-) (*entity.Service, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":     RemoveOwnerFromServiceEventName,
-		"serviceId": serviceId,
-		"ownerId":   ownerId,
-	})
+func (s *serviceHandler) RemoveOwnerFromService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
+	op := appErrors.CallerOp()
 
-	err := s.database.RemoveOwnerFromService(serviceId, ownerId)
-	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while removing owner from service.")
+	if err := s.DB().RemoveOwnerFromService(serviceId, ownerId); err != nil {
+		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
 
-	s.eventRegistry.PushEvent(&RemoveOwnerFromServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
+	s.PushEvent(&RemoveOwnerFromServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
 
 	return s.GetService(ctx, serviceId)
 }
 
-func (s *serviceHandler) AddIssueRepositoryToService(ctx context.Context, serviceId,
-	issueRepositoryId int64, priority int64,
+func (s *serviceHandler) AddIssueRepositoryToService(
+	ctx context.Context,
+	serviceId, issueRepositoryId, priority int64,
 ) (*entity.Service, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":             AddIssueRepositoryToServiceEventName,
-		"serviceId":         serviceId,
-		"issueRepositoryId": issueRepositoryId,
-	})
+	op := appErrors.CallerOp()
 
-	err := s.database.AddIssueRepositoryToService(serviceId, issueRepositoryId, priority)
-	if err != nil {
-		l.Error(err)
-
-		return nil, NewServiceHandlerError(
-			"Internal error while adding issue repository to service.",
-		)
+	if err := s.DB().AddIssueRepositoryToService(serviceId, issueRepositoryId, priority); err != nil {
+		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
 
-	s.eventRegistry.PushEvent(
-		&AddIssueRepositoryToServiceEvent{ServiceID: serviceId, RepositoryID: issueRepositoryId},
-	)
+	s.PushEvent(&AddIssueRepositoryToServiceEvent{ServiceID: serviceId, RepositoryID: issueRepositoryId})
 
 	return s.GetService(ctx, serviceId)
 }
@@ -446,27 +187,13 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(
 	ctx context.Context,
 	serviceId, issueRepositoryId int64,
 ) (*entity.Service, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":             RemoveIssueRepositoryFromServiceEventName,
-		"serviceId":         serviceId,
-		"issueRepositoryId": issueRepositoryId,
-	})
+	op := appErrors.CallerOp()
 
-	err := s.database.RemoveIssueRepositoryFromService(serviceId, issueRepositoryId)
-	if err != nil {
-		l.Error(err)
-
-		return nil, NewServiceHandlerError(
-			"Internal error while removing issue repository from service.",
-		)
+	if err := s.DB().RemoveIssueRepositoryFromService(serviceId, issueRepositoryId); err != nil {
+		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
 
-	s.eventRegistry.PushEvent(
-		&RemoveIssueRepositoryFromServiceEvent{
-			ServiceID:    serviceId,
-			RepositoryID: issueRepositoryId,
-		},
-	)
+	s.PushEvent(&RemoveIssueRepositoryFromServiceEvent{ServiceID: serviceId, RepositoryID: issueRepositoryId})
 
 	return s.GetService(ctx, serviceId)
 }
@@ -476,31 +203,19 @@ func (s *serviceHandler) ListServiceCcrns(
 	filter *entity.ServiceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListServiceCcrnsEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
-	serviceCcrns, err := cache.CallCached[[]string](
-		s.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetServiceAttrs,
-			ctx,
-			"GetServiceCcrns",
-			s.database.GetServiceCcrns,
-			filter,
-		),
+	ccrns, err := cache.CallCached[[]string](
+		s.Cache(),
+		cache.NewCacheCallParams(common.DefaultCacheTTL, ctx, "GetServiceCcrns", s.DB().GetServiceCcrns, filter),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving serviceCCRNs.")
+		return nil, appErrors.InternalError(string(op), "ServiceCcrns", "", err)
 	}
 
-	s.eventRegistry.PushEvent(
-		&ListServiceCcrnsEvent{Filter: filter, Options: options, Ccrns: serviceCcrns},
-	)
+	s.PushEvent(&ListServiceCcrnsEvent{Filter: filter, Options: options, Ccrns: ccrns})
 
-	return serviceCcrns, nil
+	return ccrns, nil
 }
 
 func (s *serviceHandler) ListServiceDomains(
@@ -508,31 +223,19 @@ func (s *serviceHandler) ListServiceDomains(
 	filter *entity.ServiceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListServiceDomainsEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
-	serviceDomains, err := cache.CallCached[[]string](
-		s.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetServiceAttrs,
-			ctx,
-			"GetServiceDomains",
-			s.database.GetServiceDomains,
-			filter,
-		),
+	domains, err := cache.CallCached[[]string](
+		s.Cache(),
+		cache.NewCacheCallParams(common.DefaultCacheTTL, ctx, "GetServiceDomains", s.DB().GetServiceDomains, filter),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving serviceDomains.")
+		return nil, appErrors.InternalError(string(op), "ServiceDomains", "", err)
 	}
 
-	s.eventRegistry.PushEvent(
-		&ListServiceDomainsEvent{Filter: filter, Options: options, Domains: serviceDomains},
-	)
+	s.PushEvent(&ListServiceDomainsEvent{Filter: filter, Options: options, Domains: domains})
 
-	return serviceDomains, nil
+	return domains, nil
 }
 
 func (s *serviceHandler) ListServiceRegions(
@@ -540,55 +243,33 @@ func (s *serviceHandler) ListServiceRegions(
 	filter *entity.ServiceFilter,
 	options *entity.ListOptions,
 ) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListServiceRegionsEventName,
-		"filter": filter,
-	})
+	op := appErrors.CallerOp()
 
-	serviceRegions, err := cache.CallCached[[]string](
-		s.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetServiceAttrs,
-			ctx,
-			"GetServiceRegions",
-			s.database.GetServiceRegions,
-			filter,
-		),
+	regions, err := cache.CallCached[[]string](
+		s.Cache(),
+		cache.NewCacheCallParams(common.DefaultCacheTTL, ctx, "GetServiceRegions", s.DB().GetServiceRegions, filter),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving serviceRegions.")
+		return nil, appErrors.InternalError(string(op), "ServiceRegions", "", err)
 	}
 
-	s.eventRegistry.PushEvent(
-		&ListServiceRegionsEvent{Filter: filter, Options: options, Regions: serviceRegions},
-	)
+	s.PushEvent(&ListServiceRegionsEvent{Filter: filter, Options: options, Regions: regions})
 
-	return serviceRegions, nil
+	return regions, nil
 }
 
 func (s *serviceHandler) ListOwnersByServiceIDs(
 	ctx context.Context,
 	serviceIDs []int64,
 ) (map[int64][]entity.User, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":      "ListOwnersByServiceIDs",
-		"serviceIDs": serviceIDs,
-	})
+	op := appErrors.CallerOp()
 
 	owners, err := cache.CallCached[map[int64][]entity.User](
-		s.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetOwnersByServiceIDs,
-			ctx,
-			"GetOwnersByServiceIDs",
-			s.database.GetOwnersByServiceIDs,
-			serviceIDs,
-		),
+		s.Cache(),
+		cache.NewCacheCallParams(common.DefaultCacheTTL, ctx, "GetOwnersByServiceIDs", s.DB().GetOwnersByServiceIDs, serviceIDs),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving owners by service IDs.")
+		return nil, appErrors.InternalError(string(op), "Owners", "", err)
 	}
 
 	return owners, nil
@@ -598,24 +279,14 @@ func (s *serviceHandler) ListSupportGroupsByServiceIDs(
 	ctx context.Context,
 	serviceIDs []int64,
 ) (map[int64][]entity.SupportGroup, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":      "ListSupportGroupsByServiceIDs",
-		"serviceIDs": serviceIDs,
-	})
+	op := appErrors.CallerOp()
 
 	supportGroups, err := cache.CallCached[map[int64][]entity.SupportGroup](
-		s.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetSupportGroupsByServiceIDs,
-			ctx,
-			"GetSupportGroupsByServiceIDs",
-			s.database.GetSupportGroupsByServiceIDs,
-			serviceIDs,
-		),
+		s.Cache(),
+		cache.NewCacheCallParams(common.DefaultCacheTTL, ctx, "GetSupportGroupsByServiceIDs", s.DB().GetSupportGroupsByServiceIDs, serviceIDs),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving support groups by service IDs.")
+		return nil, appErrors.InternalError(string(op), "SupportGroups", "", err)
 	}
 
 	return supportGroups, nil
@@ -625,24 +296,14 @@ func (s *serviceHandler) ListIssueCountsByServiceIDs(
 	ctx context.Context,
 	serviceIDs []int64,
 ) (map[int64]entity.IssueSeverityCounts, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":      "ListIssueCountsByServiceIDs",
-		"serviceIDs": serviceIDs,
-	})
+	op := appErrors.CallerOp()
 
 	issueCounts, err := cache.CallCached[map[int64]entity.IssueSeverityCounts](
-		s.cache,
-		cache.NewCacheCallParams(
-			CacheTtlGetIssueCountsByServiceIDs,
-			ctx,
-			"GetIssueCountsByServiceIDs",
-			s.database.GetIssueCountsByServiceIDs,
-			serviceIDs,
-		),
+		s.Cache(),
+		cache.NewCacheCallParams(common.DefaultCacheTTL, ctx, "GetIssueCountsByServiceIDs", s.DB().GetIssueCountsByServiceIDs, serviceIDs),
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving issue counts by service IDs.")
+		return nil, appErrors.InternalError(string(op), "IssueCounts", "", err)
 	}
 
 	return issueCounts, nil

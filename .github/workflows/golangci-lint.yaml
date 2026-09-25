@@ -23,7 +23,7 @@ jobs:
         run: go install github.com/onsi/ginkgo/v2/ginkgo
 
       - name: Install Mockery
-        run: go install github.com/vektra/mockery/v2@v2.53.5
+        run: go install github.com/vektra/mockery/v3@v3.7.4
 
       - name: Install golangci-lint
         run: make install-golangci-lint

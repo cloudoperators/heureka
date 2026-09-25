@@ -25,6 +25,7 @@ func NewFakeIssueVariantEntity(issue *int64) entity.IssueVariant {
 		Id:                int64(gofakeit.Number(1, 10000000)),
 		SecondaryName:     gofakeit.Noun(),
 		Description:       gofakeit.Sentence(),
+		ExternalUrl:       gofakeit.URL(),
 		Severity:          severity,
 		IssueId:           issueId,
 		Issue:             nil,

@@ -20,13 +20,16 @@ import (
 )
 
 var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -62,6 +65,7 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		type patchRespDataType struct {
 			Patches model.PatchConnection `json:"Patches"`
 		}

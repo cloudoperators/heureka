@@ -19,10 +19,14 @@ import (
 )
 
 var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -46,6 +50,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 		})
 		Context("and we have 10 SupportGroups in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -64,10 +69,8 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -98,6 +101,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					}
 
 					var sgIds []int64
+
 					for _, e := range seedCollection.SupportGroupServiceRows {
 						if e.ServiceId.Int64 == sgs.ServiceId.Int64 {
 							sgIds = append(sgIds, e.SupportGroupId.Int64)
@@ -141,6 +145,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					}
 
 					var sgIds []int64
+
 					for _, e := range seedCollection.SupportGroupUserRows {
 						if e.UserId.Int64 == sgu.UserId.Int64 {
 							sgIds = append(sgIds, e.SupportGroupId.Int64)
@@ -280,9 +285,12 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			})
 		})
 		Context("and the database has 100 entries", func() {
-			var seedCollection *test.SeedCollection
-			var sgRows []mariadb.SupportGroupRow
-			var count int
+			var (
+				seedCollection *test.SeedCollection
+				sgRows         []mariadb.SupportGroupRow
+				count          int
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				sgRows = seedCollection.SupportGroupRows
@@ -324,10 +332,14 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	})
 	When("Insert SupportGroup", Label("InsertSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
-			var newSupportGroupRow mariadb.SupportGroupRow
-			var newSupportGroup entity.SupportGroup
+			var (
+				newSupportGroupRow mariadb.SupportGroupRow
+				newSupportGroup    entity.SupportGroup
+			)
+
 			BeforeEach(func() {
 				seeder.SeedDbWithNFakeData(10)
+
 				newSupportGroupRow = test.NewFakeSupportGroup()
 				newSupportGroup = newSupportGroupRow.AsSupportGroup()
 			})
@@ -346,6 +358,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				}
 
 				sg, err := db.GetSupportGroups(context.Background(), sgFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -362,6 +375,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	When("Update SupportGroup", Label("UpdateSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -380,6 +394,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				}
 
 				sg, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -396,6 +411,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	When("Delete SupportGroup", Label("DeleteSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -413,6 +429,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				}
 
 				sg, err := db.GetSupportGroups(context.Background(), sgFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -424,11 +441,13 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	})
 	When("Add Service To SupportGroup", Label("AddServiceToSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newServiceRow mariadb.ServiceRow
-			var newService entity.Service
-			var service *entity.Service
-			var supportGroup entity.SupportGroup
+			var (
+				seedCollection *test.SeedCollection
+				newServiceRow  mariadb.ServiceRow
+				newService     entity.Service
+				service        *entity.Service
+				supportGroup   entity.SupportGroup
+			)
 
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -476,8 +495,11 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	})
 	When("Remove Service From SupportGroup", Label("RemoveServiceFromSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
-			var seedCollection *test.SeedCollection
-			var supportGroupServiceRow mariadb.SupportGroupServiceRow
+			var (
+				seedCollection         *test.SeedCollection
+				supportGroupServiceRow mariadb.SupportGroupServiceRow
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				supportGroupServiceRow = seedCollection.SupportGroupServiceRows[0]
@@ -497,6 +519,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				}
 
 				supportGroups, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -509,11 +532,13 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	})
 	When("Add User To SupportGroup", Label("AddUserToSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newUserRow mariadb.UserRow
-			var newUser entity.User
-			var user *entity.User
-			var supportGroup entity.SupportGroup
+			var (
+				seedCollection *test.SeedCollection
+				newUserRow     mariadb.UserRow
+				newUser        entity.User
+				user           *entity.User
+				supportGroup   entity.SupportGroup
+			)
 
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -561,8 +586,11 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	})
 	When("Remove Service From SupportGroup", Label("RemoveUserFromSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
-			var seedCollection *test.SeedCollection
-			var supportGroupUserRow mariadb.SupportGroupUserRow
+			var (
+				seedCollection      *test.SeedCollection
+				supportGroupUserRow mariadb.SupportGroupUserRow
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				supportGroupUserRow = seedCollection.SupportGroupUserRows[0]
@@ -582,6 +610,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				}
 
 				supportGroups, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -596,6 +625,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetSupportGroupCcrns(context.Background(), nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -606,6 +636,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 		})
 		Context("and we have 10 services in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -637,8 +668,11 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				})
 			})
 			Context("and using a SupportGroupCcrns filter", func() {
-				var filter *entity.SupportGroupFilter
-				var expectedSupportGroupCcrns []string
+				var (
+					filter                    *entity.SupportGroupFilter
+					expectedSupportGroupCcrns []string
+				)
+
 				BeforeEach(func() {
 					ccrnPointers := []*string{}
 
@@ -668,6 +702,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					})
 					It("and using another filter", func() {
 						var anotherFilter *entity.SupportGroupFilter
+
 						BeforeEach(func() {
 							nonExistentSupportGroupCcrn := "NonexistentService"
 

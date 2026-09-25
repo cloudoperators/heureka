@@ -24,13 +24,16 @@ import (
 )
 
 var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentInstances"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -68,6 +71,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -100,6 +104,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				respData := struct {
 					ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
 				}{}
+
 				BeforeEach(func() {
 					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 						ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
@@ -128,7 +133,6 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 					// resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
-
 					for _, ci := range respData.ComponentInstances.Edges {
 						Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
 						Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has a ccrn set")
@@ -352,6 +356,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 				By("- returns the expected content in order", func() {
 					prev := -1
+
 					for _, ci := range componentInstances.Edges {
 						citEntity := entity.NewComponentInstanceType(ci.Node.Type.String())
 						Expect(citEntity.Index() >= prev).Should(BeTrue())
@@ -364,14 +369,17 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 })
 
 var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentInstances"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var componentInstance entity.ComponentInstance
-	var db *mariadb.SqlDatabase
+	var (
+		seeder            *test.DatabaseSeeder
+		s                 *server.Server
+		cfg               util.Config
+		componentInstance entity.ComponentInstance
+		db                *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -389,11 +397,13 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 
 	When("the database has 10 entries", func() {
 		var seedCollection *test.SeedCollection
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			componentInstance = testentity.NewFakeComponentInstanceEntity()
 			componentInstance.ComponentVersionId = seedCollection.ComponentVersionRows[0].Id.Int64
 			componentInstance.ServiceId = seedCollection.ServiceRows[0].Id.Int64
+
 			seeder.SeedScannerRunInstances("4b6d3167-473a-4150-87b3-01da70096727")
 		})
 
@@ -445,13 +455,16 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 })
 
 var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentInstances"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -512,13 +525,16 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 })
 
 var _ = Describe("Deleting ComponentInstance via API", Label("e2e", "ComponentInstances"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")

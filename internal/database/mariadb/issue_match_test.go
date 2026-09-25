@@ -20,10 +20,14 @@ import (
 )
 
 var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -45,8 +49,11 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 		})
 		Context("and we have 20 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
+			var (
+				seedCollection *test.SeedCollection
+				ids            []int64
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 
@@ -70,10 +77,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r > prev).Should(BeTrue())
 							prev = r
-
 						}
 					})
 
@@ -113,6 +118,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var imIds []int64
+
 					for _, e := range seedCollection.IssueMatchRows {
 						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
 							imIds = append(imIds, e.Id.Int64)
@@ -166,11 +172,13 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 					issueRow, ok := seedCollection.GetIssueById(issueMatch.IssueId.Int64)
 					Expect(ok).To(BeTrue())
+
 					filter := &entity.IssueMatchFilter{
 						PrimaryName: []*string{&issueRow.PrimaryName.String},
 					}
 
 					var imIds []int64
+
 					for _, e := range seedCollection.IssueMatchRows {
 						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
 							imIds = append(imIds, e.Id.Int64)
@@ -233,8 +241,11 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 		})
 		Context("and we have 10 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var issueMatches []mariadb.IssueMatchRow
+			var (
+				seedCollection *test.SeedCollection
+				issueMatches   []mariadb.IssueMatchRow
+			)
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 
@@ -256,10 +267,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					By("returning the correct order", func() {
 						var prev int64 = 0
 						for _, r := range res {
-
 							Expect(r.Id > prev).Should(BeTrue())
 							prev = r.Id
-
 						}
 					})
 
@@ -310,6 +319,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var imIds []int64
+
 					for _, e := range seedCollection.IssueMatchRows {
 						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
 							imIds = append(imIds, e.Id.Int64)
@@ -339,6 +349,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var imIds []int64
+
 					for _, e := range seedCollection.IssueMatchRows {
 						if e.ComponentInstanceId.Int64 == issueMatch.ComponentInstanceId.Int64 {
 							imIds = append(imIds, e.Id.Int64)
@@ -369,6 +380,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var ciIds []int64
+
 					for _, ci := range seedCollection.ComponentInstanceRows {
 						if ci.ServiceId.Int64 == service.Id.Int64 {
 							ciIds = append(ciIds, ci.Id.Int64)
@@ -376,6 +388,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var imIds []int64
+
 					for _, im := range seedCollection.IssueMatchRows {
 						if lo.Contains(ciIds, im.ComponentInstanceId.Int64) {
 							imIds = append(imIds, im.Id.Int64)
@@ -383,6 +396,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -405,6 +419,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var ciIds []int64
+
 					for _, ci := range seedCollection.ComponentInstanceRows {
 						if ci.ServiceId.Int64 == service.Id.Int64 {
 							ciIds = append(ciIds, ci.Id.Int64)
@@ -412,6 +427,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var imIds []int64
+
 					for _, im := range seedCollection.IssueMatchRows {
 						if lo.Contains(ciIds, im.ComponentInstanceId.Int64) {
 							imIds = append(imIds, im.Id.Int64)
@@ -543,6 +559,39 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
+				It("can filter by a single issue primary name that does exist", func() {
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
+					issueRow, ok := seedCollection.GetIssueById(issueMatch.IssueId.Int64)
+					Expect(ok).To(BeTrue())
+
+					filter := &entity.IssueMatchFilter{
+						PrimaryName: []*string{&issueRow.PrimaryName.String},
+					}
+
+					var imIds []int64
+
+					for _, e := range seedCollection.IssueMatchRows {
+						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
+							imIds = append(imIds, e.Id.Int64)
+						}
+					}
+
+					entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
+						}
+					})
+				})
 				Context("and and we use Pagination", func() {
 					DescribeTable(
 						"can correctly paginate ", func(pageSize int) {
@@ -564,6 +613,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 											*entries[len(entries)-1].IssueMatch,
 										),
 									)
+
 									return after
 								},
 								len(issueMatches),
@@ -603,6 +653,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 		Context("and using a filter", func() {
 			Context("and having 20 elements in the Database", func() {
 				var seedCollection *test.SeedCollection
+
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
@@ -633,11 +684,13 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 
 					var imIds []int64
+
 					for _, e := range seedCollection.IssueMatchRows {
 						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
 							imIds = append(imIds, e.Id.Int64)
 						}
 					}
+
 					count, err := db.CountIssueMatches(context.Background(), filter)
 
 					By("throwing no error", func() {
@@ -653,12 +706,15 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 	})
 	When("Insert IssueMatch", Label("InsertIssueMatch"), func() {
 		Context("and we have 10 IssueMatches in the database", func() {
-			var newIssueMatchRow mariadb.IssueMatchRow
-			var newIssueMatch entity.IssueMatch
-			var seedCollection *test.SeedCollection
-			var user entity.User
-			var issue entity.Issue
-			var componentInstance entity.ComponentInstance
+			var (
+				newIssueMatchRow  mariadb.IssueMatchRow
+				newIssueMatch     entity.IssueMatch
+				seedCollection    *test.SeedCollection
+				user              entity.User
+				issue             entity.Issue
+				componentInstance entity.ComponentInstance
+			)
+
 			BeforeEach(func() {
 				seeder.SeedDbWithNFakeData(10)
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -686,6 +742,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				}
 
 				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -716,6 +773,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 	When("Update IssueMatch", Label("UpdateIssueMatch"), func() {
 		Context("and we have 10 IssueMatches in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -739,6 +797,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				}
 
 				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -769,6 +828,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 	When("Delete IssueMatch", Label("DeleteIssueMatch"), func() {
 		Context("and we have 10 IssueMatches in the database", func() {
 			var seedCollection *test.SeedCollection
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
@@ -786,6 +846,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				}
 
 				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -795,15 +856,126 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 		})
 	})
+	When("Filter IssueMatch by Acknowledged", Label("FilterIssueMatchAcknowledged"), func() {
+		Context("and we have IssueMatches with mixed acknowledged values", func() {
+			var seedCollection *test.SeedCollection
+
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(20)
+			})
+
+			It("can filter to only acknowledged IssueMatches", func() {
+				acknowledged := true
+				filter := &entity.IssueMatchFilter{
+					Acknowledged: &acknowledged,
+				}
+
+				expectedIds := []int64{}
+
+				for _, im := range seedCollection.IssueMatchRows {
+					if im.Acknowledged.Bool {
+						expectedIds = append(expectedIds, im.Id.Int64)
+					}
+				}
+
+				if len(expectedIds) == 0 || len(expectedIds) == len(seedCollection.IssueMatchRows) {
+					Skip("Seed data has no variation in acknowledged; cannot test filter exclusion")
+				}
+
+				entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning only acknowledged entries", func() {
+					Expect(len(entries)).To(BeEquivalentTo(len(expectedIds)))
+
+					for _, entry := range entries {
+						Expect(entry.Acknowledged).To(BeTrue())
+					}
+				})
+			})
+
+			It("can filter to only unacknowledged IssueMatches", func() {
+				acknowledged := false
+				filter := &entity.IssueMatchFilter{
+					Acknowledged: &acknowledged,
+				}
+
+				expectedIds := []int64{}
+
+				for _, im := range seedCollection.IssueMatchRows {
+					if !im.Acknowledged.Bool {
+						expectedIds = append(expectedIds, im.Id.Int64)
+					}
+				}
+
+				if len(expectedIds) == 0 || len(expectedIds) == len(seedCollection.IssueMatchRows) {
+					Skip("Seed data has no variation in acknowledged; cannot test filter exclusion")
+				}
+
+				entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning only unacknowledged entries", func() {
+					Expect(len(entries)).To(BeEquivalentTo(len(expectedIds)))
+
+					for _, entry := range entries {
+						Expect(entry.Acknowledged).To(BeFalse())
+					}
+				})
+			})
+		})
+	})
+	When("Update IssueMatch Acknowledged", Label("UpdateIssueMatchAcknowledged"), func() {
+		Context("and we have 10 IssueMatches in the database", func() {
+			var seedCollection *test.SeedCollection
+
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+			It("can update issueMatch acknowledged correctly", func() {
+				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
+				issueMatch.Acknowledged = !issueMatch.Acknowledged
+
+				err := db.UpdateIssueMatch(&issueMatch)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueMatchFilter := &entity.IssueMatchFilter{
+					Id: []*int64{&issueMatch.Id},
+				}
+
+				im, err := db.GetIssueMatches(context.Background(), issueMatchFilter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning issueMatch", func() {
+					Expect(len(im)).To(BeEquivalentTo(1))
+				})
+				By("setting acknowledged field", func() {
+					Expect(im[0].Acknowledged).To(BeEquivalentTo(issueMatch.Acknowledged))
+				})
+			})
+		})
+	})
 })
 
 var _ = Describe("Ordering IssueMatches", func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
+	var (
+		db             *mariadb.SqlDatabase
+		seeder         *test.DatabaseSeeder
+		seedCollection *test.SeedCollection
+	)
 
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -859,6 +1031,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				Expect(ok).To(BeTrue())
 				issueJ, ok := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
 				Expect(ok).To(BeTrue())
+
 				return issueI.PrimaryName.String < issueJ.PrimaryName.String
 			})
 
@@ -868,6 +1041,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := ""
+
 				for _, r := range res {
 					issue, ok := seedCollection.GetIssueById(r.IssueId)
 					Expect(ok).To(BeTrue())
@@ -893,7 +1067,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.After(prev)).Should(BeTrue())
 					prev = r.TargetRemediationDate
-
 				}
 			})
 		})
@@ -902,6 +1075,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
 				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
 				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
+
 				return r1 < r2
 			})
 
@@ -926,6 +1100,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 					seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64,
 				)
 				Expect(ok).To(BeTrue())
+
 				return ciI.CCRN.String < ciJ.CCRN.String
 			})
 
@@ -935,6 +1110,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := ""
+
 				for _, r := range res {
 					ci, ok := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 					Expect(ok).To(BeTrue())
@@ -972,6 +1148,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				Expect(ok).To(BeTrue())
 				issueJ, ok := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
 				Expect(ok).To(BeTrue())
+
 				return issueI.PrimaryName.String > issueJ.PrimaryName.String
 			})
 
@@ -981,6 +1158,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := "\U0010FFFF"
+
 				for _, r := range res {
 					issue, ok := seedCollection.GetIssueById(r.IssueId)
 					Expect(ok).To(BeTrue())
@@ -1006,7 +1184,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.Before(prev)).Should(BeTrue())
 					prev = r.TargetRemediationDate
-
 				}
 			})
 		})
@@ -1015,6 +1192,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
 				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
 				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
+
 				return r1 > r2
 			})
 
@@ -1039,6 +1217,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 					seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64,
 				)
 				Expect(ok).To(BeTrue())
+
 				return ciI.CCRN.String > ciJ.CCRN.String
 			})
 
@@ -1048,6 +1227,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := "\U0010FFFF"
+
 				for _, r := range res {
 					ci, ok := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 					Expect(ok).To(BeTrue())
@@ -1083,16 +1263,20 @@ var _ = Describe("Ordering IssueMatches", func() {
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
+
 				for _, r := range res {
 					issue, ok := seedCollection.GetIssueById(r.IssueId)
 					Expect(ok).To(BeTrue())
+
 					if issue.PrimaryName.String == prevPn {
 						Expect(r.TargetRemediationDate.After(prevTrd)).Should(BeTrue())
 						prevTrd = r.TargetRemediationDate
 					} else {
 						Expect(issue.PrimaryName.String > prevPn).To(BeTrue())
+
 						prevTrd = time.Time{}
 					}
+
 					prevPn = issue.PrimaryName.String
 				}
 			})
@@ -1107,16 +1291,20 @@ var _ = Describe("Ordering IssueMatches", func() {
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
+
 				for _, r := range res {
 					issue, ok := seedCollection.GetIssueById(r.IssueId)
 					Expect(ok).To(BeTrue())
+
 					if issue.PrimaryName.String == prevPn {
 						Expect(r.TargetRemediationDate.Before(prevTrd)).Should(BeTrue())
 						prevTrd = r.TargetRemediationDate
 					} else {
 						Expect(issue.PrimaryName.String > prevPn).To(BeTrue())
+
 						prevTrd = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 					}
+
 					prevPn = issue.PrimaryName.String
 				}
 			})
@@ -1138,9 +1326,11 @@ var _ = Describe("Ordering IssueMatches", func() {
 					prevSeverity := 0
 					prevCiCcrn := ""
 					prevTrd := time.Time{}
+
 					for _, r := range res {
 						ci, ok := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 						Expect(ok).To(BeTrue())
+
 						if test.SeverityToNumerical(r.Severity.Value) == prevSeverity {
 							if ci.CCRN.String == prevCiCcrn {
 								Expect(r.TargetRemediationDate.After(prevTrd)).To(BeTrue())
@@ -1166,10 +1356,14 @@ var _ = Describe("Ordering IssueMatches", func() {
 })
 
 var _ = Describe("Using the Cursor on IssueMatches", func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
+	var (
+		db     *mariadb.SqlDatabase
+		seeder *test.DatabaseSeeder
+	)
+
 	BeforeEach(func() {
 		var err error
+
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
@@ -1177,6 +1371,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 	AfterEach(func() {
 		dbm.TestTearDown(db)
 	})
+
 	loadTestData := func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
 		matches, err := test.LoadIssueMatches(
 			test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"),
@@ -1184,26 +1379,31 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 		if err != nil {
 			return nil, nil, nil, err
 		}
+
 		issues, err := test.LoadIssues(
 			test.GetTestDataPath("testdata/issue_match_cursor/issue.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
+
 		components, err := test.LoadComponentInstances(
 			test.GetTestDataPath("testdata/issue_match_cursor/component_instance.json"),
 		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
+
 		return matches, issues, components, nil
 	}
+
 	When("multiple orders used", func() {
 		BeforeEach(func() {
 			seeder.SeedUsers(10)
 			seeder.SeedServices(10)
 			components := seeder.SeedComponents(10)
 			seeder.SeedComponentVersions(10, components)
+
 			matches, issues, cis, err := loadTestData()
 			Expect(err).To(BeNil())
 			// Important: the order need to be preserved
@@ -1211,10 +1411,12 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 				_, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
 			}
+
 			for _, issue := range issues {
 				_, err := seeder.InsertFakeIssue(issue)
 				Expect(err).To(BeNil())
 			}
+
 			for _, match := range matches {
 				_, err := seeder.InsertFakeIssueMatch(match)
 				Expect(err).To(BeNil())

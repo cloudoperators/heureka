@@ -23,9 +23,9 @@ input IssueMatchInput {
     remediationDate: DateTime
     discoveryDate: DateTime
     targetRemediationDate: DateTime
-    issueId: String
-    componentInstanceId: String
-    userId: String
+    issueId: String @constraint(maxLength: 255)
+    componentInstanceId: String @constraint(maxLength: 255)
+    userId: String @constraint(maxLength: 255)
 }
 
 input IssueMatchFilter {

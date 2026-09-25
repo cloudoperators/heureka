@@ -1346,6 +1346,7 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 	query := `
 		INSERT INTO IssueMatch (
 			issuematch_status,
+			issuematch_acknowledged,
 			issuematch_component_instance_id,
 			issuematch_vector,
 			issuematch_rating,
@@ -1358,6 +1359,7 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 			issuematch_updated_by
 		) VALUES (
 			:issuematch_status,
+			:issuematch_acknowledged,
 			:issuematch_component_instance_id,
 			:issuematch_vector,
 			:issuematch_rating,
@@ -1692,9 +1694,10 @@ func NewFakeIssueMatch() mariadb.IssueMatchRow {
 
 	return mariadb.IssueMatchRow{
 		Status: sql.NullString{
-			String: gofakeit.RandomString(entity.AllIssueMatchStatusValues),
+			String: entity.IssueMatchStatusValuesNew.String(),
 			Valid:  true,
 		},
+		Acknowledged:          sql.NullBool{Bool: gofakeit.Bool(), Valid: true},
 		Vector:                sql.NullString{String: v, Valid: true},
 		Rating:                sql.NullString{String: rating, Valid: true},
 		RemediationDate:       sql.NullTime{Time: gofakeit.Date(), Valid: true},
@@ -1712,7 +1715,7 @@ func NewFakeIssue() mariadb.IssueRow {
 		},
 		Description: sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
 		Type: sql.NullString{
-			String: gofakeit.RandomString(entity.AllIssueTypes),
+			String: entity.IssueTypeVulnerability.String(),
 			Valid:  true,
 		},
 		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
@@ -2290,6 +2293,11 @@ func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
 func (s *DatabaseSeeder) RefreshMVVulnerabilityList() error {
 	// 9
 	return mariadb.TxCall(mariadb.RefreshMVVulnerabilityList, context.Background(), s.db)
+}
+
+func (s *DatabaseSeeder) RefreshMVVulnerabilityService() error {
+	// 10
+	return mariadb.TxCall(mariadb.RefreshMVVulnerabilityService, context.Background(), s.db)
 }
 
 func (s *DatabaseSeeder) RefreshMVComponentService() error {

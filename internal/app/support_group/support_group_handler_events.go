@@ -4,6 +4,8 @@
 package support_group
 
 import (
+	"errors"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -117,7 +119,7 @@ func (e *ListSupportGroupCcrnsEvent) Name() event.EventName {
 // OnSupportGroupCreateAuthz is a handler for the CreateSupportGroupEvent
 // It creates an OpenFGA relation tuple for the support group and the current user
 func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnSupportGroupCreateAuthz")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnSupportGroupCreateAuthz",
@@ -143,9 +145,7 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewSupportGroupHandlerError(
-			"OnSupportGroupCreateAuthz: triggered with wrong event type",
-		)
+		err := errors.New("OnSupportGroupCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 		l.Error(wrappedErr)
 	}
@@ -153,7 +153,7 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 
 // OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
 func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnSupportGroupDeleteAuthz")
+	op := appErrors.CallerOp()
 
 	deleteInput := []openfga.RelationInput{}
 
@@ -203,9 +203,7 @@ func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfg
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewSupportGroupHandlerError(
-			"OnSupportGroupDeleteAuthz: triggered with wrong event type",
-		)
+		err := errors.New("OnSupportGroupDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 		l.Error(wrappedErr)
 	}
@@ -214,7 +212,7 @@ func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfg
 // OnAddServiceToSupportGroup is a handler for the AddServiceToSupportGroupEvent
 // It creates an OpenFGA relation tuple between the support group and the service
 func OnAddServiceToSupportGroup(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnAddServiceToSupportGroup")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnAddServiceToSupportGroup",
@@ -238,9 +236,7 @@ func OnAddServiceToSupportGroup(db database.Database, e event.Event, authz openf
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewSupportGroupHandlerError(
-			"OnAddServiceToSupportGroup: triggered with wrong event type",
-		)
+		err := errors.New("OnAddServiceToSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 		l.Error(wrappedErr)
 	}
@@ -253,7 +249,7 @@ func OnRemoveServiceFromSupportGroup(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnRemoveServiceFromSupportGroup")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnRemoveServiceFromSupportGroup",
@@ -275,9 +271,7 @@ func OnRemoveServiceFromSupportGroup(
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewSupportGroupHandlerError(
-			"OnRemoveServiceFromSupportGroup: triggered with wrong event type",
-		)
+		err := errors.New("OnRemoveServiceFromSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 		l.Error(wrappedErr)
 	}
@@ -286,7 +280,7 @@ func OnRemoveServiceFromSupportGroup(
 // OnAddUserToSupportGroup is a handler for the AddUserToSupportGroupEvent
 // It creates an OpenFGA relation tuple between the user and the support group
 func OnAddUserToSupportGroup(db database.Database, e event.Event, authz openfga.Authorization) {
-	op := appErrors.Op("OnAddUserToSupportGroup")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnAddUserToSupportGroup",
@@ -310,9 +304,7 @@ func OnAddUserToSupportGroup(db database.Database, e event.Event, authz openfga.
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewSupportGroupHandlerError(
-			"OnAddUserToSupportGroup: triggered with wrong event type",
-		)
+		err := errors.New("OnAddUserToSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 		l.Error(wrappedErr)
 	}
@@ -325,7 +317,7 @@ func OnRemoveUserFromSupportGroup(
 	e event.Event,
 	authz openfga.Authorization,
 ) {
-	op := appErrors.Op("OnRemoveUserFromSupportGroup")
+	op := appErrors.CallerOp()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnRemoveUserFromSupportGroup",
@@ -347,9 +339,7 @@ func OnRemoveUserFromSupportGroup(
 			l.Error(wrappedErr)
 		}
 	} else {
-		err := NewSupportGroupHandlerError(
-			"OnRemoveUserFromSupportGroup: triggered with wrong event type",
-		)
+		err := errors.New("OnRemoveUserFromSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 		l.Error(wrappedErr)
 	}

@@ -39,10 +39,17 @@ var AllIssueMatchStatusValues = []string{
 	IssueMatchStatusValuesMitigated.String(),
 }
 
+type UpdateIssueMatchInput struct {
+	Status  *IssueMatchStatusValue
+	UserId  *int64
+	Comment string
+}
+
 type IssueMatch struct {
 	Metadata
 	Id                    int64                 `json:"id"`
 	Status                IssueMatchStatusValue `json:"status"`
+	Acknowledged          bool                  `json:"acknowledged"`
 	User                  *User                 `json:"user,omitempty"`
 	UserId                int64                 `json:"user_id"`
 	Severity              Severity              `json:"severity"`
@@ -72,15 +79,18 @@ type IssueMatchFilter struct {
 	ComponentInstanceId      []*int64          `json:"component_instance_id"`
 	ServiceId                []*int64          `json:"service_id"`
 	SupportGroupCCRN         []*string         `json:"support_group_ccrn"`
+	Region                   []*string         `json:"region"`
 	Search                   []*string         `json:"search"`
 	ComponentCCRN            []*string         `json:"component_ccrn"`
 	PrimaryName              []*string         `json:"primary_name"`
 	IssueType                []*string         `json:"issue_type"`
+	Acknowledged             *bool             `json:"acknowledged"`
 	State                    []StateFilterType `json:"state"`
 	ServiceOwnerUsername     []*string         `json:"service_owner_username"`
 	ServiceOwnerUniqueUserId []*string         `json:"service_owner_unique_user_id"`
 	IncludeComponentInstance bool              `json:"include_component_instance"`
 	IncludeService           bool              `json:"include_service"`
+	IncludeIssueVariants     bool              `json:"include_issue_variants"`
 }
 
 func (f *IssueMatchFilter) Get() any {
