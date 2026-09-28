@@ -277,3 +277,12 @@ Heureka UI shows remediated vulnerability
      When Change severity remediation is issued on the 'Test' vulnerability
      Then 'Test' vulnerability is not visible on the list of active vulnerabilities
       And 'Test' vulnerability is visible on the list of remediated vulnerabilities
+
+
+Perf
+    [Tags]    perf
+    Given Database is cleared
+      And Feed database from gzip    ../../../../../dbdata/heureka-20-10-2026.sql.gz
+      And Backend MVs refresh
+      And Backend MVs refresh
+      And Backend MVs refresh

@@ -1,4 +1,5 @@
 SERVER_IMAGE    := ghcr.io/cloudoperators/heureka
+LOCAL_IMAGE    := heureka-app
 VERSION  ?= $(shell git log -1 --pretty=format:"%H")
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -44,7 +45,7 @@ echo:
 	echo "version:" $(VERSION)
 
 build-image:
-	docker buildx build -t $(SERVER_IMAGE):$(VERSION) -t $(SERVER_IMAGE):latest . --load
+	docker buildx build -t $(SERVER_IMAGE):$(VERSION) -t $(SERVER_IMAGE):latest -t ${LOCAL_IMAGE}:latest . --load
 
 build-scanner-images: build-scanner-k8s-assets-image build-scanner-keppel-image build-scanner-nvd-image
 
@@ -148,7 +149,7 @@ DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey
 compose-prepare:
 	sed 's/^SEED_MODE=false/SEED_MODE=true/g' .test.env > .env
 
-compose-up:
+compose-up: mockery gqlgen
 	$(DOCKER_COMPOSE) up -d $(DOCKER_COMPOSE_SERVICES)
 
 compose-down:

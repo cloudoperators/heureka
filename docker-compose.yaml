@@ -35,6 +35,7 @@ services:
       - "3306:3306"
 
   heureka-app:
+    image: heureka-app:latest
     build: .
     container_name: heureka-app
     profiles:
@@ -74,6 +75,7 @@ services:
     restart: always
 
   ui:
+    image: juno-ui:latest
     build:
       context: ./ui/
       dockerfile: Dockerfile
