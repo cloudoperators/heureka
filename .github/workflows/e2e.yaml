@@ -1,17 +1,91 @@
-name: E2E Test1
+name: E2E Test 2
 
 on: [pull_request]
-#on:
-#  push:
-#    branches: [ main, master ]
-#  pull_request:
-#    branches: [ main, master ]
 
 jobs:
-  e2e:
+  # ---------------------------------------------------------
+  # Job 1: Build & Cache the Heavy UI Component
+  # ---------------------------------------------------------
+  build-ui:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache & Build UI Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ui
+          file: ./ui/Dockerfile
+          build-args: |
+            UI_GIT_REPO=https://github.com/cloudoperators/juno/
+            UI_GIT_DIR=./ui/juno/
+          push: false
+          outputs: type=docker,dest=/tmp/juno-ui.tar # Export as a tarball artifact
+          tags: juno-ui:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload UI Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: juno-ui-image
+          path: /tmp/juno-ui.tar
+          retention-days: 1
+
+  # ---------------------------------------------------------
+  # Job 2: Build & Cache the Backend Environment
+  # ---------------------------------------------------------
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install Tools & Generate Mock/Gql Code
+        run: |
+          go install github.com/onsi/ginkgo/v2/ginkgo
+          go install github.com/vektra/mockery/v2@v2.53.5
+          make mockery
+          make gqlgen
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache & Build Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          outputs: type=docker,dest=/tmp/heureka-app.tar # Export as a tarball artifact
+          tags: heureka-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload Backend Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: heureka-app-image
+          path: /tmp/heureka-app.tar
+          retention-days: 1
+
+  # ---------------------------------------------------------
+  # Job 3: Synchronize, Restore Images, & Run Tests
+  # ---------------------------------------------------------
+  run-e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [build-ui, build-backend]
     env:
-      # Database and application environment defaults match your compose file
       DB_USER: my_username
       DB_PASSWORD: my_password
       DB_ROOT_PASSWORD: my_password
@@ -23,23 +97,17 @@ jobs:
       AUTHZ_FGA_API_URL: http://localhost:8080
       AUTHZ_FGA_STORE_NAME: heureka_store
       AUTHZ_MODEL_FILE_PATH: ./../internal/openfga/model/model.fga
-      TAG: xxx # Replace with a specific tag filter if preferred
+      TAG: xxx
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: 'go.mod'
-          cache: true
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v5
         with:
           python-version: '3.14'
-          cache: 'pip'           # Cache pip packages
+          cache: 'pip'
           cache-dependency-path: 'e2e/e2e-requirements.txt'
 
       - name: Install E2E Python dependencies
@@ -53,33 +121,30 @@ jobs:
       - name: Install migration tool
         run: make install-migrate
 
-      # Buildx (used for fast caching of docker layers)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # Pre-bake & Cache 'ui' (Juno UI assets)
-      - name: Cache & Build UI Image
-        uses: docker/build-push-action@v6
+      - name: Download UI Image
+        uses: actions/download-artifact@v4
         with:
-          context: ./ui
-          file: ./ui/Dockerfile
-          build-args: |
-            UI_GIT_REPO=https://github.com/cloudoperators/juno/
-            UI_GIT_DIR=./ui/juno/
-          push: false
-          load: true # Load image from local docker daemon on GHA
-          tags: juno-ui:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          name: juno-ui-image
+          path: /tmp/docker-images/juno-ui-image
 
-      # Create a compatibility alias for the legacy hyphenated command
-      - name: Setup docker-compose alias
-        run: sudo ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+      - name: Download Backend Image
+        uses: actions/download-artifact@v4
+        with:
+          name: heureka-app-image
+          path: /tmp/docker-images/heureka-app-image
 
-      - name: Run BE, DB, UI
+      # Load them directly into the local Docker environment
+      - name: Load Docker Images
         run: |
-          make compose-up
-          make ui-up
+          docker load -i /tmp/docker-images/juno-ui-image/juno-ui.tar
+          docker load -i /tmp/docker-images/heureka-app-image/heureka-app.tar
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v2
+
+      - name: Start Stack (DB, Valkey, Backend, UI, OpenFGA)
+        run: |
+          docker compose --profile db --profile heureka --profile ui --profile openfga up -d --no-build
           sleep 10
 
       - name: Run E2E Tests

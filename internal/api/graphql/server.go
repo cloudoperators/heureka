@@ -57,6 +57,7 @@ func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
 	if g.cfg.TestingEnable {
 		router.POST("/internal/testing/mvrefresh", g.refreshMVs())
 	}
+
 	router.Use(g.rateLimiter.Middleware())
 	router.Use(g.auth.Middleware())
 	router.Use(gqlmiddleware.QueryCounter())
