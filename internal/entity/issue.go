@@ -180,4 +180,7 @@ type VulnerabilityResult struct {
 	MaxSeverity             string
 	EarliestRemediationDate *time.Time
 	SourceURL               string
+	KnownExploited          bool
+	KnownExploitedAddedDate *time.Time
+	KnownExploitedDueDate   *time.Time
 }
