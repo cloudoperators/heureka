@@ -71,6 +71,8 @@ type Config struct {
 	AIProvider      string  `envconfig:"AI_PROVIDER" default:"anthropic" json:"-"`
 	AIHttpRateLimit float64 `envconfig:"AI_HTTP_RATE_LIMIT" default:"5.0" json:"-"`
 	AIHttpRateBurst int     `envconfig:"AI_HTTP_RATE_BURST" default:"5"   json:"-"`
+
+	TestingEnable bool `envconfig:"TESTING_ENABLE" default:"false" json:"-"`
 }
 
 func (c *Config) ConfigToConsole() {
