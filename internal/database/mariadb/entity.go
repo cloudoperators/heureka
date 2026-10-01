@@ -52,6 +52,14 @@ func GetTimeValue(v sql.NullTime) time.Time {
 	}
 }
 
+func GetNullableTimeValue(v sql.NullTime) *time.Time {
+	if v.Valid {
+		return &v.Time
+	}
+
+	return nil
+}
+
 func GetUserTypeValue(v sql.NullInt64) entity.UserType {
 	if v.Valid {
 		return entity.UserType(v.Int64)
@@ -256,25 +264,31 @@ func (rc *RatingCount) AsIssueSeverityCounts() entity.IssueSeverityCounts {
 }
 
 type IssueRow struct {
-	Id          sql.NullInt64  `db:"issue_id"           json:"id"`
-	Type        sql.NullString `db:"issue_type"         json:"type"`
-	PrimaryName sql.NullString `db:"issue_primary_name" json:"primary_name"`
-	Description sql.NullString `db:"issue_description"  json:"description"`
-	CreatedAt   sql.NullTime   `db:"issue_created_at"   json:"created_at"`
-	CreatedBy   sql.NullInt64  `db:"issue_created_by"   json:"created_by"`
-	DeletedAt   sql.NullTime   `db:"issue_deleted_at"   json:"deleted_at"`
-	UpdatedAt   sql.NullTime   `db:"issue_updated_at"   json:"updated_at"`
-	UpdatedBy   sql.NullInt64  `db:"issue_updated_by"   json:"updated_by"`
+	Id                      sql.NullInt64  `db:"issue_id"                        json:"id"`
+	Type                    sql.NullString `db:"issue_type"                      json:"type"`
+	PrimaryName             sql.NullString `db:"issue_primary_name"              json:"primary_name"`
+	Description             sql.NullString `db:"issue_description"               json:"description"`
+	KnownExploited          sql.NullBool   `db:"issue_known_exploited"           json:"known_exploited"`
+	KnownExploitedAddedDate sql.NullTime   `db:"issue_known_exploited_added_date" json:"known_exploited_added_date"`
+	KnownExploitedDueDate   sql.NullTime   `db:"issue_known_exploited_due_date"  json:"known_exploited_due_date"`
+	CreatedAt               sql.NullTime   `db:"issue_created_at"                json:"created_at"`
+	CreatedBy               sql.NullInt64  `db:"issue_created_by"                json:"created_by"`
+	DeletedAt               sql.NullTime   `db:"issue_deleted_at"                json:"deleted_at"`
+	UpdatedAt               sql.NullTime   `db:"issue_updated_at"                json:"updated_at"`
+	UpdatedBy               sql.NullInt64  `db:"issue_updated_by"                json:"updated_by"`
 }
 
 func (ir IssueRow) AsIssue() entity.Issue {
 	return entity.Issue{
-		Id:            GetInt64Value(ir.Id),
-		PrimaryName:   GetStringValue(ir.PrimaryName),
-		Type:          entity.NewIssueType(GetStringValue(ir.Type)),
-		Description:   GetStringValue(ir.Description),
-		IssueVariants: []entity.IssueVariant{},
-		IssueMatches:  []entity.IssueMatch{},
+		Id:                      GetInt64Value(ir.Id),
+		PrimaryName:             GetStringValue(ir.PrimaryName),
+		Type:                    entity.NewIssueType(GetStringValue(ir.Type)),
+		Description:             GetStringValue(ir.Description),
+		KnownExploited:          GetBoolValue(ir.KnownExploited),
+		KnownExploitedAddedDate: GetNullableTimeValue(ir.KnownExploitedAddedDate),
+		KnownExploitedDueDate:   GetNullableTimeValue(ir.KnownExploitedDueDate),
+		IssueVariants:           []entity.IssueVariant{},
+		IssueMatches:            []entity.IssueMatch{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ir.CreatedAt),
 			CreatedBy: GetInt64Value(ir.CreatedBy),
@@ -312,12 +326,15 @@ func (ibr GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations
 			EarliestDiscoveryDate:         GetTimeValue(ibr.EarliestDiscoveryDate),
 		},
 		Issue: entity.Issue{
-			Id:            GetInt64Value(ibr.Id),
-			PrimaryName:   GetStringValue(ibr.PrimaryName),
-			Type:          entity.NewIssueType(GetStringValue(ibr.Type)),
-			Description:   GetStringValue(ibr.Description),
-			IssueVariants: []entity.IssueVariant{},
-			IssueMatches:  []entity.IssueMatch{},
+			Id:                      GetInt64Value(ibr.Id),
+			PrimaryName:             GetStringValue(ibr.PrimaryName),
+			Type:                    entity.NewIssueType(GetStringValue(ibr.Type)),
+			Description:             GetStringValue(ibr.Description),
+			KnownExploited:          GetBoolValue(ibr.KnownExploited),
+			KnownExploitedAddedDate: GetNullableTimeValue(ibr.KnownExploitedAddedDate),
+			KnownExploitedDueDate:   GetNullableTimeValue(ibr.KnownExploitedDueDate),
+			IssueVariants:           []entity.IssueVariant{},
+			IssueMatches:            []entity.IssueMatch{},
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(ibr.CreatedAt),
 				CreatedBy: GetInt64Value(ibr.CreatedBy),
@@ -331,12 +348,15 @@ func (ibr GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations
 
 func (ibr GetIssuesByRow) AsIssue() entity.Issue {
 	return entity.Issue{
-		Id:            GetInt64Value(ibr.Id),
-		PrimaryName:   GetStringValue(ibr.PrimaryName),
-		Type:          entity.NewIssueType(GetStringValue(ibr.Type)),
-		Description:   GetStringValue(ibr.Description),
-		IssueVariants: []entity.IssueVariant{},
-		IssueMatches:  []entity.IssueMatch{},
+		Id:                      GetInt64Value(ibr.Id),
+		PrimaryName:             GetStringValue(ibr.PrimaryName),
+		Type:                    entity.NewIssueType(GetStringValue(ibr.Type)),
+		Description:             GetStringValue(ibr.Description),
+		KnownExploited:          GetBoolValue(ibr.KnownExploited),
+		KnownExploitedAddedDate: GetNullableTimeValue(ibr.KnownExploitedAddedDate),
+		KnownExploitedDueDate:   GetNullableTimeValue(ibr.KnownExploitedDueDate),
+		IssueVariants:           []entity.IssueVariant{},
+		IssueMatches:            []entity.IssueMatch{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ibr.CreatedAt),
 			CreatedBy: GetInt64Value(ibr.CreatedBy),
@@ -364,6 +384,16 @@ func (ir *IssueRow) FromIssue(i *entity.Issue) {
 	ir.PrimaryName = sql.NullString{String: i.PrimaryName, Valid: true}
 	ir.Type = sql.NullString{String: i.Type.String(), Valid: true}
 	ir.Description = sql.NullString{String: i.Description, Valid: true}
+
+	ir.KnownExploited = sql.NullBool{Bool: i.KnownExploited, Valid: true}
+	if i.KnownExploitedAddedDate != nil {
+		ir.KnownExploitedAddedDate = sql.NullTime{Time: *i.KnownExploitedAddedDate, Valid: true}
+	}
+
+	if i.KnownExploitedDueDate != nil {
+		ir.KnownExploitedDueDate = sql.NullTime{Time: *i.KnownExploitedDueDate, Valid: true}
+	}
+
 	ir.CreatedAt = sql.NullTime{Time: i.CreatedAt, Valid: true}
 	ir.CreatedBy = sql.NullInt64{Int64: i.CreatedBy, Valid: true}
 	ir.DeletedAt = sql.NullTime{Time: i.DeletedAt, Valid: true}

@@ -3,6 +3,8 @@
 
 package models
 
+import "time"
+
 // Schemas
 // CVE 2.0
 // https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema
@@ -78,6 +80,41 @@ func (cve Cve) SeverityVector() string {
 		vector = emptyCVSS
 	}
 	return vector
+}
+
+// IsKnownExploited reports whether this CVE is listed in the CISA KEV catalog.
+// Per NVD's API documentation: "If the CVE is listed in CISA's Known Exploited
+// Vulnerabilities (KEV) Catalog cisaExploitAdd [...] will be returned."
+// A non-empty cisaExploitAdd therefore means the CVE is in the KEV catalog.
+func (cve Cve) IsKnownExploited() bool {
+	return cve.CISAExploitAdd != ""
+}
+
+// ParseKEVDate parses an NVD CISA date string (YYYY-MM-DD) into a *time.Time.
+// Returns nil when the string is empty or cannot be parsed.
+func ParseKEVDate(s string) *time.Time {
+	if s == "" {
+		return nil
+	}
+
+	t, err := time.Parse(time.DateOnly, s)
+	if err != nil {
+		return nil
+	}
+
+	return &t
+}
+
+// FormatKEVDateForAPI converts an NVD CISA date string (YYYY-MM-DD) to an
+// RFC3339 string for the Heureka GraphQL DateTime field. Returns an empty
+// string for empty or unparseable input.
+func FormatKEVDateForAPI(s string) string {
+	t := ParseKEVDate(s)
+	if t == nil {
+		return ""
+	}
+
+	return t.UTC().Format(time.RFC3339)
 }
 
 type CveTag struct {

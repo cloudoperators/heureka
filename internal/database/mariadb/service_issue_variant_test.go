@@ -301,11 +301,8 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 								Description:       issue.Description,
 								IssueRepositoryId: repo.Id,
 								SecondaryName: sql.NullString{
-									String: fmt.Sprintf(
-										"TEST-2024-%d",
-										gofakeit.Number(1000, 9999),
-									),
-									Valid: true,
+									String: fmt.Sprintf("TEST-2024-%d", repo.Id.Int64),
+									Valid:  true,
 								},
 								Vector: sql.NullString{String: v, Valid: true},
 								Rating: sql.NullString{
