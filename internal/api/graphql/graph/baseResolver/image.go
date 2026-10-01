@@ -198,9 +198,20 @@ func ImageBaseResolver(
 				for i := range vulns {
 					vr := &vulns[i]
 					vuln := model.Vulnerability{
-						ID:          fmt.Sprintf("%d", vr.IssueID),
-						Name:        &vr.PrimaryName,
-						Description: &vr.Description,
+						ID:             fmt.Sprintf("%d", vr.IssueID),
+						Name:           &vr.PrimaryName,
+						Description:    &vr.Description,
+						KnownExploited: &vr.KnownExploited,
+					}
+
+					if vr.KnownExploitedAddedDate != nil {
+						dateStr := vr.KnownExploitedAddedDate.UTC().Format(time.RFC3339)
+						vuln.KnownExploitedAddedDate = &dateStr
+					}
+
+					if vr.KnownExploitedDueDate != nil {
+						dateStr := vr.KnownExploitedDueDate.UTC().Format(time.RFC3339)
+						vuln.KnownExploitedDueDate = &dateStr
 					}
 
 					if vr.MaxSeverity != "" {

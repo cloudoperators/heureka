@@ -482,9 +482,12 @@ func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 
 func NewVulnerability(issue *entity.Issue) Vulnerability {
 	return Vulnerability{
-		ID:          fmt.Sprintf("%d", issue.Id),
-		Name:        &issue.PrimaryName,
-		Description: &issue.Description,
+		ID:                      fmt.Sprintf("%d", issue.Id),
+		Name:                    &issue.PrimaryName,
+		Description:             &issue.Description,
+		KnownExploited:          &issue.KnownExploited,
+		KnownExploitedAddedDate: formatNullableTime(issue.KnownExploitedAddedDate),
+		KnownExploitedDueDate:   formatNullableTime(issue.KnownExploitedDueDate),
 	}
 }
 
