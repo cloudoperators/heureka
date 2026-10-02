@@ -4,6 +4,7 @@
 package e2e_test
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -480,6 +481,188 @@ var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Id).To(Equal(id))
+			})
+		})
+	})
+})
+
+var _ = Describe("Getting IssueMatchesOverdue via API", Label("e2e", "IssueMatchesOverdue"), func() {
+	var (
+		seeder *test.DatabaseSeeder
+		s      *server.Server
+		cfg    util.Config
+		db     *mariadb.SqlDatabase
+		// sc holds FK rows needed by insertOverdueMatch; it contains no IssueMatches.
+		sc *test.SeedCollection
+	)
+
+	BeforeEach(func() {
+		var err error
+
+		db = dbm.NewTestSchemaWithoutMigration()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
+		s = e2e_common.NewRunningServer(cfg)
+
+		// Seed only the FK dependencies (no IssueMatches), so each test
+		// controls exactly which IssueMatches exist and their TRDs.
+		users := seeder.SeedUsers(1)
+		services := seeder.SeedServices(1)
+		components := seeder.SeedComponents(1)
+		componentVersions := seeder.SeedComponentVersions(1, components)
+		componentInstances := seeder.SeedComponentInstances(1, componentVersions, services)
+		issues := seeder.SeedIssues(1)
+		sc = &test.SeedCollection{
+			UserRows:              users,
+			ServiceRows:           services,
+			ComponentRows:         components,
+			ComponentVersionRows:  componentVersions,
+			ComponentInstanceRows: componentInstances,
+			IssueRows:             issues,
+		}
+	})
+
+	AfterEach(func() {
+		e2e_common.ServerTeardown(s)
+		dbm.TestTearDown(db)
+	})
+
+	queryOverdue := func(port string, first int) (model.IssueMatchConnection, error) {
+		type overdueResp struct {
+			IssueMatchesOverdue model.IssueMatchConnection `json:"IssueMatchesOverdue"`
+		}
+
+		respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[overdueResp](
+			port,
+			"../api/graphql/graph/queryCollection/issueMatch/overdue.graphql",
+			map[string]any{
+				"filter": map[string]string{},
+				"first":  first,
+				"after":  "",
+			},
+			nil,
+		)
+		if err != nil {
+			return model.IssueMatchConnection{}, err
+		}
+
+		return respData.IssueMatchesOverdue, nil
+	}
+
+	insertOverdueMatch := func(status entity.IssueMatchStatusValue, trd time.Time) {
+		row := test.NewFakeIssueMatch()
+		row.IssueId = sql.NullInt64{Int64: sc.IssueRows[0].Id.Int64, Valid: true}
+		row.ComponentInstanceId = sql.NullInt64{Int64: sc.ComponentInstanceRows[0].Id.Int64, Valid: true}
+		row.UserId = sql.NullInt64{Int64: sc.UserRows[0].Id.Int64, Valid: true}
+		row.Status = sql.NullString{String: status.String(), Valid: true}
+		row.TargetRemediationDate = sql.NullTime{Time: trd, Valid: true}
+		_, err := seeder.InsertFakeIssueMatch(row)
+		Expect(err).To(BeNil())
+	}
+
+	When("the database is empty", func() {
+		It("returns an empty result set", func() {
+			result, err := queryOverdue(cfg.Port, 10)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.TotalCount).To(Equal(0))
+			Expect(result.Edges).To(BeEmpty())
+		})
+	})
+
+	When("the database has only overdue IssueMatches with valid statuses", func() {
+		BeforeEach(func() {
+			pastDate := time.Now().UTC().Add(-7 * 24 * time.Hour)
+			insertOverdueMatch(entity.IssueMatchStatusValuesNew, pastDate)
+			insertOverdueMatch(entity.IssueMatchStatusValuesRiskAccepted, pastDate)
+			insertOverdueMatch(entity.IssueMatchStatusValuesFalsePositive, pastDate)
+		})
+
+		It("returns all three overdue matches", func() {
+			result, err := queryOverdue(cfg.Port, 10)
+			Expect(err).ToNot(HaveOccurred())
+			By("returning the correct total count", func() {
+				Expect(result.TotalCount).To(Equal(3))
+			})
+			By("returning nodes with required fields populated", func() {
+				for _, edge := range result.Edges {
+					Expect(edge.Node.TargetRemediationDate).NotTo(BeNil())
+					Expect(edge.Node.Status).NotTo(BeNil())
+					Expect(edge.Node.Severity).NotTo(BeNil())
+				}
+			})
+		})
+	})
+
+	When("the database has only future-dated IssueMatches with valid status", func() {
+		BeforeEach(func() {
+			futureDate := time.Now().UTC().Add(30 * 24 * time.Hour)
+			insertOverdueMatch(entity.IssueMatchStatusValuesNew, futureDate)
+			insertOverdueMatch(entity.IssueMatchStatusValuesNew, futureDate)
+		})
+
+		It("returns an empty result set (not yet overdue)", func() {
+			result, err := queryOverdue(cfg.Port, 10)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.TotalCount).To(Equal(0))
+		})
+	})
+
+	When("the database has only mitigated IssueMatches with past target date", func() {
+		BeforeEach(func() {
+			pastDate := time.Now().UTC().Add(-7 * 24 * time.Hour)
+			insertOverdueMatch(entity.IssueMatchStatusValuesMitigated, pastDate)
+			insertOverdueMatch(entity.IssueMatchStatusValuesMitigated, pastDate)
+		})
+
+		It("returns an empty result set (already mitigated)", func() {
+			result, err := queryOverdue(cfg.Port, 10)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.TotalCount).To(Equal(0))
+		})
+	})
+
+	When("the database has a mix of overdue, future, and mitigated IssueMatches", func() {
+		BeforeEach(func() {
+			pastDate := time.Now().UTC().Add(-7 * 24 * time.Hour)
+			futureDate := time.Now().UTC().Add(30 * 24 * time.Hour)
+			// 2 overdue (valid statuses)
+			insertOverdueMatch(entity.IssueMatchStatusValuesNew, pastDate)
+			insertOverdueMatch(entity.IssueMatchStatusValuesRiskAccepted, pastDate)
+			// 2 future (valid status but not overdue)
+			insertOverdueMatch(entity.IssueMatchStatusValuesNew, futureDate)
+			insertOverdueMatch(entity.IssueMatchStatusValuesNew, futureDate)
+			// 1 past but mitigated
+			insertOverdueMatch(entity.IssueMatchStatusValuesMitigated, pastDate)
+		})
+
+		It("returns only the 2 overdue matches", func() {
+			result, err := queryOverdue(cfg.Port, 10)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.TotalCount).To(Equal(2))
+		})
+	})
+
+	When("the database has more overdue entries than the page size", func() {
+		BeforeEach(func() {
+			pastDate := time.Now().UTC().Add(-7 * 24 * time.Hour)
+			for i := 0; i < 5; i++ {
+				insertOverdueMatch(entity.IssueMatchStatusValuesNew, pastDate)
+			}
+		})
+
+		It("honours the first parameter and sets hasNextPage", func() {
+			result, err := queryOverdue(cfg.Port, 2)
+			Expect(err).ToNot(HaveOccurred())
+			By("returning only the requested page size", func() {
+				Expect(len(result.Edges)).To(Equal(2))
+			})
+			By("indicating there are more results", func() {
+				Expect(result.PageInfo).NotTo(BeNil())
+				Expect(result.PageInfo.HasNextPage).To(BeTrue())
 			})
 		})
 	})
