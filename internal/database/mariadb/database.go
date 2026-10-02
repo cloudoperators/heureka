@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/cloudoperators/heureka/internal/database/querycounter"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -436,7 +437,7 @@ func buildTimeRangeFilterQuery(filter []any, column string) string {
 		parts = append(parts, fmt.Sprintf("%s <= ?", column))
 	}
 
-	return combineFilterQueries(parts, OP_AND)
+	return strings.Join(parts, " AND ")
 }
 
 func NewTimeRangeFilterProperty[T any](column string, param func(T) *entity.TimeFilter) *FilterProperty[T] {
