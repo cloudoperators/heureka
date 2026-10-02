@@ -5,6 +5,8 @@ package baseResolver
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
@@ -161,6 +163,13 @@ func IssueMatchBaseResolver(
 		State:                    model.GetStateFilterType(filter.State),
 	}
 
+	trf, err := parseDateTimeFilter(filter.TargetRemediationDate)
+	if err != nil {
+		return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - "+err.Error())
+	}
+
+	f.TargetRemediationDate = trf
+
 	opt := GetListOptions(requestedFields)
 	for _, o := range orderBy {
 		opt.Order = append(opt.Order, o.ToOrderEntity())
@@ -194,4 +203,69 @@ func IssueMatchBaseResolver(
 	}
 
 	return &connection, nil
+}
+
+func parseDateTimeFilter(dtf *model.DateTimeFilter) (*entity.TimeFilter, error) {
+	if dtf == nil {
+		return nil, nil
+	}
+
+	tf := &entity.TimeFilter{}
+
+	if dtf.After != nil {
+		t, err := time.Parse(time.RFC3339, *dtf.After)
+		if err != nil {
+			return nil, fmt.Errorf("invalid 'after' DateTime value %q: must be RFC3339", *dtf.After)
+		}
+
+		tf.After = t
+	}
+
+	if dtf.Before != nil {
+		t, err := time.Parse(time.RFC3339, *dtf.Before)
+		if err != nil {
+			return nil, fmt.Errorf("invalid 'before' DateTime value %q: must be RFC3339", *dtf.Before)
+		}
+
+		tf.Before = t
+	}
+
+	if tf.After.IsZero() && tf.Before.IsZero() {
+		return nil, nil
+	}
+
+	return tf, nil
+}
+
+func IssueMatchesOverdueBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueMatchFilter,
+	first *int,
+	after *string,
+	orderBy []*model.IssueMatchOrderBy,
+	parent *model.NodeParent,
+) (*model.IssueMatchConnection, error) {
+	logrus.WithFields(logrus.Fields{
+		"parent": parent,
+	}).Debug("Called IssueMatchesOverdueBaseResolver")
+
+	if filter == nil {
+		filter = &model.IssueMatchFilter{}
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	if filter.TargetRemediationDate != nil {
+		filter.TargetRemediationDate.Before = &now
+	} else {
+		filter.TargetRemediationDate = &model.DateTimeFilter{Before: &now}
+	}
+
+	filter.Status = []*model.IssueMatchStatusValues{
+		lo.ToPtr(model.IssueMatchStatusValuesNew),
+		lo.ToPtr(model.IssueMatchStatusValuesRiskAccepted),
+		lo.ToPtr(model.IssueMatchStatusValuesFalsePositive),
+	}
+
+	return IssueMatchBaseResolver(app, ctx, filter, first, after, orderBy, parent)
 }

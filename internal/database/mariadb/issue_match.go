@@ -60,6 +60,9 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			2,
 		),
 		NewStateFilterProperty("IM.issuematch", func(filter *entity.IssueMatchFilter) any { return filter.State }),
+		NewTimeRangeFilterProperty("IM.issuematch_target_remediation_date", func(filter *entity.IssueMatchFilter) *entity.TimeFilter {
+			return filter.TargetRemediationDate
+		}),
 	},
 	JoinDefs: []*JoinDef[*entity.IssueMatchFilter]{
 		{
