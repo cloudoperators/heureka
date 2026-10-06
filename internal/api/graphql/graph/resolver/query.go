@@ -26,6 +26,10 @@ func (r *queryResolver) IssueMatches(ctx context.Context, filter *model.IssueMat
 	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
+func (r *queryResolver) IssueMatchesOverdue(ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
+	return baseResolver.IssueMatchesOverdueBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
+}
+
 func (r *queryResolver) Services(ctx context.Context, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
 	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
