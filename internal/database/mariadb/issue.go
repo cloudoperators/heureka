@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -44,7 +45,8 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 				return ""
 			}),
 			func(filter *entity.IssueFilter) any {
-				if filter.HasIssueMatches || len(filter.IssueMatchStatus) > 0 || len(filter.IssueMatchId) > 0 || len(filter.IssueMatchSeverity) > 0 {
+				if filter.HasIssueMatches || len(filter.IssueMatchStatus) > 0 || len(filter.IssueMatchId) > 0 || len(filter.IssueMatchSeverity) > 0 ||
+					filter.IssueMatchDiscoveryDate != nil || filter.IssueMatchTargetRemediationDate != nil {
 					return []bool{true}
 				}
 
@@ -94,6 +96,18 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			2,
 		),
 		NewStateFilterProperty("I.issue", func(filter *entity.IssueFilter) any { return filter.State }),
+		newTimeRangeFilterProperty(
+			"IM.issuematch_created_at",
+			func(filter *entity.IssueFilter) *entity.TimeFilter {
+				return filter.IssueMatchDiscoveryDate
+			},
+		),
+		newTimeRangeFilterProperty(
+			"IM.issuematch_target_remediation_date",
+			func(filter *entity.IssueFilter) *entity.TimeFilter {
+				return filter.IssueMatchTargetRemediationDate
+			},
+		),
 		NewCustomFilterProperty(
 			WrapBuilder(func(is []entity.IssueStatus) string {
 				if len(is) != 1 {
@@ -126,7 +140,8 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			Table: "IssueMatch IM",
 			On:    "I.issue_id = IM.issuematch_issue_id",
 			Condition: func(f *entity.IssueFilter, _ *Order) bool {
-				return len(f.IssueMatchStatus) > 0 || len(f.IssueMatchId) > 0 || len(f.IssueMatchSeverity) > 0
+				return len(f.IssueMatchStatus) > 0 || len(f.IssueMatchId) > 0 || len(f.IssueMatchSeverity) > 0 ||
+					f.IssueMatchDiscoveryDate != nil || f.IssueMatchTargetRemediationDate != nil
 			},
 		},
 		{
@@ -537,4 +552,176 @@ func (s *SqlDatabase) RemoveAllIssuesFromComponentVersion(componentVersionId int
 
 func (s *SqlDatabase) GetIssueNames(ctx context.Context, filter *entity.IssueFilter) ([]string, error) {
 	return issueObject.GetAttr(ctx, s.db, "primary_name", filter)
+}
+
+// newTimeRangeFilterProperty creates a FilterProperty that adds >= After and/or <= Before
+// conditions when the TimeFilter is set. Either bound is omitted when its time is zero.
+func newTimeRangeFilterProperty(
+	column string,
+	getFilter func(*entity.IssueFilter) *entity.TimeFilter,
+) *FilterProperty[*entity.IssueFilter] {
+	type bounds struct {
+		after  time.Time
+		before time.Time
+	}
+
+	getBounds := func(filter *entity.IssueFilter) *bounds {
+		tf := getFilter(filter)
+		if tf == nil || (tf.After.IsZero() && tf.Before.IsZero()) {
+			return nil
+		}
+
+		return &bounds{after: tf.After, before: tf.Before}
+	}
+
+	buildSQL := func(b *bounds) string {
+		if b == nil {
+			return ""
+		}
+
+		switch {
+		case !b.after.IsZero() && !b.before.IsZero():
+			return fmt.Sprintf("(%s >= ? AND %s <= ?)", column, column)
+		case !b.after.IsZero():
+			return fmt.Sprintf("(%s >= ?)", column)
+		default:
+			return fmt.Sprintf("(%s <= ?)", column)
+		}
+	}
+
+	buildArgs := func(b *bounds) []any {
+		if b == nil {
+			return nil
+		}
+
+		switch {
+		case !b.after.IsZero() && !b.before.IsZero():
+			return []any{b.after, b.before}
+		case !b.after.IsZero():
+			return []any{b.after}
+		default:
+			return []any{b.before}
+		}
+	}
+
+	return &FilterProperty[*entity.IssueFilter]{
+		BuildQuery: func(vals []any) string {
+			if len(vals) == 0 {
+				return ""
+			}
+			// vals[0] is the *bounds sentinel; actual SQL is computed from the filter.
+			// Because BuildQuery and BuildParams both come from the same getBounds call
+			// (GetParam/BuildParams share the same closure), vals is non-empty iff
+			// getBounds returned non-nil, so we can use vals length as the signal.
+			// The actual query template depends on which bounds are zero; we re-derive
+			// it from the sentinel stored in vals[0].
+			b, ok := vals[0].(*bounds)
+			if !ok || b == nil {
+				return ""
+			}
+
+			return buildSQL(b)
+		},
+		GetParam: func(filter *entity.IssueFilter) []any {
+			b := getBounds(filter)
+			if b == nil {
+				return nil
+			}
+
+			return []any{b}
+		},
+		BuildParams: func(filter *entity.IssueFilter) []any {
+			return buildArgs(getBounds(filter))
+		},
+	}
+}
+
+func (s *SqlDatabase) GetIssueTrend(ctx context.Context, filter entity.IssueTrendFilter) (*entity.IssueTrend, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.GetIssueTrend",
+	})
+
+	var bucketExpr string
+
+	switch filter.Granularity {
+	case entity.TrendGranularityWeekly:
+		bucketExpr = "DATE(DATE_SUB(IM.issuematch_created_at, INTERVAL WEEKDAY(IM.issuematch_created_at) DAY))"
+	case entity.TrendGranularityMonthly:
+		bucketExpr = "DATE_FORMAT(IM.issuematch_created_at, '%Y-%m-01')"
+	default:
+		bucketExpr = "DATE(IM.issuematch_created_at)"
+	}
+
+	effectiveRating := effectiveRatingCol("IM.issuematch_rating")
+	rescoreJoinExpr, rescoreJoinArgs := latestRescoreJoin("CI.componentinstance_service_id", "IM.issuematch_issue_id")
+
+	q := sq.Select(
+		fmt.Sprintf("%s AS bucket_date", bucketExpr),
+		fmt.Sprintf("SUM(%s = 'Critical') AS critical_count", effectiveRating),
+		fmt.Sprintf("SUM(%s = 'High') AS high_count", effectiveRating),
+		fmt.Sprintf("SUM(%s = 'Medium') AS medium_count", effectiveRating),
+		fmt.Sprintf("SUM(%s = 'Low') AS low_count", effectiveRating),
+		fmt.Sprintf("SUM(%s = 'None') AS none_count", effectiveRating),
+		"COUNT(*) AS total_count",
+		"SUM(IM.issuematch_status != 'new') AS remediated_count",
+	).
+		From("IssueMatch IM").
+		LeftJoin("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id AND CI.componentinstance_deleted_at IS NULL").
+		LeftJoin(rescoreJoinExpr, rescoreJoinArgs...).
+		Where("IM.issuematch_deleted_at IS NULL").
+		Where("IM.issuematch_created_at BETWEEN ? AND ?", filter.After, filter.Before).
+		GroupBy(bucketExpr).
+		OrderBy(bucketExpr)
+
+	if len(filter.ServiceCCRN) > 0 {
+		q = q.
+			Join("Service S ON S.service_id = CI.componentinstance_service_id AND S.service_deleted_at IS NULL").
+			Where(sq.Eq{"S.service_ccrn": filter.ServiceCCRN})
+	}
+
+	if len(filter.SupportGroupCCRN) > 0 {
+		if len(filter.ServiceCCRN) == 0 {
+			q = q.Join("Service S ON S.service_id = CI.componentinstance_service_id AND S.service_deleted_at IS NULL")
+		}
+
+		q = q.
+			Join("SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id AND SGS.supportgroupservice_deleted_at IS NULL").
+			Join("SupportGroup SG ON SG.supportgroup_id = SGS.supportgroupservice_support_group_id AND SG.supportgroup_deleted_at IS NULL").
+			Where(sq.Eq{"SG.supportgroup_ccrn": filter.SupportGroupCCRN})
+	}
+
+	rawSQL, args, err := q.ToSql()
+	if err != nil {
+		l.WithField("error", err).Error("failed to build GetIssueTrend query")
+
+		return nil, err
+	}
+
+	stmt, err := s.db.PreparexContext(ctx, rawSQL)
+	if err != nil {
+		l.WithFields(logrus.Fields{"error": err, "query": rawSQL}).Error(ERROR_MSG_PREPARED_STMT)
+
+		return nil, fmt.Errorf("%s", ERROR_MSG_PREPARED_STMT)
+	}
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
+
+	buckets, err := performListScan(
+		ctx,
+		stmt,
+		args,
+		l,
+		func(l []entity.IssueTrendBucket, e IssueTrendBucketRow) []entity.IssueTrendBucket {
+			return append(l, e.AsIssueTrendBucket())
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entity.IssueTrend{Buckets: buckets}, nil
 }

@@ -231,7 +231,8 @@ type DatabaseRow interface {
 		RatingCount |
 		RowComposite |
 		PatchRow |
-		CommentRow
+		CommentRow |
+		IssueTrendBucketRow
 }
 
 type RatingCount struct {
@@ -1303,4 +1304,28 @@ func (cr *CommentRow) FromComment(c *entity.Comment) {
 	cr.DeletedAt = sql.NullTime{Time: c.DeletedAt, Valid: true}
 	cr.UpdatedAt = sql.NullTime{Time: c.UpdatedAt, Valid: true}
 	cr.UpdatedBy = sql.NullInt64{Int64: c.UpdatedBy, Valid: true}
+}
+
+type IssueTrendBucketRow struct {
+	BucketDate sql.NullTime  `db:"bucket_date"`
+	Critical   sql.NullInt64 `db:"critical_count"`
+	High       sql.NullInt64 `db:"high_count"`
+	Medium     sql.NullInt64 `db:"medium_count"`
+	Low        sql.NullInt64 `db:"low_count"`
+	None       sql.NullInt64 `db:"none_count"`
+	Total      sql.NullInt64 `db:"total_count"`
+	Remediated sql.NullInt64 `db:"remediated_count"`
+}
+
+func (r *IssueTrendBucketRow) AsIssueTrendBucket() entity.IssueTrendBucket {
+	return entity.IssueTrendBucket{
+		Date:       r.BucketDate.Time,
+		Critical:   GetInt64Value(r.Critical),
+		High:       GetInt64Value(r.High),
+		Medium:     GetInt64Value(r.Medium),
+		Low:        GetInt64Value(r.Low),
+		None:       GetInt64Value(r.None),
+		Total:      GetInt64Value(r.Total),
+		Remediated: GetInt64Value(r.Remediated),
+	}
 }

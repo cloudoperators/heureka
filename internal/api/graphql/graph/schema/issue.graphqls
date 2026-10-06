@@ -66,6 +66,37 @@ input IssueFilter {
 
     search: [String],
     allServices: Boolean,
+    discoveryDate: DateTimeFilter,
+    targetRemediationDate: DateTimeFilter,
+}
+
+enum TrendGranularity {
+    DAILY
+    WEEKLY
+    MONTHLY
+}
+
+type IssueTrendBucket {
+    date:       DateTime!
+    critical:   Int!
+    high:       Int!
+    medium:     Int!
+    low:        Int!
+    none:       Int!
+    total:      Int!
+    remediated: Int!
+}
+
+type IssueTrend {
+    buckets: [IssueTrendBucket!]!
+}
+
+input IssueTrendFilter {
+    serviceCcrn:      [String!]
+    supportGroupCcrn: [String!]
+    after:            DateTime!
+    before:           DateTime!
+    granularity:      TrendGranularity!
 }
 
 enum IssueTypes {

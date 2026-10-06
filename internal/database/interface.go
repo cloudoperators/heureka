@@ -23,6 +23,7 @@ type Database interface {
 	AddComponentVersionToIssue(int64, int64) error
 	RemoveComponentVersionFromIssue(int64, int64) error
 	GetIssueNames(context.Context, *entity.IssueFilter) ([]string, error)
+	GetIssueTrend(context.Context, entity.IssueTrendFilter) (*entity.IssueTrend, error)
 
 	GetServiceIssueVariants(
 		context.Context,

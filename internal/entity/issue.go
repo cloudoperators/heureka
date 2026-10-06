@@ -178,3 +178,34 @@ type VulnerabilityResult struct {
 	EarliestRemediationDate *time.Time
 	SourceURL               string
 }
+
+type TrendGranularity string
+
+const (
+	TrendGranularityDaily   TrendGranularity = "daily"
+	TrendGranularityWeekly  TrendGranularity = "weekly"
+	TrendGranularityMonthly TrendGranularity = "monthly"
+)
+
+type IssueTrendBucket struct {
+	Date       time.Time
+	Critical   int64
+	High       int64
+	Medium     int64
+	Low        int64
+	None       int64
+	Total      int64
+	Remediated int64
+}
+
+type IssueTrend struct {
+	Buckets []IssueTrendBucket
+}
+
+type IssueTrendFilter struct {
+	ServiceCCRN      []*string
+	SupportGroupCCRN []*string
+	After            time.Time
+	Before           time.Time
+	Granularity      TrendGranularity
+}

@@ -327,6 +327,24 @@ func (is *issueHandler) GetIssueSeverityCounts(
 	return counts, nil
 }
 
+func (is *issueHandler) GetIssueTrend(
+	ctx context.Context,
+	filter *entity.IssueTrendFilter,
+) (*entity.IssueTrend, error) {
+	op := appErrors.CallerOp()
+
+	if filter == nil {
+		filter = &entity.IssueTrendFilter{}
+	}
+
+	trend, err := is.DB().GetIssueTrend(ctx, *filter)
+	if err != nil {
+		return nil, appErrors.InternalError(string(op), "IssueTrend", "", err)
+	}
+
+	return trend, nil
+}
+
 func ensureIssueListOptions(options *entity.IssueListOptions) *entity.IssueListOptions {
 	if options == nil {
 		return &entity.IssueListOptions{
