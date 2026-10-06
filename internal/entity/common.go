@@ -67,7 +67,8 @@ type HeurekaEntity interface {
 		Patch |
 		PatchResult |
 		Comment |
-		CommentResult
+		CommentResult |
+		IssueTrendBucket
 }
 
 type HeurekaFilter interface {

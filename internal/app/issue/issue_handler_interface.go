@@ -20,6 +20,7 @@ type IssueHandler interface {
 	RemoveComponentVersionFromIssue(context.Context, int64, int64) (*entity.Issue, error)
 	ListIssueNames(context.Context, *entity.IssueFilter, *entity.ListOptions) ([]string, error)
 	GetIssueSeverityCounts(context.Context, *entity.IssueFilter) (*entity.IssueSeverityCounts, error)
+	GetIssueTrend(context.Context, *entity.IssueTrendFilter) (*entity.IssueTrend, error)
 
 	// Batch pre-load methods for GetVulnerabilities query optimization
 	GetMaxSeverityByIssueIDs(context.Context, []int64) (map[int64]string, error)
