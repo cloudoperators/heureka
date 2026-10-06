@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
@@ -204,4 +205,34 @@ func appendIssueSeverityOrder(order []entity.Order, o *model.IssueOrderBy) []ent
 		o.ToOrderEntity(),
 		entity.Order{By: entity.IssueId, Direction: o.Direction.ToOrderDirectionEntity()},
 	)
+}
+
+func mapDateTimeFilter(f *model.DateTimeFilter) *entity.TimeFilter {
+	if f == nil {
+		return nil
+	}
+
+	var after, before time.Time
+
+	var hasAfter, hasBefore bool
+
+	if f.After != nil {
+		if t, err := time.Parse(time.RFC3339, *f.After); err == nil {
+			after = t
+			hasAfter = true
+		}
+	}
+
+	if f.Before != nil {
+		if t, err := time.Parse(time.RFC3339, *f.Before); err == nil {
+			before = t
+			hasBefore = true
+		}
+	}
+
+	if !hasAfter && !hasBefore {
+		return nil
+	}
+
+	return &entity.TimeFilter{After: after, Before: before}
 }
