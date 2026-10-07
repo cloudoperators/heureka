@@ -99,21 +99,16 @@ func ImageVersionBaseResolver(
 		return nil, NewResolverError("ImageVersionBaseResolver", err.Error())
 	}
 
-	edges := []*model.ImageVersionEdge{}
-
-	for _, result := range componentVersions.Elements {
+	edges := buildEdges(componentVersions.Elements, func(result entity.ComponentVersionResult) *model.ImageVersionEdge {
 		iv := model.NewImageVersion(result.ComponentVersion)
-		edge := model.ImageVersionEdge{
+
+		return &model.ImageVersionEdge{
 			Node:   &iv,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if componentVersions.TotalCount != nil {
-		tc = int(*componentVersions.TotalCount)
-	}
+	tc := totalCountOf(componentVersions.TotalCount)
 
 	connection := model.ImageVersionConnection{
 		TotalCount: tc,

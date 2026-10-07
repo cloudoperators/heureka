@@ -18,49 +18,30 @@ func SingleComponentBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.Component, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleComponentBaseResolver")
-
-	if parent == nil {
-		return nil, NewResolverError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleComponentBaseResolver",
+		parent,
+		NewResolverError(
 			"SingleComponentBaseResolver",
 			"Bad Request - No parent provided",
-		)
-	}
-
-	f := &entity.ComponentFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := &entity.ListOptions{}
-
-	components, err := app.ListComponents(ctx, f, opt)
-	// error while fetching
-	if err != nil {
-		return nil, NewResolverError("SingleComponentBaseResolver", err.Error())
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(components.Elements) > 1 {
-		return nil, NewResolverError(
+		),
+		NewResolverError(
 			"SingleComponentBaseResolver",
 			"Internal Error - found multiple components",
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.ComponentResult, error) {
+			components, err := app.ListComponents(ctx, &entity.ComponentFilter{Id: ids}, &entity.ListOptions{})
+			if err != nil {
+				return nil, NewResolverError("SingleComponentBaseResolver", err.Error())
+			}
 
-	// not found
-	if len(components.Elements) < 1 {
-		return nil, nil
-	}
-
-	cr := components.Elements[0]
-
-	component := model.NewComponent(cr.Component)
-
-	return &component, nil
+			return components.Elements, nil
+		},
+		func(cr entity.ComponentResult) model.Component {
+			return model.NewComponent(cr.Component)
+		},
+	)
 }
 
 func ComponentBaseResolver(
@@ -94,21 +75,16 @@ func ComponentBaseResolver(
 		return nil, NewResolverError("ComponentBaseResolver", err.Error())
 	}
 
-	edges := []*model.ComponentEdge{}
-
-	for _, result := range components.Elements {
+	edges := buildEdges(components.Elements, func(result entity.ComponentResult) *model.ComponentEdge {
 		c := model.NewComponent(result.Component)
-		edge := model.ComponentEdge{
+
+		return &model.ComponentEdge{
 			Node:   &c,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if components.TotalCount != nil {
-		tc = int(*components.TotalCount)
-	}
+	tc := totalCountOf(components.TotalCount)
 
 	connection := model.ComponentConnection{
 		TotalCount: tc,
@@ -145,18 +121,7 @@ func ComponentCcrnBaseResolver(
 		return nil, NewResolverError("ComponentCcrnBaseReolver", err.Error())
 	}
 
-	var pointerNames []*string
-
-	for _, name := range names {
-		pointerNames = append(pointerNames, &name)
-	}
-
-	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayComponentCcrn,
-		Values:      pointerNames,
-	}
-
-	return &filterItem, nil
+	return toFilterItem(names, &FilterDisplayComponentCcrn), nil
 }
 
 func ComponentIssueCountsBaseResolver(

@@ -20,49 +20,30 @@ func SingleIssueMatchBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.IssueMatch, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleIssueMatchBaseResolver")
-
-	if parent == nil {
-		return nil, NewResolverError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleIssueMatchBaseResolver",
+		parent,
+		NewResolverError(
 			"SingleIssueMatchBaseResolver",
 			"Bad Request - No parent provided",
-		)
-	}
-
-	f := &entity.IssueMatchFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := entity.NewListOptions()
-
-	issueMatches, err := app.ListIssueMatches(ctx, f, opt)
-	// error while fetching
-	if err != nil {
-		return nil, NewResolverError("SingleIssueMatchBaseResolver", err.Error())
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(issueMatches.Elements) > 1 {
-		return nil, NewResolverError(
+		),
+		NewResolverError(
 			"SingleIssueMatchBaseResolver",
 			"Internal Error - found multiple IssueMatches",
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.IssueMatchResult, error) {
+			issueMatches, err := app.ListIssueMatches(ctx, &entity.IssueMatchFilter{Id: ids}, entity.NewListOptions())
+			if err != nil {
+				return nil, NewResolverError("SingleIssueMatchBaseResolver", err.Error())
+			}
 
-	// not found
-	if len(issueMatches.Elements) < 1 {
-		return nil, nil
-	}
-
-	imr := issueMatches.Elements[0]
-
-	issueMatch := model.NewIssueMatch(imr.IssueMatch)
-
-	return &issueMatch, nil
+			return issueMatches.Elements, nil
+		},
+		func(imr entity.IssueMatchResult) model.IssueMatch {
+			return model.NewIssueMatch(imr.IssueMatch)
+		},
+	)
 }
 
 func IssueMatchBaseResolver(
@@ -171,21 +152,16 @@ func IssueMatchBaseResolver(
 		return nil, NewResolverError("IssueMatchBaseResolver", err.Error())
 	}
 
-	edges := []*model.IssueMatchEdge{}
-
-	for _, result := range issueMatches.Elements {
+	edges := buildEdges(issueMatches.Elements, func(result entity.IssueMatchResult) *model.IssueMatchEdge {
 		im := model.NewIssueMatch(result.IssueMatch)
-		edge := model.IssueMatchEdge{
+
+		return &model.IssueMatchEdge{
 			Node:   &im,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if issueMatches.TotalCount != nil {
-		tc = int(*issueMatches.TotalCount)
-	}
+	tc := totalCountOf(issueMatches.TotalCount)
 
 	connection := model.IssueMatchConnection{
 		TotalCount: tc,

@@ -4,6 +4,8 @@
 package app
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/app/comment"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -20,6 +22,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/siem_alert"
 	"github.com/cloudoperators/heureka/internal/app/support_group"
 	"github.com/cloudoperators/heureka/internal/app/user"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 type Heureka interface {
@@ -39,6 +42,11 @@ type Heureka interface {
 	patch.PatchHandler
 	comment.CommentHandler
 	siem_alert.SIEMAlertHandler
+
+	// Cross-domain logic (implemented on *HeurekaApp).
+	CreateRemediationFromInput(context.Context, remediation.RemediationCreateInput) (*entity.Remediation, error)
+	UpdateRemediationFromInput(context.Context, remediation.RemediationUpdateInput) (*entity.Remediation, error)
+	CreateSIEMAlertFromInput(context.Context, siem_alert.SIEMAlertInput) (siem_alert.SIEMAlertResult, error)
 
 	Shutdown() error
 }

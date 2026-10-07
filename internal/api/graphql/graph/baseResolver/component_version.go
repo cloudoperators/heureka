@@ -18,49 +18,30 @@ func SingleComponentVersionBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.ComponentVersion, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleComponentVersionBaseResolver")
-
-	if parent == nil {
-		return nil, NewResolverError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleComponentVersionBaseResolver",
+		parent,
+		NewResolverError(
 			"SingleComponentVersionBaseResolver",
 			"Bad Request - No parent provided",
-		)
-	}
-
-	f := &entity.ComponentVersionFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := &entity.ListOptions{}
-
-	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
-	// error while fetching
-	if err != nil {
-		return nil, NewResolverError("SingleComponentVersionBaseResolver", err.Error())
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(componentVersions.Elements) > 1 {
-		return nil, NewResolverError(
+		),
+		NewResolverError(
 			"SingleComponentVersionBaseResolver",
 			"Internal Error - found multiple component versions",
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.ComponentVersionResult, error) {
+			componentVersions, err := app.ListComponentVersions(ctx, &entity.ComponentVersionFilter{Id: ids}, &entity.ListOptions{})
+			if err != nil {
+				return nil, NewResolverError("SingleComponentVersionBaseResolver", err.Error())
+			}
 
-	// not found
-	if len(componentVersions.Elements) < 1 {
-		return nil, nil
-	}
-
-	cvr := componentVersions.Elements[0]
-
-	componentVersion := model.NewComponentVersion(cvr.ComponentVersion)
-
-	return &componentVersion, nil
+			return componentVersions.Elements, nil
+		},
+		func(cvr entity.ComponentVersionResult) model.ComponentVersion {
+			return model.NewComponentVersion(cvr.ComponentVersion)
+		},
+	)
 }
 
 func ComponentVersionBaseResolver(
@@ -197,21 +178,16 @@ func ComponentVersionBaseResolver(
 		return nil, NewResolverError("ComponentVersionBaseResolver", err.Error())
 	}
 
-	edges := []*model.ComponentVersionEdge{}
-
-	for _, result := range componentVersions.Elements {
+	edges := buildEdges(componentVersions.Elements, func(result entity.ComponentVersionResult) *model.ComponentVersionEdge {
 		cv := model.NewComponentVersion(result.ComponentVersion)
-		edge := model.ComponentVersionEdge{
+
+		return &model.ComponentVersionEdge{
 			Node:   &cv,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if componentVersions.TotalCount != nil {
-		tc = int(*componentVersions.TotalCount)
-	}
+	tc := totalCountOf(componentVersions.TotalCount)
 
 	connection := model.ComponentVersionConnection{
 		TotalCount: tc,

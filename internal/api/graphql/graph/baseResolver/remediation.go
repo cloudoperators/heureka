@@ -89,21 +89,16 @@ func RemediationBaseResolver(
 		return nil, ToGraphQLError(err)
 	}
 
-	edges := []*model.RemediationEdge{}
-
-	for _, result := range remediations.Elements {
+	edges := buildEdges(remediations.Elements, func(result entity.RemediationResult) *model.RemediationEdge {
 		ci := model.NewRemediation(result.Remediation)
-		edge := model.RemediationEdge{
+
+		return &model.RemediationEdge{
 			Node:   &ci,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if remediations.TotalCount != nil {
-		tc = int(*remediations.TotalCount)
-	}
+	tc := totalCountOf(remediations.TotalCount)
 
 	connection := model.RemediationConnection{
 		TotalCount: tc,

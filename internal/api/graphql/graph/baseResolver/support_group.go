@@ -81,21 +81,16 @@ func SupportGroupBaseResolver(
 		return nil, NewResolverError("SupportGroupBaseResolver", err.Error())
 	}
 
-	edges := []*model.SupportGroupEdge{}
-
-	for _, result := range supportGroups.Elements {
+	edges := buildEdges(supportGroups.Elements, func(result entity.SupportGroupResult) *model.SupportGroupEdge {
 		sg := model.NewSupportGroup(result.SupportGroup)
-		edge := model.SupportGroupEdge{
+
+		return &model.SupportGroupEdge{
 			Node:   &sg,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if supportGroups.TotalCount != nil {
-		tc = int(*supportGroups.TotalCount)
-	}
+	tc := totalCountOf(supportGroups.TotalCount)
 
 	connection := model.SupportGroupConnection{
 		TotalCount: tc,
@@ -151,16 +146,5 @@ func SupportGroupCcrnBaseResolver(
 		return nil, NewResolverError("SupportGroupCcrnBaseResolver", err.Error())
 	}
 
-	var pointerNames []*string
-
-	for _, name := range names {
-		pointerNames = append(pointerNames, &name)
-	}
-
-	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplaySupportGroupCcrn,
-		Values:      pointerNames,
-	}
-
-	return &filterItem, nil
+	return toFilterItem(names, &FilterDisplaySupportGroupCcrn), nil
 }

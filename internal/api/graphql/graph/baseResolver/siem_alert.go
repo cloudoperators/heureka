@@ -76,21 +76,16 @@ func SIEMAlertBaseResolver(
 		return nil, NewResolverError("SIEMAlertBaseResolver", err.Error())
 	}
 
-	edges := []*model.SIEMAlertEdge{}
-
-	for _, result := range issueMatches.Elements {
+	edges := buildEdges(issueMatches.Elements, func(result entity.IssueMatchResult) *model.SIEMAlertEdge {
 		node := model.NewSIEMAlertNode(result.IssueMatch)
-		edge := model.SIEMAlertEdge{
+
+		return &model.SIEMAlertEdge{
 			Node:   &node,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if issueMatches.TotalCount != nil {
-		tc = int(*issueMatches.TotalCount)
-	}
+	tc := totalCountOf(issueMatches.TotalCount)
 
 	connection := model.SIEMAlertConnection{
 		TotalCount: tc,

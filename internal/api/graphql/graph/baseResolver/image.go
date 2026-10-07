@@ -67,16 +67,14 @@ func ImageBaseResolver(
 		return nil, NewResolverError("ImageBaseResolver", err.Error())
 	}
 
-	edges := []*model.ImageEdge{}
-
-	for _, result := range components.Elements {
+	edges := buildEdges(components.Elements, func(result entity.ComponentResult) *model.ImageEdge {
 		image := model.NewImage(result.Component)
-		edge := model.ImageEdge{
+
+		return &model.ImageEdge{
 			Node:   &image,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
 	// Batch pre-load for nested fields
 	needVersions := lo.Contains(requestedFields, "edges.node.versions")

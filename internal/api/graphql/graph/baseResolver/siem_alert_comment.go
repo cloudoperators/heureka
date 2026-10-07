@@ -10,7 +10,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,22 +48,17 @@ func SIEMAlertCommentBaseResolver(
 		return nil, NewResolverError("SIEMAlertCommentBaseResolver", err.Error())
 	}
 
-	edges := []*model.SIEMAlertCommentEdge{}
-
-	for _, result := range comments.Elements {
+	edges := buildEdges(comments.Elements, func(result entity.CommentResult) *model.SIEMAlertCommentEdge {
 		node := model.NewSIEMAlertCommentNode(result.Comment)
 		cursor := result.Cursor()
-		edge := model.SIEMAlertCommentEdge{
+
+		return &model.SIEMAlertCommentEdge{
 			Node:   &node,
 			Cursor: cursor,
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if comments.TotalCount != nil {
-		tc = int(lo.FromPtr(comments.TotalCount))
-	}
+	tc := totalCountOf(comments.TotalCount)
 
 	connection := model.SIEMAlertCommentConnection{
 		TotalCount: tc,
