@@ -1,0 +1,14 @@
+query ($filter: IssueTrendFilter!) {
+    IssueTrends(filter: $filter) {
+        buckets {
+            date
+            critical
+            high
+            medium
+            low
+            none
+            total
+            remediated
+        }
+    }
+}
