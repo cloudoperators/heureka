@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -663,7 +664,7 @@ func (s *SqlDatabase) GetIssueTrend(ctx context.Context, filter entity.IssueTren
 		fmt.Sprintf("SUM(%s = 'Low') AS low_count", effectiveRating),
 		fmt.Sprintf("SUM(%s = 'None') AS none_count", effectiveRating),
 		"COUNT(*) AS total_count",
-		"SUM(IM.issuematch_status != 'new') AS remediated_count",
+		fmt.Sprintf("SUM(IM.issuematch_status = '%s') AS remediated_count", entity.IssueMatchStatusValuesMitigated),
 	).
 		From("IssueMatch IM").
 		LeftJoin("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id AND CI.componentinstance_deleted_at IS NULL").
@@ -680,14 +681,24 @@ func (s *SqlDatabase) GetIssueTrend(ctx context.Context, filter entity.IssueTren
 	}
 
 	if len(filter.SupportGroupCCRN) > 0 {
-		if len(filter.ServiceCCRN) == 0 {
-			q = q.Join("Service S ON S.service_id = CI.componentinstance_service_id AND S.service_deleted_at IS NULL")
-		}
-
-		q = q.
-			Join("SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id AND SGS.supportgroupservice_deleted_at IS NULL").
-			Join("SupportGroup SG ON SG.supportgroup_id = SGS.supportgroupservice_support_group_id AND SG.supportgroup_deleted_at IS NULL").
-			Where(sq.Eq{"SG.supportgroup_ccrn": filter.SupportGroupCCRN})
+		placeholders := strings.Repeat("?,", len(filter.SupportGroupCCRN))
+		placeholders = "(" + placeholders[:len(placeholders)-1] + ")"
+		sgArgs := buildQueryParameters([]any{}, filter.SupportGroupCCRN)
+		q = q.Where(
+			sq.Expr(
+				fmt.Sprintf(`EXISTS (
+					SELECT 1
+					FROM SupportGroupService SGS
+					INNER JOIN SupportGroup SG
+						ON SG.supportgroup_id = SGS.supportgroupservice_support_group_id
+						AND SG.supportgroup_deleted_at IS NULL
+					WHERE SGS.supportgroupservice_service_id = CI.componentinstance_service_id
+					  AND SGS.supportgroupservice_deleted_at IS NULL
+					  AND SG.supportgroup_ccrn IN %s
+				)`, placeholders),
+				sgArgs...,
+			),
+		)
 	}
 
 	rawSQL, args, err := q.ToSql()
