@@ -14,4 +14,5 @@ bindings:
     type: github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.Json
     marshaler: github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.MarshalJson
     unmarshaler: github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.UnmarshalJson
-    
+  DateTime:
+    type: string

@@ -930,6 +930,63 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Expect(i[0].Issue.Description).To(BeEquivalentTo(issue.Description))
 				})
 			})
+			It("can insert and round-trip KEV fields", func() {
+				addedDate := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
+				dueDate := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+				newIssueRow.KnownExploited = sql.NullBool{Bool: true, Valid: true}
+				newIssueRow.KnownExploitedAddedDate = sql.NullTime{Time: addedDate, Valid: true}
+				newIssueRow.KnownExploitedDueDate = sql.NullTime{Time: dueDate, Valid: true}
+				newIssue = newIssueRow.AsIssue()
+
+				issue, err := db.CreateIssue(&newIssue)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&issue.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+
+				By("throwing no error on read-back", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning the issue", func() {
+					Expect(i).To(HaveLen(1))
+				})
+				By("persisting KnownExploited=true", func() {
+					Expect(i[0].Issue.KnownExploited).To(BeTrue())
+				})
+				By("persisting KnownExploitedAddedDate", func() {
+					Expect(i[0].Issue.KnownExploitedAddedDate).NotTo(BeNil())
+					Expect(i[0].Issue.KnownExploitedAddedDate.UTC()).To(BeTemporally("==", addedDate))
+				})
+				By("persisting KnownExploitedDueDate", func() {
+					Expect(i[0].Issue.KnownExploitedDueDate).NotTo(BeNil())
+					Expect(i[0].Issue.KnownExploitedDueDate.UTC()).To(BeTemporally("==", dueDate))
+				})
+			})
+			It("stores KnownExploited=false with nil dates when not in KEV", func() {
+				newIssueRow.KnownExploited = sql.NullBool{Bool: false, Valid: true}
+				newIssueRow.KnownExploitedAddedDate = sql.NullTime{Valid: false}
+				newIssueRow.KnownExploitedDueDate = sql.NullTime{Valid: false}
+				newIssue = newIssueRow.AsIssue()
+
+				issue, err := db.CreateIssue(&newIssue)
+				Expect(err).To(BeNil())
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&issue.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				Expect(err).To(BeNil())
+				Expect(i).To(HaveLen(1))
+
+				By("having KnownExploited=false", func() {
+					Expect(i[0].Issue.KnownExploited).To(BeFalse())
+				})
+				By("having nil dates", func() {
+					Expect(i[0].Issue.KnownExploitedAddedDate).To(BeNil())
+					Expect(i[0].Issue.KnownExploitedDueDate).To(BeNil())
+				})
+			})
 			It("does not insert issue with existing primary name", func() {
 				issueRow := seedCollection.IssueRows[0]
 				issue := issueRow.AsIssue()
@@ -975,6 +1032,82 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				By("setting fields", func() {
 					Expect(i[0].Issue.Description).To(BeEquivalentTo(issue.Description))
+				})
+			})
+			It("can set KnownExploited from false to true", func() {
+				addedDate := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
+				dueDate := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+
+				newIssueRow := test.NewFakeIssue()
+				newIssueRow.KnownExploited = sql.NullBool{Bool: false, Valid: true}
+				newIssueRow.KnownExploitedAddedDate = sql.NullTime{}
+				newIssueRow.KnownExploitedDueDate = sql.NullTime{}
+				issue := newIssueRow.AsIssue()
+
+				created, err := db.CreateIssue(&issue)
+				Expect(err).To(BeNil())
+
+				created.KnownExploited = true
+				created.KnownExploitedAddedDate = &addedDate
+				created.KnownExploitedDueDate = &dueDate
+				err = db.UpdateIssue(created)
+
+				By("throwing no error on update", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&created.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				Expect(err).To(BeNil())
+				Expect(i).To(HaveLen(1))
+
+				By("persisting KnownExploited=true", func() {
+					Expect(i[0].Issue.KnownExploited).To(BeTrue())
+				})
+				By("persisting KnownExploitedAddedDate", func() {
+					Expect(i[0].Issue.KnownExploitedAddedDate).NotTo(BeNil())
+					Expect(i[0].Issue.KnownExploitedAddedDate.UTC()).To(BeTemporally("==", addedDate))
+				})
+				By("persisting KnownExploitedDueDate", func() {
+					Expect(i[0].Issue.KnownExploitedDueDate).NotTo(BeNil())
+					Expect(i[0].Issue.KnownExploitedDueDate.UTC()).To(BeTemporally("==", dueDate))
+				})
+			})
+			It("can clear KnownExploited from true to false", func() {
+				addedDate := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
+				dueDate := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+
+				newIssueRow := test.NewFakeIssue()
+				newIssueRow.KnownExploited = sql.NullBool{Bool: true, Valid: true}
+				newIssueRow.KnownExploitedAddedDate = sql.NullTime{Time: addedDate, Valid: true}
+				newIssueRow.KnownExploitedDueDate = sql.NullTime{Time: dueDate, Valid: true}
+				issue := newIssueRow.AsIssue()
+
+				created, err := db.CreateIssue(&issue)
+				Expect(err).To(BeNil())
+
+				created.KnownExploited = false
+				created.KnownExploitedAddedDate = nil
+				created.KnownExploitedDueDate = nil
+				err = db.UpdateIssue(created)
+
+				By("throwing no error on update", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&created.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				Expect(err).To(BeNil())
+				Expect(i).To(HaveLen(1))
+
+				By("persisting KnownExploited=false", func() {
+					Expect(i[0].Issue.KnownExploited).To(BeFalse())
+				})
+				By("clearing KnownExploitedAddedDate", func() {
+					Expect(i[0].Issue.KnownExploitedAddedDate).To(BeNil())
+				})
+				By("clearing KnownExploitedDueDate", func() {
+					Expect(i[0].Issue.KnownExploitedDueDate).To(BeNil())
 				})
 			})
 		})

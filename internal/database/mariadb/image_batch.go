@@ -318,6 +318,9 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 		"I.issue_id",
 		"I.issue_primary_name",
 		"I.issue_description",
+		"I.issue_known_exploited",
+		"I.issue_known_exploited_added_date",
+		"I.issue_known_exploited_due_date",
 	).
 		Column(fmt.Sprintf("%s AS effective_severity", severityExpr)).
 		Column("MVL.earliest_remediation_date").
@@ -393,11 +396,20 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 
 		var sourceURL sql.NullString
 
+		var knownExploited sql.NullBool
+
+		var kevAddedDate sql.NullTime
+
+		var kevDueDate sql.NullTime
+
 		if err := rows.Scan(
 			&componentID,
 			&issueID,
 			&primaryName,
 			&description,
+			&knownExploited,
+			&kevAddedDate,
+			&kevDueDate,
 			&severity,
 			&remediationDate,
 			&sourceURL,
@@ -411,10 +423,11 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 		}
 
 		vr := entity.VulnerabilityResult{
-			IssueID:     issueID.Int64,
-			PrimaryName: GetStringValue(primaryName),
-			Description: GetStringValue(description),
-			MaxSeverity: GetStringValue(severity),
+			IssueID:        issueID.Int64,
+			PrimaryName:    GetStringValue(primaryName),
+			Description:    GetStringValue(description),
+			MaxSeverity:    GetStringValue(severity),
+			KnownExploited: knownExploited.Bool && knownExploited.Valid,
 		}
 		if remediationDate.Valid {
 			vr.EarliestRemediationDate = &remediationDate.Time
@@ -422,6 +435,14 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 
 		if sourceURL.Valid {
 			vr.SourceURL = sourceURL.String
+		}
+
+		if kevAddedDate.Valid {
+			vr.KnownExploitedAddedDate = &kevAddedDate.Time
+		}
+
+		if kevDueDate.Valid {
+			vr.KnownExploitedDueDate = &kevDueDate.Time
 		}
 
 		result[componentID.Int64] = append(result[componentID.Int64], vr)
