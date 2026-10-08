@@ -30,56 +30,38 @@ func SingleIssueBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.Issue, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleIssueBaseResolver")
-
-	if parent == nil {
-		return nil, ToGraphQLError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleIssueBaseResolver",
+		parent,
+		ToGraphQLError(
 			appErrors.E(
 				appErrors.Op("SingleIssueBaseResolver"),
 				"Issue",
 				appErrors.InvalidArgument,
 				"No parent provided",
 			),
-		)
-	}
-
-	f := &entity.IssueFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := &entity.IssueListOptions{}
-
-	issues, err := app.ListIssues(ctx, f, opt)
-	if err != nil {
-		return nil, ToGraphQLError(err)
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(issues.Elements) > 1 {
-		return nil, ToGraphQLError(
+		),
+		ToGraphQLError(
 			appErrors.E(
 				appErrors.Op("SingleIssueBaseResolver"),
 				"Issue",
 				appErrors.Internal,
 				"found multiple issues",
 			),
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.IssueResult, error) {
+			issues, err := app.ListIssues(ctx, &entity.IssueFilter{Id: ids}, &entity.IssueListOptions{})
+			if err != nil {
+				return nil, ToGraphQLError(err)
+			}
 
-	// not found
-	if len(issues.Elements) < 1 {
-		return nil, nil
-	}
-
-	ir := issues.Elements[0]
-
-	issue := model.NewIssueWithAggregations(&ir)
-
-	return &issue, nil
+			return issues.Elements, nil
+		},
+		func(ir entity.IssueResult) model.Issue {
+			return model.NewIssueWithAggregations(&ir)
+		},
+	)
 }
 
 func IssueBaseResolver(
@@ -165,11 +147,7 @@ func IssueBaseResolver(
 
 	for _, o := range orderBy {
 		if *o.By == model.IssueOrderByFieldSeverity {
-			opt.Order = append(opt.Order, o.ToOrderEntity())
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.IssueId, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
+			opt.Order = appendIssueSeverityOrder(opt.Order, o)
 		} else {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
 		}
@@ -180,21 +158,16 @@ func IssueBaseResolver(
 		return nil, ToGraphQLError(err)
 	}
 
-	edges := []*model.IssueEdge{}
-
-	for _, result := range issues.Elements {
+	edges := buildEdges(issues.Elements, func(result entity.IssueResult) *model.IssueEdge {
 		iss := model.NewIssueWithAggregations(&result)
-		edge := model.IssueEdge{
+
+		return &model.IssueEdge{
 			Node:   &iss,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	totalCount := 0
-	if issues.TotalCount != nil {
-		totalCount = int(*issues.TotalCount)
-	}
+	totalCount := totalCountOf(issues.TotalCount)
 
 	vulnerabilityCount := 0
 	policiyViolationCount := 0
@@ -272,18 +245,7 @@ func IssueNameBaseResolver(
 		return nil, ToGraphQLError(err)
 	}
 
-	var pointerNames []*string
-
-	for _, name := range names {
-		pointerNames = append(pointerNames, &name)
-	}
-
-	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayIssuePrimaryName,
-		Values:      pointerNames,
-	}
-
-	return &filterItem, nil
+	return toFilterItem(names, &FilterDisplayIssuePrimaryName), nil
 }
 
 func IssueCountsBaseResolver(

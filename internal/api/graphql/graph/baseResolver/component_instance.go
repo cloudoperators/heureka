@@ -21,56 +21,38 @@ func SingleComponentInstanceBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.ComponentInstance, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleComponentInstanceBaseResolver")
-
-	if parent == nil {
-		return nil, ToGraphQLError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleComponentInstanceBaseResolver",
+		parent,
+		ToGraphQLError(
 			appErrors.E(
 				appErrors.Op("SingleComponentInstanceBaseResolver"),
 				"ComponentInstance",
 				appErrors.InvalidArgument,
 				"No parent provided",
 			),
-		)
-	}
-
-	f := &entity.ComponentInstanceFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := &entity.ListOptions{}
-
-	componentInstances, err := app.ListComponentInstances(ctx, f, opt)
-	if err != nil {
-		return nil, ToGraphQLError(err)
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(componentInstances.Elements) > 1 {
-		return nil, ToGraphQLError(
+		),
+		ToGraphQLError(
 			appErrors.E(
 				appErrors.Op("SingleComponentInstanceBaseResolver"),
 				"ComponentInstance",
 				appErrors.Internal,
 				"found multiple component instances",
 			),
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.ComponentInstanceResult, error) {
+			componentInstances, err := app.ListComponentInstances(ctx, &entity.ComponentInstanceFilter{Id: ids}, &entity.ListOptions{})
+			if err != nil {
+				return nil, ToGraphQLError(err)
+			}
 
-	// not found
-	if len(componentInstances.Elements) < 1 {
-		return nil, nil
-	}
-
-	cir := componentInstances.Elements[0]
-
-	componentInstance := model.NewComponentInstance(cir.ComponentInstance)
-
-	return &componentInstance, nil
+			return componentInstances.Elements, nil
+		},
+		func(cir entity.ComponentInstanceResult) model.ComponentInstance {
+			return model.NewComponentInstance(cir.ComponentInstance)
+		},
+	)
 }
 
 func ComponentInstanceBaseResolver(
@@ -172,22 +154,16 @@ func ComponentInstanceBaseResolver(
 		return nil, ToGraphQLError(err)
 	}
 
-	edges := []*model.ComponentInstanceEdge{}
-
-	for _, result := range componentInstances.Elements {
+	edges := buildEdges(componentInstances.Elements, func(result entity.ComponentInstanceResult) *model.ComponentInstanceEdge {
 		ci := model.NewComponentInstance(result.ComponentInstance)
-		edge := model.ComponentInstanceEdge{
+
+		return &model.ComponentInstanceEdge{
 			Node:   &ci,
 			Cursor: result.Cursor(),
 		}
+	})
 
-		edges = append(edges, &edge)
-	}
-
-	tc := 0
-	if componentInstances.TotalCount != nil {
-		tc = int(*componentInstances.TotalCount)
-	}
+	tc := totalCountOf(componentInstances.TotalCount)
 
 	connection := model.ComponentInstanceConnection{
 		TotalCount: tc,
@@ -395,16 +371,5 @@ func ComponentInstanceFilterBaseResolver(
 		return nil, ToGraphQLError(err)
 	}
 
-	var pointerNames []*string
-
-	for _, name := range names {
-		pointerNames = append(pointerNames, &name)
-	}
-
-	filterItem := model.FilterItem{
-		DisplayName: filterDisplay,
-		Values:      pointerNames,
-	}
-
-	return &filterItem, nil
+	return toFilterItem(names, filterDisplay), nil
 }
