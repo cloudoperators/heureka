@@ -28,6 +28,10 @@ func NewFakeIssueEntity() entity.Issue {
 		dueDate = &due
 	}
 
+	// Random EPSS score and percentile values in [0, 1].
+	epssScore := gofakeit.Float64Range(0, 1)
+	epssPercentile := gofakeit.Float64Range(0, 1)
+
 	return entity.Issue{
 		Id:                      int64(gofakeit.Number(1, 10000000)),
 		PrimaryName:             primaryName,
@@ -36,6 +40,8 @@ func NewFakeIssueEntity() entity.Issue {
 		KnownExploited:          knownExploited,
 		KnownExploitedAddedDate: addedDate,
 		KnownExploitedDueDate:   dueDate,
+		EpssScore:               &epssScore,
+		EpssPercentile:          &epssPercentile,
 		IssueVariants:           nil,
 		IssueMatches:            nil,
 		ComponentVersions:       nil,

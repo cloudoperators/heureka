@@ -12,6 +12,9 @@ For each CVE the scanner stores:
   - `knownExploited: true`
   - `knownExploitedAddedDate` — date the CVE was added to the KEV catalog (`cisaExploitAdd` from NVD)
   - `knownExploitedDueDate` — CISA's remediation deadline for federal agencies (`cisaActionDue` from NVD)
+- **EPSS score** — after fetching CVEs from NVD, the scanner enriches each CVE with data from the [FIRST.org EPSS API](https://api.first.org/data/v1/epss):
+  - `epssScore` — probability (0–1) that the CVE will be exploited in the wild within the next 30 days
+  - `epssPercentile` — percentile rank of this CVE among all scored CVEs (e.g. `0.95` = top 5% riskiest)
 
 ## Run Modes
 
@@ -42,9 +45,11 @@ go run .
 For each CVE in the window the scanner:
 1. Looks up the existing `Issue` in Heureka by CVE ID.
 2. If not found — creates it (same as initial ingest).
-3. If found — compares description, CVSS vector, and `knownExploited` flag. Writes an update only when something changed.
+3. If found — compares description, CVSS vector, `knownExploited` flag, and EPSS scores. Writes an update only when something changed.
 
 > When CISA adds a CVE to the KEV catalog, NVD bumps its `lastModified` timestamp. This causes the CVE to appear in the next update-mode window, and `knownExploited` is flipped from `false` to `true` automatically.
+>
+> **EPSS staleness note:** EPSS scores are enriched for every CVE returned by the current NVD window, but EPSS changes do not cause NVD to bump `lastModified`. CVEs outside the active window are not re-enriched, so their scores can drift over time. To keep the full corpus current, run a periodic bulk refresh (a dedicated EPSS-only mode is not yet implemented).
 
 ## Prerequisites
 
@@ -69,6 +74,15 @@ All environment variables are prefixed with `HEUREKA_`.
 | `HEUREKA_NVD_RESULTS_PER_PAGE` | no | `2000` | NVD API page size (max 2000). |
 | `HEUREKA_NVD_RATE_LIMIT` | no | `1.666` | Max NVD requests per second. |
 | `HEUREKA_NVD_RATE_BURST` | no | `50` | Burst allowance for the NVD rate limiter. |
+
+### EPSS enrichment (`HEUREKA_EPSS_*`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HEUREKA_EPSS_API_URL` | no | `https://api.first.org/data/v1/epss` | FIRST.org EPSS API endpoint. |
+| `HEUREKA_EPSS_BATCH_SIZE` | no | `100` | Number of CVE IDs per EPSS API request (comma-separated). |
+| `HEUREKA_EPSS_RATE_LIMIT` | no | `10` | Max EPSS API requests per second. |
+| `HEUREKA_EPSS_RATE_BURST` | no | `10` | Burst allowance for the EPSS rate limiter. |
 
 ### Processor (`HEUREKA_HEUREKA_*`)
 
