@@ -384,6 +384,8 @@ func NewIssue(issue *entity.Issue) Issue {
 		KnownExploited:          &issue.KnownExploited,
 		KnownExploitedAddedDate: formatNullableTime(issue.KnownExploitedAddedDate),
 		KnownExploitedDueDate:   formatNullableTime(issue.KnownExploitedDueDate),
+		EpssScore:               issue.EpssScore,
+		EpssPercentile:          issue.EpssPercentile,
 		LastModified:            &lastModified,
 		Metadata:                getModelMetadata(issue.Metadata),
 	}
@@ -414,6 +416,8 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 		KnownExploited:          &issue.KnownExploited,
 		KnownExploitedAddedDate: formatNullableTime(issue.KnownExploitedAddedDate),
 		KnownExploitedDueDate:   formatNullableTime(issue.KnownExploitedDueDate),
+		EpssScore:               issue.EpssScore,
+		EpssPercentile:          issue.EpssPercentile,
 		LastModified:            &lastModified,
 		ObjectMetadata:          &objectMetadata,
 		Metadata:                getModelMetadata(issue.Issue.Metadata),
@@ -433,6 +437,8 @@ func NewIssueEntity(issue *IssueInput) entity.Issue {
 		KnownExploited:          lo.FromPtr(issue.KnownExploited),
 		KnownExploitedAddedDate: parseNullableDateTime(issue.KnownExploitedAddedDate),
 		KnownExploitedDueDate:   parseNullableDateTime(issue.KnownExploitedDueDate),
+		EpssScore:               issue.EpssScore,
+		EpssPercentile:          issue.EpssPercentile,
 	}
 }
 
@@ -488,6 +494,8 @@ func NewVulnerability(issue *entity.Issue) Vulnerability {
 		KnownExploited:          &issue.KnownExploited,
 		KnownExploitedAddedDate: formatNullableTime(issue.KnownExploitedAddedDate),
 		KnownExploitedDueDate:   formatNullableTime(issue.KnownExploitedDueDate),
+		EpssScore:               issue.EpssScore,
+		EpssPercentile:          issue.EpssPercentile,
 	}
 }
 

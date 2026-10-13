@@ -24,6 +24,7 @@ type Scanner struct {
 	ResultsPerPage string
 	HTTPClient     *http.Client
 	RateLimiter    *rate.Limiter
+	EpssClient     *EpssClient
 }
 
 func (s *Scanner) Do(req *http.Request) (*http.Response, error) {
@@ -53,13 +54,14 @@ func NewScanner(cfg Config) *Scanner {
 		ResultsPerPage: cfg.NvdResultsPerPage,
 		HTTPClient:     &http.Client{Transport: tr},
 		RateLimiter:    rl,
+		EpssClient:     NewEpssClient(cfg),
 	}
 }
 
 // performRequest executes an HTTP request with retry logic using client-go's retry utility
 func (s *Scanner) performRequest(url string) ([]byte, error) {
 	// Create a new request
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create new request: %w", err)
 	}
@@ -107,7 +109,7 @@ func (s *Scanner) performRequest(url string) ([]byte, error) {
 					"response":   string(body),
 				}).Warn(errMsg)
 
-				return fmt.Errorf(errMsg)
+				return fmt.Errorf("%s", errMsg)
 			}
 
 			// Successfully got a 2xx response, read the body
