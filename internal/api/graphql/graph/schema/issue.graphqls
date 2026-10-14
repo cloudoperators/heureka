@@ -11,6 +11,8 @@ type Issue implements Node {
     knownExploited: Boolean
     knownExploitedAddedDate: DateTime
     knownExploitedDueDate: DateTime
+    epssScore: Float
+    epssPercentile: Float
     lastModified: DateTime
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
@@ -36,6 +38,8 @@ input IssueInput {
     knownExploited: Boolean
     knownExploitedAddedDate: DateTime
     knownExploitedDueDate: DateTime
+    epssScore: Float
+    epssPercentile: Float
 }
 
 type IssueConnection implements Connection {

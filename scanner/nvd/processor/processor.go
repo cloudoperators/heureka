@@ -106,6 +106,8 @@ func (p *Processor) Process(ctx context.Context, cve *models.Cve) error {
 		KnownExploited:          cve.IsKnownExploited(),
 		KnownExploitedAddedDate: models.FormatKEVDateForAPI(cve.CISAExploitAdd),
 		KnownExploitedDueDate:   models.FormatKEVDateForAPI(cve.CISAActionDue),
+		EpssScore:               cve.EpssScore,
+		EpssPercentile:          cve.EpssPercentile,
 	}
 	issueMutationResp, err := client.CreateIssue(ctx, p.GraphqlClient, &createIssueInput)
 	if err != nil {
@@ -180,7 +182,9 @@ func (p *Processor) ProcessOrUpdate(ctx context.Context, cve *models.Cve) error 
 	newVector := cve.SeverityVector()
 
 	kevChanged := existing.KnownExploited != cve.IsKnownExploited()
-	issueChanged := existing.Description != newDescription || kevChanged
+	epssChanged := models.DerefFloat64(existing.EpssScore) != models.DerefFloat64(cve.EpssScore) ||
+		models.DerefFloat64(existing.EpssPercentile) != models.DerefFloat64(cve.EpssPercentile)
+	issueChanged := existing.Description != newDescription || kevChanged || epssChanged
 
 	if issueChanged {
 		_, err = client.UpdateIssue(
@@ -194,6 +198,8 @@ func (p *Processor) ProcessOrUpdate(ctx context.Context, cve *models.Cve) error 
 				KnownExploited:          cve.IsKnownExploited(),
 				KnownExploitedAddedDate: models.FormatKEVDateForAPI(cve.CISAExploitAdd),
 				KnownExploitedDueDate:   models.FormatKEVDateForAPI(cve.CISAActionDue),
+				EpssScore:               cve.EpssScore,
+				EpssPercentile:          cve.EpssPercentile,
 			},
 		)
 		if err != nil {

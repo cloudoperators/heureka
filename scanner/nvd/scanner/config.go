@@ -13,6 +13,12 @@ type Config struct {
 	NvdRateLimit      float64 `envconfig:"NVD_RATE_LIMIT"             default:"1.666" json:"-"`
 	NvdRateBurst      int     `envconfig:"NVD_RATE_BURST"             default:"50"    json:"-"`
 	// UpdateMode switches from publication-date ingestion to last-modified update checking
-	UpdateMode          bool `envconfig:"NVD_UPDATE_MODE"          default:"false" json:"-"`
-	ReviewIntervalDays  int  `envconfig:"NVD_REVIEW_INTERVAL_DAYS" default:"7"     json:"-"`
+	UpdateMode         bool `envconfig:"NVD_UPDATE_MODE"          default:"false" json:"-"`
+	ReviewIntervalDays int  `envconfig:"NVD_REVIEW_INTERVAL_DAYS" default:"7"     json:"-"`
+
+	// EPSS enrichment — scores are fetched from the FIRST.org EPSS API after NVD ingestion.
+	EpssApiUrl    string  `envconfig:"EPSS_API_URL"    default:"https://api.first.org/data/v1/epss" json:"-"`
+	EpssBatchSize int     `envconfig:"EPSS_BATCH_SIZE" default:"100"                                 json:"-"`
+	EpssRateLimit float64 `envconfig:"EPSS_RATE_LIMIT" default:"10"                                  json:"-"`
+	EpssRateBurst int     `envconfig:"EPSS_RATE_BURST" default:"10"                                  json:"-"`
 }

@@ -3,7 +3,10 @@
 
 package models
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 // Schemas
 // CVE 2.0
@@ -33,23 +36,28 @@ type CveItem struct {
 }
 
 type Cve struct {
-	Id                string          `json:"id,omitempty"`
-	SourceIdentifier  string          `json:"sourceIdentifier,omitempty"`
-	Published         string          `json:"published,omitempty"`
-	LastModified      string          `json:"lastModified,omitempty"`
-	VulnStatus        string          `json:"vulnStatus,omitempty"`
-	EvaluatorComment  string          `json:"evaluatorComment,omitempty"`
-	EvaluatorSolution string          `json:"evaluatorSolution,omitempty"`
-	EvaluatorImpact   string          `json:"evaluatorImpact,omitempty"`
-	CISAExploitAdd    string          `json:"cisaExploitAdd,omitempty"`
-	CISAActionDue     string          `json:"cisaActionDue,omitempty"`
-	CveTags           []CveTag        `json:"cveTags"`
-	Descriptions      []LangString    `json:"descriptions"`
-	References        []CveReference  `json:"references"`
-	Metrics           Metrics         `json:"metrics,omitempty"`
-	Weaknesses        []Weakness      `json:"weaknesses,omitempty"`
-	Configurations    []Configuration `json:"configurations,omitempty"`
-	VendorComments    []VendorComment `json:"vendorComments,omitempty"`
+	Id                string `json:"id,omitempty"`
+	SourceIdentifier  string `json:"sourceIdentifier,omitempty"`
+	Published         string `json:"published,omitempty"`
+	LastModified      string `json:"lastModified,omitempty"`
+	VulnStatus        string `json:"vulnStatus,omitempty"`
+	EvaluatorComment  string `json:"evaluatorComment,omitempty"`
+	EvaluatorSolution string `json:"evaluatorSolution,omitempty"`
+	EvaluatorImpact   string `json:"evaluatorImpact,omitempty"`
+	CISAExploitAdd    string `json:"cisaExploitAdd,omitempty"`
+	CISAActionDue     string `json:"cisaActionDue,omitempty"`
+	// EpssScore and EpssPercentile are not returned by the NVD API.
+	// They are populated separately by fetching the FIRST.org EPSS API
+	// after CVEs are retrieved from NVD.
+	EpssScore      *float64        `json:"-"`
+	EpssPercentile *float64        `json:"-"`
+	CveTags        []CveTag        `json:"cveTags"`
+	Descriptions   []LangString    `json:"descriptions"`
+	References     []CveReference  `json:"references"`
+	Metrics        Metrics         `json:"metrics,omitempty"`
+	Weaknesses     []Weakness      `json:"weaknesses,omitempty"`
+	Configurations []Configuration `json:"configurations,omitempty"`
+	VendorComments []VendorComment `json:"vendorComments,omitempty"`
 }
 
 func (cve Cve) GetDescription(language string) string {
@@ -395,4 +403,47 @@ type IssueRepositoryEdge struct {
 	Priority  *int             `json:"priority,omitempty"`
 	CreatedAt *string          `json:"created_at,omitempty"`
 	UpdatedAt *string          `json:"updated_at,omitempty"`
+}
+
+// EpssResponse is the top-level response from the FIRST.org EPSS API.
+// https://api.first.org/data/v1/epss
+type EpssResponse struct {
+	Status     string     `json:"status"`
+	StatusCode int        `json:"status-code"`
+	Total      int        `json:"total"`
+	Offset     int        `json:"offset"`
+	Limit      int        `json:"limit"`
+	Data       []EpssData `json:"data"`
+}
+
+// EpssData holds the EPSS score for a single CVE.
+// Both Epss and Percentile are decimal strings in the API response (e.g. "0.00544").
+type EpssData struct {
+	Cve        string `json:"cve"`
+	Epss       string `json:"epss"`
+	Percentile string `json:"percentile"`
+	Date       string `json:"date"`
+}
+
+// ParseEpssValue parses a decimal string from the EPSS API into a *float64.
+// Returns nil when the string is empty or cannot be parsed.
+func ParseEpssValue(s string) *float64 {
+	if s == "" {
+		return nil
+	}
+
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return nil
+	}
+
+	return &v
+}
+
+func DerefFloat64(p *float64) float64 {
+	if p == nil {
+		return 0
+	}
+
+	return *p
 }

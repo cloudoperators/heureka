@@ -1284,6 +1284,8 @@ func (s *DatabaseSeeder) InsertFakeIssue(issue mariadb.IssueRow) (int64, error) 
 			issue_known_exploited,
 			issue_known_exploited_added_date,
 			issue_known_exploited_due_date,
+			issue_epss_score,
+			issue_epss_percentile,
 			issue_created_by,
 			issue_updated_by
 		) VALUES (
@@ -1293,6 +1295,8 @@ func (s *DatabaseSeeder) InsertFakeIssue(issue mariadb.IssueRow) (int64, error) 
 			:issue_known_exploited,
 			:issue_known_exploited_added_date,
 			:issue_known_exploited_due_date,
+			:issue_epss_score,
+			:issue_epss_percentile,
 			:issue_created_by,
 			:issue_updated_by
 		)`
@@ -1737,6 +1741,8 @@ func NewFakeIssue() mariadb.IssueRow {
 		KnownExploited:          sql.NullBool{Bool: knownExploited, Valid: true},
 		KnownExploitedAddedDate: addedDate,
 		KnownExploitedDueDate:   dueDate,
+		EpssScore:               sql.NullFloat64{Float64: gofakeit.Float64Range(0, 1), Valid: true},
+		EpssPercentile:          sql.NullFloat64{Float64: gofakeit.Float64Range(0, 1), Valid: true},
 		CreatedBy:               sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		UpdatedBy:               sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
