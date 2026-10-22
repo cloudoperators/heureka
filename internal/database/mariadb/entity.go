@@ -60,6 +60,14 @@ func GetNullableTimeValue(v sql.NullTime) *time.Time {
 	return nil
 }
 
+func GetNullableFloat64Value(v sql.NullFloat64) *float64 {
+	if v.Valid {
+		return &v.Float64
+	}
+
+	return nil
+}
+
 func GetUserTypeValue(v sql.NullInt64) entity.UserType {
 	if v.Valid {
 		return entity.UserType(v.Int64)
@@ -264,18 +272,20 @@ func (rc *RatingCount) AsIssueSeverityCounts() entity.IssueSeverityCounts {
 }
 
 type IssueRow struct {
-	Id                      sql.NullInt64  `db:"issue_id"                        json:"id"`
-	Type                    sql.NullString `db:"issue_type"                      json:"type"`
-	PrimaryName             sql.NullString `db:"issue_primary_name"              json:"primary_name"`
-	Description             sql.NullString `db:"issue_description"               json:"description"`
-	KnownExploited          sql.NullBool   `db:"issue_known_exploited"           json:"known_exploited"`
-	KnownExploitedAddedDate sql.NullTime   `db:"issue_known_exploited_added_date" json:"known_exploited_added_date"`
-	KnownExploitedDueDate   sql.NullTime   `db:"issue_known_exploited_due_date"  json:"known_exploited_due_date"`
-	CreatedAt               sql.NullTime   `db:"issue_created_at"                json:"created_at"`
-	CreatedBy               sql.NullInt64  `db:"issue_created_by"                json:"created_by"`
-	DeletedAt               sql.NullTime   `db:"issue_deleted_at"                json:"deleted_at"`
-	UpdatedAt               sql.NullTime   `db:"issue_updated_at"                json:"updated_at"`
-	UpdatedBy               sql.NullInt64  `db:"issue_updated_by"                json:"updated_by"`
+	Id                      sql.NullInt64   `db:"issue_id"                        json:"id"`
+	Type                    sql.NullString  `db:"issue_type"                      json:"type"`
+	PrimaryName             sql.NullString  `db:"issue_primary_name"              json:"primary_name"`
+	Description             sql.NullString  `db:"issue_description"               json:"description"`
+	KnownExploited          sql.NullBool    `db:"issue_known_exploited"           json:"known_exploited"`
+	KnownExploitedAddedDate sql.NullTime    `db:"issue_known_exploited_added_date" json:"known_exploited_added_date"`
+	KnownExploitedDueDate   sql.NullTime    `db:"issue_known_exploited_due_date"  json:"known_exploited_due_date"`
+	EpssScore               sql.NullFloat64 `db:"issue_epss_score"                json:"epss_score"`
+	EpssPercentile          sql.NullFloat64 `db:"issue_epss_percentile"           json:"epss_percentile"`
+	CreatedAt               sql.NullTime    `db:"issue_created_at"                json:"created_at"`
+	CreatedBy               sql.NullInt64   `db:"issue_created_by"                json:"created_by"`
+	DeletedAt               sql.NullTime    `db:"issue_deleted_at"                json:"deleted_at"`
+	UpdatedAt               sql.NullTime    `db:"issue_updated_at"                json:"updated_at"`
+	UpdatedBy               sql.NullInt64   `db:"issue_updated_by"                json:"updated_by"`
 }
 
 func (ir IssueRow) AsIssue() entity.Issue {
@@ -288,6 +298,8 @@ func (ir IssueRow) AsIssue() entity.Issue {
 		KnownExploitedAddedDate: GetNullableTimeValue(ir.KnownExploitedAddedDate),
 		KnownExploitedDueDate:   GetNullableTimeValue(ir.KnownExploitedDueDate),
 		IssueVariants:           []entity.IssueVariant{},
+		EpssScore:               GetNullableFloat64Value(ir.EpssScore),
+		EpssPercentile:          GetNullableFloat64Value(ir.EpssPercentile),
 		IssueMatches:            []entity.IssueMatch{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ir.CreatedAt),
@@ -334,6 +346,8 @@ func (ibr GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations
 			KnownExploitedAddedDate: GetNullableTimeValue(ibr.KnownExploitedAddedDate),
 			KnownExploitedDueDate:   GetNullableTimeValue(ibr.KnownExploitedDueDate),
 			IssueVariants:           []entity.IssueVariant{},
+			EpssScore:               GetNullableFloat64Value(ibr.EpssScore),
+			EpssPercentile:          GetNullableFloat64Value(ibr.EpssPercentile),
 			IssueMatches:            []entity.IssueMatch{},
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(ibr.CreatedAt),
@@ -355,6 +369,8 @@ func (ibr GetIssuesByRow) AsIssue() entity.Issue {
 		KnownExploited:          GetBoolValue(ibr.KnownExploited),
 		KnownExploitedAddedDate: GetNullableTimeValue(ibr.KnownExploitedAddedDate),
 		KnownExploitedDueDate:   GetNullableTimeValue(ibr.KnownExploitedDueDate),
+		EpssScore:               GetNullableFloat64Value(ibr.EpssScore),
+		EpssPercentile:          GetNullableFloat64Value(ibr.EpssPercentile),
 		IssueVariants:           []entity.IssueVariant{},
 		IssueMatches:            []entity.IssueMatch{},
 		Metadata: entity.Metadata{
@@ -392,6 +408,14 @@ func (ir *IssueRow) FromIssue(i *entity.Issue) {
 
 	if i.KnownExploitedDueDate != nil {
 		ir.KnownExploitedDueDate = sql.NullTime{Time: *i.KnownExploitedDueDate, Valid: true}
+	}
+
+	if i.EpssScore != nil {
+		ir.EpssScore = sql.NullFloat64{Float64: *i.EpssScore, Valid: true}
+	}
+
+	if i.EpssPercentile != nil {
+		ir.EpssPercentile = sql.NullFloat64{Float64: *i.EpssPercentile, Valid: true}
 	}
 
 	ir.CreatedAt = sql.NullTime{Time: i.CreatedAt, Valid: true}

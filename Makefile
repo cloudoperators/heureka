@@ -74,7 +74,7 @@ mockery: install-build-dependencies
 	mockery
 
 install-build-dependencies:
-	go install github.com/vektra/mockery/v3@v3.7.4
+	go install github.com/vektra/mockery/v3@v3.8.1
 	go install github.com/onsi/ginkgo/v2/ginkgo
 	go install github.com/99designs/gqlgen
 

@@ -27,6 +27,8 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 		NewProperty("issue_known_exploited", func(i *entity.Issue) (any, bool) { return i.KnownExploited, true }),
 		NewProperty("issue_known_exploited_added_date", func(i *entity.Issue) (any, bool) { return i.KnownExploitedAddedDate, true }),
 		NewProperty("issue_known_exploited_due_date", func(i *entity.Issue) (any, bool) { return i.KnownExploitedDueDate, true }),
+		NewProperty("issue_epss_score", func(i *entity.Issue) (any, bool) { return i.EpssScore, true }),
+		NewProperty("issue_epss_percentile", func(i *entity.Issue) (any, bool) { return i.EpssPercentile, true }),
 		NewProperty("issue_created_by", func(i *entity.Issue) (any, bool) { return i.CreatedBy, NoUpdate }),
 		NewProperty("issue_updated_by", func(i *entity.Issue) (any, bool) { return i.UpdatedBy, i.UpdatedBy != 0 }),
 	},

@@ -13,6 +13,8 @@ query GetIssues ($filter: IssueFilter) {
         description
         type
         knownExploited
+        epssScore
+        epssPercentile
         issueVariants(first: 1) {
           edges {
             node {
