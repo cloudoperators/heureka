@@ -21,49 +21,30 @@ func SingleServiceBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.Service, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleServiceBaseResolver")
-
-	if parent == nil {
-		return nil, NewResolverError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleServiceBaseResolver",
+		parent,
+		NewResolverError(
 			"SingleServiceBaseResolver",
 			"Bad Request - No parent provided",
-		)
-	}
-
-	f := &entity.ServiceFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := entity.NewListOptions()
-
-	services, err := app.ListServices(ctx, f, opt)
-	// error while fetching
-	if err != nil {
-		return nil, NewResolverError("SingleServiceBaseResolver", err.Error())
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(services.Elements) > 1 {
-		return nil, NewResolverError(
+		),
+		NewResolverError(
 			"SingleServiceBaseResolver",
 			"Internal Error - found multiple services",
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.ServiceResult, error) {
+			services, err := app.ListServices(ctx, &entity.ServiceFilter{Id: ids}, entity.NewListOptions())
+			if err != nil {
+				return nil, NewResolverError("SingleServiceBaseResolver", err.Error())
+			}
 
-	// not found
-	if len(services.Elements) < 1 {
-		return nil, nil
-	}
-
-	sr := services.Elements[0]
-
-	service := model.NewService(sr.Service)
-
-	return &service, nil
+			return services.Elements, nil
+		},
+		func(sr entity.ServiceResult) model.Service {
+			return model.NewService(sr.Service)
+		},
+	)
 }
 
 func ServiceBaseResolver(
@@ -137,36 +118,7 @@ func ServiceBaseResolver(
 
 	for _, o := range orderBy {
 		if *o.By == model.ServiceOrderByFieldSeverity {
-			opt.Order = append(
-				opt.Order,
-				entity.Order{
-					By:        entity.CriticalCount,
-					Direction: o.Direction.ToOrderDirectionEntity(),
-				},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.HighCount, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{
-					By:        entity.MediumCount,
-					Direction: o.Direction.ToOrderDirectionEntity(),
-				},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.NoneCount, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.ServiceId, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
+			opt.Order = appendServiceSeverityOrder(opt.Order, o.Direction.ToOrderDirectionEntity())
 		} else {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
 		}
@@ -177,11 +129,9 @@ func ServiceBaseResolver(
 		return nil, NewResolverError("ServiceBaseResolver", err.Error())
 	}
 
-	edges := []*model.ServiceEdge{}
-
-	for _, result := range services.Elements {
+	edges := buildEdges(services.Elements, func(result entity.ServiceResult) *model.ServiceEdge {
 		s := model.NewServiceWithAggregations(&result)
-		edge := model.ServiceEdge{
+		edge := &model.ServiceEdge{
 			Node:   &s,
 			Cursor: result.Cursor(),
 		}
@@ -191,8 +141,8 @@ func ServiceBaseResolver(
 			edge.Priority = &p
 		}
 
-		edges = append(edges, &edge)
-	}
+		return edge
+	})
 
 	// Batch pre-load for nested fields
 	needOwners := lo.Contains(requestedFields, "edges.node.owners")
@@ -317,10 +267,7 @@ func ServiceBaseResolver(
 		}
 	}
 
-	tc := 0
-	if services.TotalCount != nil {
-		tc = int(*services.TotalCount)
-	}
+	tc := totalCountOf(services.TotalCount)
 
 	connection := model.ServiceConnection{
 		TotalCount: tc,
@@ -405,16 +352,5 @@ func ServiceFilterBaseResolver(
 		return nil, NewResolverError("ServiceFilterBaseResolver", err.Error())
 	}
 
-	var pointerNames []*string
-
-	for _, name := range names {
-		pointerNames = append(pointerNames, &name)
-	}
-
-	filterItem := model.FilterItem{
-		DisplayName: filterDisplay,
-		Values:      pointerNames,
-	}
-
-	return &filterItem, nil
+	return toFilterItem(names, filterDisplay), nil
 }

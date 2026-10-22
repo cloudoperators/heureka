@@ -3,9 +3,18 @@
 
 package resolver_test
 
+// Characterization tests for the Remediation resolvers after the orchestration
+// moved into the app layer. These now assert the TRANSPORT responsibilities:
+//   - the resolver delegates to App.CreateRemediationFromInput /
+//     UpdateRemediationFromInput, and
+//   - it maps the domain RemediationReferenceError back to the exact,
+//     client-facing error strings (including the component friendly-name).
+// The cross-domain reference-resolution branches are tested in
+// internal/app/app.
+
 import (
 	"context"
-	"testing"
+	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,63 +23,17 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
+	"github.com/cloudoperators/heureka/internal/app/remediation"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/mocks"
 )
 
-func TestResolver(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Resolver Suite")
-}
-
-func serviceResult(id int64) *entity.List[entity.ServiceResult] {
-	return &entity.List[entity.ServiceResult]{
-		Elements: []entity.ServiceResult{
-			{Service: &entity.Service{BaseService: entity.BaseService{Id: id}}},
-		},
-	}
-}
-
-func issueResult(id int64) *entity.IssueList {
-	return &entity.IssueList{
-		List: &entity.List[entity.IssueResult]{
-			Elements: []entity.IssueResult{
-				{Issue: &entity.Issue{Id: id}},
-			},
-		},
-	}
-}
-
-func emptyComponentList() *entity.List[entity.ComponentResult] {
-	return &entity.List[entity.ComponentResult]{Elements: []entity.ComponentResult{}}
-}
-
-func singleComponentList(componentType string) *entity.List[entity.ComponentResult] {
-	return &entity.List[entity.ComponentResult]{
-		Elements: []entity.ComponentResult{
-			{Component: &entity.Component{Id: 42, Type: componentType}},
-		},
-	}
-}
-
-func multipleComponentList(componentType string) *entity.List[entity.ComponentResult] {
-	return &entity.List[entity.ComponentResult]{
-		Elements: []entity.ComponentResult{
-			{Component: &entity.Component{Id: 42, Type: componentType}},
-			{Component: &entity.Component{Id: 43, Type: componentType}},
-		},
-	}
-}
-
-var _ = Describe("CreateRemediation", func() {
+var _ = Describe("CreateRemediation (transport mapping)", func() {
 	var (
-		mockApp  *mocks.MockHeureka
-		r        *resolver.Resolver
-		ctx      context.Context
-		service  = "test-service"
-		vuln     = "CVE-2024-1234"
-		imageVal = "registry.example.com/myimage"
-		input    model.RemediationInput
+		mockApp *mocks.MockHeureka
+		r       *resolver.Resolver
+		ctx     context.Context
+		input   model.RemediationInput
 	)
 
 	BeforeEach(func() {
@@ -78,109 +41,72 @@ var _ = Describe("CreateRemediation", func() {
 		r = &resolver.Resolver{App: mockApp}
 		ctx = context.Background()
 		input = model.RemediationInput{
-			Service:       &service,
-			Vulnerability: &vuln,
-			Image:         &imageVal,
+			Service:       strPtr("test-service"),
+			Vulnerability: strPtr("CVE-2024-1234"),
+			Image:         strPtr("registry.example.com/img"),
 		}
 	})
 
-	Context("when the component is not found", func() {
-		It("returns an error mentioning 'component'", func() {
-			mockApp.On("ListServices", ctx, mock.Anything, mock.Anything).
-				Return(serviceResult(1), nil)
-			mockApp.On("ListIssues", ctx, mock.Anything, mock.Anything).
-				Return(issueResult(2), nil)
-			mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-				Return(emptyComponentList(), nil)
+	It("returns the created remediation on success", func() {
+		mockApp.On("CreateRemediationFromInput", ctx, mock.AnythingOfType("remediation.RemediationCreateInput")).
+			Return(&entity.Remediation{Id: 99}, nil)
 
-			mutation := r.Mutation()
-			_, err := mutation.CreateRemediation(ctx, input)
+		result, err := r.Mutation().CreateRemediation(ctx, input)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).NotTo(BeNil())
+	})
+
+	DescribeTable(
+		"maps a domain reference error to the exact client message",
+		func(refErr *remediation.RemediationReferenceError, expected string) {
+			mockApp.On("CreateRemediationFromInput", ctx, mock.AnythingOfType("remediation.RemediationCreateInput")).
+				Return((*entity.Remediation)(nil), refErr)
+
+			_, err := r.Mutation().CreateRemediation(ctx, input)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("component not found"))
-		})
-	})
+			Expect(err.Error()).To(Equal(expected))
+		},
+		Entry("service",
+			&remediation.RemediationReferenceError{Reference: remediation.RemediationReferenceService},
+			"CreateRemediationMutationResolver: Internal Error - when creating remediation - service id not found"),
+		Entry("issue",
+			&remediation.RemediationReferenceError{Reference: remediation.RemediationReferenceIssue},
+			"CreateRemediationMutationResolver: Internal Error - when creating remediation - issue id not found"),
+		Entry("component not found",
+			&remediation.RemediationReferenceError{Reference: remediation.RemediationReferenceComponent},
+			"CreateRemediationMutationResolver: Internal Error - when creating remediation - component not found"),
+		Entry("ambiguous containerImage",
+			&remediation.RemediationReferenceError{Reference: remediation.RemediationReferenceComponent, Ambiguous: true, ComponentType: "containerImage"},
+			"CreateRemediationMutationResolver: Internal Error - when creating remediation - container image not found"),
+		Entry("ambiguous repository",
+			&remediation.RemediationReferenceError{Reference: remediation.RemediationReferenceComponent, Ambiguous: true, ComponentType: "repository"},
+			"CreateRemediationMutationResolver: Internal Error - when creating remediation - repository not found"),
+		Entry("ambiguous virtualMachineImage",
+			&remediation.RemediationReferenceError{Reference: remediation.RemediationReferenceComponent, Ambiguous: true, ComponentType: "virtualMachineImage"},
+			"CreateRemediationMutationResolver: Internal Error - when creating remediation - virtual machine image not found"),
+		Entry("user",
+			&remediation.RemediationReferenceError{Reference: remediation.RemediationReferenceUser},
+			"CreateRemediationMutationResolver: Internal Error - when creating remediation - user id not found"),
+	)
 
-	Context("when multiple components are found (ambiguous)", func() {
-		Context("and the component type is containerImage", func() {
-			It("returns an error mentioning 'container image'", func() {
-				mockApp.On("ListServices", ctx, mock.Anything, mock.Anything).
-					Return(serviceResult(1), nil)
-				mockApp.On("ListIssues", ctx, mock.Anything, mock.Anything).
-					Return(issueResult(2), nil)
-				mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-					Return(multipleComponentList("containerImage"), nil)
+	It("maps a non-reference (persistence) error to the generic create message", func() {
+		mockApp.On("CreateRemediationFromInput", ctx, mock.AnythingOfType("remediation.RemediationCreateInput")).
+			Return((*entity.Remediation)(nil), errors.New("db down"))
 
-				mutation := r.Mutation()
-				_, err := mutation.CreateRemediation(ctx, input)
+		_, err := r.Mutation().CreateRemediation(ctx, input)
 
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("container image not found"))
-			})
-		})
-
-		Context("and the component type is repository", func() {
-			It("returns an error mentioning 'repository'", func() {
-				mockApp.On("ListServices", ctx, mock.Anything, mock.Anything).
-					Return(serviceResult(1), nil)
-				mockApp.On("ListIssues", ctx, mock.Anything, mock.Anything).
-					Return(issueResult(2), nil)
-				mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-					Return(multipleComponentList("repository"), nil)
-
-				mutation := r.Mutation()
-				_, err := mutation.CreateRemediation(ctx, input)
-
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("repository not found"))
-			})
-		})
-
-		Context("and the component type is virtualMachineImage", func() {
-			It("returns an error mentioning 'virtual machine image'", func() {
-				mockApp.On("ListServices", ctx, mock.Anything, mock.Anything).
-					Return(serviceResult(1), nil)
-				mockApp.On("ListIssues", ctx, mock.Anything, mock.Anything).
-					Return(issueResult(2), nil)
-				mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-					Return(multipleComponentList("virtualMachineImage"), nil)
-
-				mutation := r.Mutation()
-				_, err := mutation.CreateRemediation(ctx, input)
-
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("virtual machine image not found"))
-			})
-		})
-	})
-
-	Context("when the component is found exactly once", func() {
-		It("creates the remediation successfully", func() {
-			mockApp.On("ListServices", ctx, mock.Anything, mock.Anything).
-				Return(serviceResult(1), nil)
-			mockApp.On("ListIssues", ctx, mock.Anything, mock.Anything).
-				Return(issueResult(2), nil)
-			mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-				Return(singleComponentList("containerImage"), nil)
-			mockApp.On("CreateRemediation", ctx, mock.MatchedBy(func(_ *entity.Remediation) bool { return true })).
-				Return(&entity.Remediation{Id: 99, ComponentId: 42}, nil)
-
-			mutation := r.Mutation()
-			result, err := mutation.CreateRemediation(ctx, input)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result).NotTo(BeNil())
-		})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("CreateRemediationMutationResolver: Internal Error - when creating remediation"))
 	})
 })
 
-var _ = Describe("UpdateRemediation", func() {
+var _ = Describe("UpdateRemediation (transport mapping)", func() {
 	var (
-		mockApp  *mocks.MockHeureka
-		r        *resolver.Resolver
-		ctx      context.Context
-		imageVal = "registry.example.com/myimage"
-		id       = "1"
+		mockApp *mocks.MockHeureka
+		r       *resolver.Resolver
+		ctx     context.Context
 	)
 
 	BeforeEach(func() {
@@ -189,50 +115,32 @@ var _ = Describe("UpdateRemediation", func() {
 		ctx = context.Background()
 	})
 
-	Context("when the component is not found", func() {
-		It("returns an error mentioning 'component'", func() {
-			input := model.RemediationInput{Image: &imageVal}
+	It("fails on a non-numeric id before any app call", func() {
+		_, err := r.Mutation().UpdateRemediation(ctx, "not-a-number", model.RemediationInput{})
 
-			mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-				Return(emptyComponentList(), nil)
-
-			mutation := r.Mutation()
-			_, err := mutation.UpdateRemediation(ctx, id, input)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("component not found"))
-		})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("UpdateRemediationMutationResolver: Internal Error - when updating remediation"))
 	})
 
-	Context("when multiple components are found (ambiguous)", func() {
-		Context("and the component type is containerImage", func() {
-			It("returns an error mentioning 'container image'", func() {
-				input := model.RemediationInput{Image: &imageVal}
-
-				mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-					Return(multipleComponentList("containerImage"), nil)
-
-				mutation := r.Mutation()
-				_, err := mutation.UpdateRemediation(ctx, id, input)
-
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("container image not found"))
+	It("maps an ambiguous component error to the friendly client message", func() {
+		mockApp.On("UpdateRemediationFromInput", ctx, mock.AnythingOfType("remediation.RemediationUpdateInput")).
+			Return((*entity.Remediation)(nil), &remediation.RemediationReferenceError{
+				Reference: remediation.RemediationReferenceComponent, Ambiguous: true, ComponentType: "containerImage",
 			})
-		})
 
-		Context("and the component type is repository", func() {
-			It("returns an error mentioning 'repository'", func() {
-				input := model.RemediationInput{Image: &imageVal}
+		_, err := r.Mutation().UpdateRemediation(ctx, "1", model.RemediationInput{Image: strPtr("img")})
 
-				mockApp.On("ListComponents", ctx, mock.Anything, mock.Anything).
-					Return(multipleComponentList("repository"), nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("UpdateRemediationMutationResolver: Internal Error - when updating remediation - container image not found"))
+	})
 
-				mutation := r.Mutation()
-				_, err := mutation.UpdateRemediation(ctx, id, input)
+	It("returns the updated remediation on success", func() {
+		mockApp.On("UpdateRemediationFromInput", ctx, mock.AnythingOfType("remediation.RemediationUpdateInput")).
+			Return(&entity.Remediation{Id: 1}, nil)
 
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("repository not found"))
-			})
-		})
+		result, err := r.Mutation().UpdateRemediation(ctx, "1", model.RemediationInput{})
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).NotTo(BeNil())
 	})
 })

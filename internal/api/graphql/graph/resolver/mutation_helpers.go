@@ -4,363 +4,210 @@
 package resolver
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
-	"strings"
-	"time"
+	"errors"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/entity"
-	appErrors "github.com/cloudoperators/heureka/internal/errors"
-	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/cloudoperators/heureka/internal/app/remediation"
+	"github.com/cloudoperators/heureka/internal/app/siem_alert"
 )
 
-func (r *mutationResolver) getOrCreateService(
-	ctx context.Context,
-	inputService *string,
-) (*entity.Service, error) {
-	if inputService == nil || *inputService == "" {
-		return nil, nil
+// remediationResolverError maps a domain error from the remediation
+// orchestration back to the exact client-facing resolver error. The transport
+// layer owns the message wording; the domain only reports which reference
+// failed. verb is "creating" or "updating".
+func remediationResolverError(op, verb string, err error) error {
+	msg := "Internal Error - when " + verb + " remediation"
+
+	var refErr *remediation.RemediationReferenceError
+	if errors.As(err, &refErr) {
+		msg += " - " + remediationReferenceDetail(refErr)
 	}
 
-	svcFilter := entity.ServiceFilter{CCRN: []*string{inputService}}
-
-	s, err := r.App.ListServices(ctx, &svcFilter, entity.NewListOptions())
-	if err != nil {
-		return nil, baseResolver.NewResolverError(
-			"CreateSIEMAlertMutationResolver",
-			"Internal Error - when listing services",
-		)
-	}
-
-	if len(s.Elements) > 0 {
-		return s.Elements[0].Service, nil
-	}
-
-	svcInput := model.ServiceInput{Ccrn: inputService}
-	svcEntity := model.NewServiceEntity(&svcInput)
-
-	newSvc, err := r.App.CreateService(ctx, &svcEntity)
-	if err != nil {
-		s2, err2 := r.App.ListServices(ctx, &svcFilter, entity.NewListOptions())
-		if err2 != nil || len(s2.Elements) == 0 {
-			return nil, baseResolver.NewResolverError(
-				"CreateSIEMAlertMutationResolver",
-				"Internal Error - when creating service",
-			)
-		}
-
-		return s2.Elements[0].Service, nil
-	}
-
-	return newSvc, nil
+	return baseResolver.NewResolverError(op, msg)
 }
 
-func (r *mutationResolver) getOrCreateSupportGroup(
-	ctx context.Context,
-	inputSupportGroup *string,
-) (*entity.SupportGroup, error) {
-	if inputSupportGroup == nil || *inputSupportGroup == "" {
-		return nil, nil
-	}
-
-	sgFilter := entity.SupportGroupFilter{CCRN: []*string{inputSupportGroup}}
-
-	sgList, err := r.App.ListSupportGroups(ctx, &sgFilter, entity.NewListOptions())
-	if err != nil {
-		return nil, baseResolver.NewResolverError(
-			"CreateSIEMAlertMutationResolver",
-			"Internal Error - when listing support groups",
-		)
-	}
-
-	if len(sgList.Elements) > 0 {
-		return sgList.Elements[0].SupportGroup, nil
-	}
-
-	sgEntity := model.NewSupportGroupEntity(&model.SupportGroupInput{Ccrn: inputSupportGroup})
-
-	newSg, err := r.App.CreateSupportGroup(ctx, &sgEntity)
-	if err != nil {
-		sg2, err2 := r.App.ListSupportGroups(ctx, &sgFilter, entity.NewListOptions())
-		if err2 != nil || len(sg2.Elements) == 0 {
-			return nil, baseResolver.NewResolverError(
-				"CreateSIEMAlertMutationResolver",
-				"Internal Error - when creating support group",
-			)
+func remediationReferenceDetail(e *remediation.RemediationReferenceError) string {
+	switch e.Reference {
+	case remediation.RemediationReferenceService:
+		return "service id not found"
+	case remediation.RemediationReferenceIssue:
+		return "issue id not found"
+	case remediation.RemediationReferenceUser:
+		return "user id not found"
+	case remediation.RemediationReferenceComponent:
+		if e.Ambiguous {
+			return model.ComponentFriendlyName(e.ComponentType) + " not found"
 		}
 
-		return sg2.Elements[0].SupportGroup, nil
+		return "component not found"
+	default:
+		return ""
 	}
-
-	return newSg, nil
 }
 
-func buildCCRN(input model.SIEMAlertInput) string {
-	var parts []string
-	if input.Service != nil && *input.Service != "" {
-		parts = append(parts, *input.Service)
-	}
+// allSIEMFieldsPresent returns false when any of the six required
+// component-instance fields is nil or empty.
+func allSIEMFieldsPresent(input model.SIEMAlertInput) bool {
+	present := func(s *string) bool { return s != nil && *s != "" }
 
-	if input.Region != nil && *input.Region != "" {
-		parts = append(parts, *input.Region)
-	}
-
-	if input.Cluster != nil && *input.Cluster != "" {
-		parts = append(parts, *input.Cluster)
-	}
-
-	if input.Namespace != nil && *input.Namespace != "" {
-		parts = append(parts, *input.Namespace)
-	}
-
-	if input.Pod != nil && *input.Pod != "" {
-		parts = append(parts, *input.Pod)
-	}
-
-	if input.Container != nil && *input.Container != "" {
-		parts = append(parts, *input.Container)
-	}
-
-	return strings.Join(parts, "/")
+	return present(input.Service) && present(input.Region) && present(input.Cluster) &&
+		present(input.Namespace) && present(input.Pod) && present(input.Container)
 }
 
-func (r *mutationResolver) getOrCreateComponentInstance(
-	ctx context.Context,
-	ccrn string,
-	svc *entity.Service,
-	input model.SIEMAlertInput,
-) (*entity.ComponentInstance, error) {
-	if ccrn == "" || svc == nil {
-		return nil, nil
+// toSIEMOrchestrationInput converts the transport model input to the domain
+// type the SIEM orchestration accepts.
+func toSIEMOrchestrationInput(input model.SIEMAlertInput) siem_alert.SIEMAlertInput {
+	var severity *string
+
+	if input.Severity != nil {
+		s := input.Severity.String()
+		severity = &s
 	}
 
-	ciInput := model.ComponentInstanceInput{
-		Ccrn:      &ccrn,
-		ServiceID: func() *string { v := fmt.Sprintf("%d", svc.Id); return &v }(),
-		Region:    input.Region,
-		Cluster:   input.Cluster,
-		Namespace: input.Namespace,
-		Pod:       input.Pod,
-		Container: input.Container,
-	}
-	ciEntity := model.NewComponentInstanceEntity(&ciInput)
-
-	newCi, err := r.App.CreateComponentInstance(ctx, &ciEntity, nil)
-	if err != nil {
-		filter := entity.ComponentInstanceFilter{CCRN: []*string{&ccrn}}
-
-		cis, err2 := r.App.ListComponentInstances(ctx, &filter, &entity.ListOptions{})
-		if err2 != nil || len(cis.Elements) == 0 {
-			return nil, baseResolver.NewResolverError(
-				"CreateSIEMAlertMutationResolver",
-				"Internal Error - when creating componentInstance",
-			)
+	links := make([]siem_alert.SIEMLink, 0, len(input.Links))
+	for _, l := range input.Links {
+		if l != nil {
+			links = append(links, siem_alert.SIEMLink{Name: l.Name, URL: l.URL})
 		}
-
-		return cis.Elements[0].ComponentInstance, nil
 	}
 
-	return newCi, nil
+	return siem_alert.SIEMAlertInput{
+		Service:      input.Service,
+		SupportGroup: input.SupportGroup,
+		Region:       input.Region,
+		Cluster:      input.Cluster,
+		Namespace:    input.Namespace,
+		Pod:          input.Pod,
+		Container:    input.Container,
+		Name:         input.Name,
+		Description:  input.Description,
+		Severity:     severity,
+		Links:        links,
+		Source:       input.Source,
+	}
 }
 
-func (r *mutationResolver) getOrCreateIssueAndVariant(
-	ctx context.Context,
-	input model.SIEMAlertInput,
-) (*entity.Issue, *entity.IssueVariant, error) {
-	var (
-		issue        *entity.Issue
-		issueVariant *entity.IssueVariant
-	)
-
-	if len(input.Links) > 0 {
-		if input.Name != nil && *input.Name != "" {
-			ivs, err := r.App.ListIssueVariants(
-				ctx,
-				&entity.IssueVariantFilter{SecondaryName: []*string{input.Name}},
-				&entity.ListOptions{},
-			)
-			if err == nil {
-				linksJSON, _ := json.Marshal(input.Links)
-				for _, v := range ivs.Elements {
-					if v.ExternalUrl == string(linksJSON) {
-						issueVariant = v.IssueVariant
-						break
-					}
-				}
-			}
-		}
+// buildSIEMAlertModel assembles the model.SIEMAlert from the domain result
+// and original input. Fields derived from persisted entities (issueVariant,
+// componentInstance, service) take precedence over the raw input values.
+func buildSIEMAlertModel(input model.SIEMAlertInput, result siem_alert.SIEMAlertResult) model.SIEMAlert {
+	var name *string
+	if result.Issue != nil {
+		name = &result.Issue.PrimaryName
 	}
 
-	if issueVariant == nil {
-		if input.Name == nil || *input.Name == "" {
-			return nil, nil, baseResolver.NewResolverError(
-				"CreateSIEMAlertMutationResolver",
-				"Invalid Input - name or url required",
-			)
-		}
-
-		newIssue, err := r.App.CreateIssue(
-			ctx,
-			&entity.Issue{PrimaryName: *input.Name, Description: func() string {
-				if input.Description != nil {
-					return *input.Description
-				}
-
-				return ""
-			}(), Type: entity.IssueTypeSecurityEvent},
-		)
-		if err != nil {
-			f := &entity.IssueFilter{PrimaryName: []*string{input.Name}}
-			lo := entity.IssueListOptions{ListOptions: *entity.NewListOptions()}
-
-			issues, ierr := r.App.ListIssues(ctx, f, &lo)
-			if ierr != nil || len(issues.Elements) == 0 {
-				return nil, nil, baseResolver.NewResolverError(
-					"CreateSIEMAlertMutationResolver",
-					"Internal Error - when creating issue",
-				)
-			}
-
-			issue = issues.Elements[0].Issue
-		} else {
-			issue = newIssue
-		}
-
-		siemRepoName := "heureka-siem"
-		if input.Source != nil && *input.Source != "" {
-			siemRepoName = *input.Source
-		}
-
-		repoFilter := entity.IssueRepositoryFilter{
-			Name: []*string{&siemRepoName},
-		}
-
-		repositories, err := r.App.ListIssueRepositories(ctx, &repoFilter, &entity.ListOptions{})
-
-		var issueRepositoryId int64
-		if err == nil && len(repositories.Elements) > 0 {
-			issueRepositoryId = repositories.Elements[0].Id
-		} else {
-			newRepo := entity.IssueRepository{
-				BaseIssueRepository: entity.BaseIssueRepository{
-					Name: siemRepoName,
-				},
-			}
-
-			createdRepo, err := r.App.CreateIssueRepository(ctx, &newRepo)
-			if err != nil {
-				return nil, nil, baseResolver.NewResolverError(
-					"CreateSIEMAlertMutationResolver",
-					"Internal Error - failed to init SIEM repository",
-				)
-			}
-
-			issueRepositoryId = createdRepo.Id
-		}
-
-		sev := entity.Severity{}
-		if input.Severity != nil {
-			sev = entity.NewSeverityFromRating(entity.SeverityValues(input.Severity.String()))
-		}
-
-		iv := entity.IssueVariant{
-			SecondaryName: func() string {
-				if input.Name != nil {
-					return *input.Name
-				}
-
-				return ""
-			}(),
-			IssueId:           issue.Id,
-			IssueRepositoryId: issueRepositoryId,
-			Severity:          sev,
-			Description: func() string {
-				if input.Description != nil {
-					return *input.Description
-				}
-
-				return ""
-			}(),
-			ExternalUrl: func() string {
-				if len(input.Links) == 0 {
-					return ""
-				}
-
-				linksJSON, _ := json.Marshal(input.Links)
-
-				return string(linksJSON)
-			}(),
-		}
-
-		newIv, err := r.App.CreateIssueVariant(ctx, &iv)
-		if err != nil {
-			return nil, nil, baseResolver.NewResolverError(
-				"CreateSIEMAlertMutationResolver",
-				"Internal Error - when creating issueVariant",
-			)
-		}
-
-		issueVariant = newIv
+	var description *string
+	if result.IssueVariant != nil && result.IssueVariant.Description != "" {
+		description = &result.IssueVariant.Description
 	} else {
-		iss, err := r.App.GetIssue(ctx, issueVariant.IssueId)
-		if err != nil {
-			return nil, nil, baseResolver.NewResolverError(
-				"CreateSIEMAlertMutationResolver",
-				"Internal Error - when resolving issue",
-			)
-		}
-
-		issue = iss
+		description = input.Description
 	}
 
-	return issue, issueVariant, nil
+	var severity *model.SeverityValues
+	if result.IssueVariant != nil && result.IssueVariant.Severity.Value != "" {
+		severity = new(model.SeverityValues(result.IssueVariant.Severity.Value))
+	} else {
+		severity = input.Severity
+	}
+
+	var links []*model.SIEMAlertLink
+	if result.IssueVariant != nil && result.IssueVariant.ExternalUrl != "" {
+		if err := json.Unmarshal([]byte(result.IssueVariant.ExternalUrl), &links); err != nil {
+			links = []*model.SIEMAlertLink{{Name: result.IssueVariant.ExternalUrl, URL: result.IssueVariant.ExternalUrl}}
+		}
+	} else {
+		for _, l := range input.Links {
+			if l != nil {
+				links = append(links, &model.SIEMAlertLink{Name: l.Name, URL: l.URL})
+			}
+		}
+	}
+
+	var servicePtr *string
+	if result.Service != nil {
+		servicePtr = new(result.Service.CCRN)
+	} else {
+		servicePtr = input.Service
+	}
+
+	var supportGroupPtr *string
+	if result.SupportGroup != nil {
+		supportGroupPtr = new(result.SupportGroup.CCRN)
+	} else {
+		supportGroupPtr = input.SupportGroup
+	}
+
+	var regionPtr, clusterPtr, namespacePtr, podPtr, containerPtr *string
+
+	if result.ComponentInstance != nil {
+		ci := result.ComponentInstance
+		if ci.Region != "" {
+			regionPtr = new(ci.Region)
+		}
+
+		if ci.Cluster != "" {
+			clusterPtr = new(ci.Cluster)
+		}
+
+		if ci.Namespace != "" {
+			namespacePtr = new(ci.Namespace)
+		}
+
+		if ci.Pod != "" {
+			podPtr = new(ci.Pod)
+		}
+
+		if ci.Container != "" {
+			containerPtr = new(ci.Container)
+		}
+	}
+
+	if regionPtr == nil {
+		regionPtr = input.Region
+	}
+
+	if clusterPtr == nil {
+		clusterPtr = input.Cluster
+	}
+
+	if namespacePtr == nil {
+		namespacePtr = input.Namespace
+	}
+
+	if podPtr == nil {
+		podPtr = input.Pod
+	}
+
+	if containerPtr == nil {
+		containerPtr = input.Container
+	}
+
+	return model.SIEMAlert{
+		Name:         name,
+		Description:  description,
+		Severity:     severity,
+		Links:        links,
+		Service:      servicePtr,
+		SupportGroup: supportGroupPtr,
+		Region:       regionPtr,
+		Cluster:      clusterPtr,
+		Namespace:    namespacePtr,
+		Pod:          podPtr,
+		Container:    containerPtr,
+		Source:       input.Source,
+	}
 }
 
-func (r *mutationResolver) createIssueMatchIfCI(
-	ctx context.Context,
-	ci *entity.ComponentInstance,
-	issue *entity.Issue,
-) error {
-	if ci == nil {
-		return nil
+// siemResolverError wraps a domain error from the SIEM orchestration with the
+// resolver prefix. SIEMError.Message already contains the part after the
+// prefix so the exact client string is preserved.
+func siemResolverError(err error) error {
+	var siemErr *siem_alert.SIEMError
+	if errors.As(err, &siemErr) {
+		return baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", siemErr.Message)
 	}
 
-	userId := util.SystemUserId
-
-	users, err := r.App.ListUsers(ctx, &entity.UserFilter{}, &entity.ListOptions{})
-	if err == nil && len(users.Elements) > 0 {
-		userId = users.Elements[0].Id
-	}
-
-	im := entity.IssueMatch{
-		IssueId:               issue.Id,
-		ComponentInstanceId:   ci.Id,
-		UserId:                userId,
-		Status:                entity.IssueMatchStatusValuesNew,
-		RemediationDate:       time.Now(),
-		TargetRemediationDate: time.Now(),
-	}
-
-	_, err = r.App.CreateIssueMatch(ctx, &im)
-	if err != nil {
-		return baseResolver.NewResolverError(
-			"CreateSIEMAlertMutationResolver",
-			"Internal Error - when creating issue match",
-		)
-	}
-
-	if ci.ComponentVersionId != 0 {
-		_, err = r.App.AddComponentVersionToIssue(ctx, issue.Id, ci.ComponentVersionId)
-		if err != nil && !appErrors.IsAlreadyExists(err) {
-			return baseResolver.NewResolverError(
-				"CreateSIEMAlertMutationResolver",
-				"Internal Error - when linking issue to component version",
-			)
-		}
-	}
-
-	return nil
+	return baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", err.Error())
 }

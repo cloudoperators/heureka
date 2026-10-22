@@ -17,49 +17,30 @@ func SingleIssueVariantBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.IssueVariant, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleIssueVariantBaseResolver")
-
-	if parent == nil {
-		return nil, NewResolverError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleIssueVariantBaseResolver",
+		parent,
+		NewResolverError(
 			"SingleIssueVariantBaseResolver",
 			"Bad Request - No parent provided",
-		)
-	}
-
-	f := &entity.IssueVariantFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := &entity.ListOptions{}
-
-	variants, err := app.ListIssueVariants(ctx, f, opt)
-	// error while fetching
-	if err != nil {
-		return nil, NewResolverError("SingleIssueVariantBaseResolver", err.Error())
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(variants.Elements) > 1 {
-		return nil, NewResolverError(
+		),
+		NewResolverError(
 			"SingleIssueVariantBaseResolver",
 			"Internal Error - found multiple variants",
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.IssueVariantResult, error) {
+			variants, err := app.ListIssueVariants(ctx, &entity.IssueVariantFilter{Id: ids}, &entity.ListOptions{})
+			if err != nil {
+				return nil, NewResolverError("SingleIssueVariantBaseResolver", err.Error())
+			}
 
-	// not found
-	if len(variants.Elements) < 1 {
-		return nil, nil
-	}
-
-	ivr := variants.Elements[0]
-
-	variant := model.NewIssueVariant(ivr.IssueVariant)
-
-	return &variant, nil
+			return variants.Elements, nil
+		},
+		func(ivr entity.IssueVariantResult) model.IssueVariant {
+			return model.NewIssueVariant(ivr.IssueVariant)
+		},
+	)
 }
 
 func IssueVariantBaseResolver(
@@ -122,21 +103,16 @@ func IssueVariantBaseResolver(
 		return nil, NewResolverError("IssueVariantBaseResolver", err.Error())
 	}
 
-	edges := []*model.IssueVariantEdge{}
-
-	for _, result := range variants.Elements {
+	edges := buildEdges(variants.Elements, func(result entity.IssueVariantResult) *model.IssueVariantEdge {
 		iv := model.NewIssueVariant(result.IssueVariant)
-		edge := model.IssueVariantEdge{
+
+		return &model.IssueVariantEdge{
 			Node:   &iv,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if variants.TotalCount != nil {
-		tc = int(*variants.TotalCount)
-	}
+	tc := totalCountOf(variants.TotalCount)
 
 	connection := model.IssueVariantConnection{
 		TotalCount: tc,
@@ -200,21 +176,16 @@ func EffectiveIssueVariantBaseResolver(
 		return nil, NewResolverError("EffectiveIssueVariantBaseResolver", err.Error())
 	}
 
-	edges := []*model.IssueVariantEdge{}
-
-	for _, result := range variants.Elements {
+	edges := buildEdges(variants.Elements, func(result entity.IssueVariantResult) *model.IssueVariantEdge {
 		iv := model.NewIssueVariant(result.IssueVariant)
-		edge := model.IssueVariantEdge{
+
+		return &model.IssueVariantEdge{
 			Node:   &iv,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if variants.TotalCount != nil {
-		tc = int(*variants.TotalCount)
-	}
+	tc := totalCountOf(variants.TotalCount)
 
 	connection := model.IssueVariantConnection{
 		TotalCount: tc,

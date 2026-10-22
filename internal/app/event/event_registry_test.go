@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/database"
-	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -38,14 +37,13 @@ func (e *TestEvent) Name() EventName {
 var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func() {
 	var (
 		er     EventRegistry
-		db     *mocks.MockDatabase
+		db     database.Database
 		ctx    context.Context
 		cancel context.CancelFunc
 		authz  openfga.Authorization
 	)
 
 	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
 		er = NewEventRegistry(db, authz)
 		ctx, cancel = context.WithCancel(context.Background())
 	})

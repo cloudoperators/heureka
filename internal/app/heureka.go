@@ -30,6 +30,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 )
@@ -327,6 +328,18 @@ func (h *HeurekaApp) SubscribeAuthzHandlers() {
 func (h *HeurekaApp) Shutdown() error {
 	h.profiler.Stop()
 	return h.database.CloseConnection()
+}
+
+func (h *HeurekaApp) CreateRemediationFromInput(ctx context.Context, in remediation.RemediationCreateInput) (*entity.Remediation, error) {
+	return remediation.CreateFromInput(ctx, h, in)
+}
+
+func (h *HeurekaApp) UpdateRemediationFromInput(ctx context.Context, in remediation.RemediationUpdateInput) (*entity.Remediation, error) {
+	return remediation.UpdateFromInput(ctx, h, in)
+}
+
+func (h *HeurekaApp) CreateSIEMAlertFromInput(ctx context.Context, in siem_alert.SIEMAlertInput) (siem_alert.SIEMAlertResult, error) {
+	return siem_alert.CreateFromInput(ctx, h, in)
 }
 
 func (h HeurekaApp) GetCache() cache.Cache {

@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 )
@@ -152,4 +153,55 @@ func GetRoot(fctx *graphql.FieldContext) *graphql.FieldContext {
 	}
 
 	return GetRoot(fctx.Parent)
+}
+
+// totalCountOf returns 0 when the total-count pointer is nil, otherwise the
+// dereferenced value as an int. It replaces the `tc := 0; if ptr != nil { ... }`
+// block duplicated across every list base resolver.
+func totalCountOf(totalCount *int64) int {
+	if totalCount == nil {
+		return 0
+	}
+
+	return int(*totalCount)
+}
+
+// toFilterItem builds a FilterItem from a flat list of string values. A nil or
+// empty input yields a FilterItem with nil Values, matching the prior inline
+// behavior of the per-entity filter resolvers.
+func toFilterItem(names []string, displayName *string) *model.FilterItem {
+	var values []*string
+
+	for _, name := range names {
+		name := name
+		values = append(values, &name)
+	}
+
+	return &model.FilterItem{
+		DisplayName: displayName,
+		Values:      values,
+	}
+}
+
+// appendServiceSeverityOrder appends the fixed multi-column ordering applied when
+// a Service query is ordered by severity: Critical, High, Medium, Low and None
+// counts, followed by the ServiceId tiebreaker, all in the given direction.
+func appendServiceSeverityOrder(order []entity.Order, direction entity.OrderDirection) []entity.Order {
+	return append(order,
+		entity.Order{By: entity.CriticalCount, Direction: direction},
+		entity.Order{By: entity.HighCount, Direction: direction},
+		entity.Order{By: entity.MediumCount, Direction: direction},
+		entity.Order{By: entity.LowCount, Direction: direction},
+		entity.Order{By: entity.NoneCount, Direction: direction},
+		entity.Order{By: entity.ServiceId, Direction: direction},
+	)
+}
+
+// appendIssueSeverityOrder appends the mapped severity order followed by the
+// IssueId tiebreaker, matching the prior inline behavior for Issue severity order.
+func appendIssueSeverityOrder(order []entity.Order, o *model.IssueOrderBy) []entity.Order {
+	return append(order,
+		o.ToOrderEntity(),
+		entity.Order{By: entity.IssueId, Direction: o.Direction.ToOrderDirectionEntity()},
+	)
 }

@@ -70,21 +70,16 @@ func PatchBaseResolver(
 		return nil, ToGraphQLError(err)
 	}
 
-	edges := []*model.PatchEdge{}
-
-	for _, result := range patches.Elements {
+	edges := buildEdges(patches.Elements, func(result entity.PatchResult) *model.PatchEdge {
 		ci := model.NewPatch(result.Patch)
-		edge := model.PatchEdge{
+
+		return &model.PatchEdge{
 			Node:   &ci,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if patches.TotalCount != nil {
-		tc = int(*patches.TotalCount)
-	}
+	tc := totalCountOf(patches.TotalCount)
 
 	connection := model.PatchConnection{
 		TotalCount: tc,

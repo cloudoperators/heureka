@@ -18,46 +18,27 @@ func SingleUserBaseResolver(
 	ctx context.Context,
 	parent *model.NodeParent,
 ) (*model.User, error) {
-	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-		"parent":          parent,
-	}).Debug("Called SingleUserBaseResolver")
-
-	if parent == nil {
-		return nil, NewResolverError("SingleUserBaseResolver", "Bad Request - No parent provided")
-	}
-
-	f := &entity.UserFilter{
-		Id: parent.ChildIds,
-	}
-
-	opt := &entity.ListOptions{}
-
-	users, err := app.ListUsers(ctx, f, opt)
-	// error while fetching
-	if err != nil {
-		return nil, NewResolverError("SingleUserBaseResolver", err.Error())
-	}
-
-	// unexpected number of results (should at most be 1)
-	if len(users.Elements) > 1 {
-		return nil, NewResolverError(
+	return singleNodeByChildIds(
+		ctx,
+		"SingleUserBaseResolver",
+		parent,
+		NewResolverError("SingleUserBaseResolver", "Bad Request - No parent provided"),
+		NewResolverError(
 			"SingleUserBaseResolver",
 			"Internal Error - found multiple users",
-		)
-	}
+		),
+		func(ctx context.Context, ids []*int64) ([]entity.UserResult, error) {
+			users, err := app.ListUsers(ctx, &entity.UserFilter{Id: ids}, &entity.ListOptions{})
+			if err != nil {
+				return nil, NewResolverError("SingleUserBaseResolver", err.Error())
+			}
 
-	// not found
-	if len(users.Elements) < 1 {
-		return nil, nil
-	}
-
-	ur := users.Elements[0]
-
-	user := model.NewUser(ur.User)
-
-	return &user, nil
+			return users.Elements, nil
+		},
+		func(ur entity.UserResult) model.User {
+			return model.NewUser(ur.User)
+		},
+	)
 }
 
 func UserBaseResolver(
@@ -121,21 +102,16 @@ func UserBaseResolver(
 		return nil, NewResolverError("UserBaseResolver", err.Error())
 	}
 
-	edges := []*model.UserEdge{}
-
-	for _, result := range users.Elements {
+	edges := buildEdges(users.Elements, func(result entity.UserResult) *model.UserEdge {
 		user := model.NewUser(result.User)
-		edge := model.UserEdge{
+
+		return &model.UserEdge{
 			Node:   &user,
 			Cursor: result.Cursor(),
 		}
-		edges = append(edges, &edge)
-	}
+	})
 
-	tc := 0
-	if users.TotalCount != nil {
-		tc = int(*users.TotalCount)
-	}
+	tc := totalCountOf(users.TotalCount)
 
 	connection := model.UserConnection{
 		TotalCount: tc,
@@ -174,18 +150,7 @@ func UserNameBaseResolver(
 		return nil, NewResolverError("UserNameBaseResolver", err.Error())
 	}
 
-	var pointerNames []*string
-
-	for _, name := range names {
-		pointerNames = append(pointerNames, &name)
-	}
-
-	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayUserName,
-		Values:      pointerNames,
-	}
-
-	return &filterItem, nil
+	return toFilterItem(names, &FilterDisplayUserName), nil
 }
 
 func UniqueUserIDBaseResolver(
@@ -216,18 +181,7 @@ func UniqueUserIDBaseResolver(
 		return nil, NewResolverError("UniqueUserIDBaseResolver", err.Error())
 	}
 
-	var pointerNames []*string
-
-	for _, name := range names {
-		pointerNames = append(pointerNames, &name)
-	}
-
-	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayUniqueUserId,
-		Values:      pointerNames,
-	}
-
-	return &filterItem, nil
+	return toFilterItem(names, &FilterDisplayUniqueUserId), nil
 }
 
 func UserNameWithIdBaseResolver(
