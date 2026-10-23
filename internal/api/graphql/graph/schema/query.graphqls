@@ -26,4 +26,5 @@ type Query {
     Remediations(filter: RemediationFilter, first: Int, after: String, orderBy: [RemediationOrderBy]): RemediationConnection
     Patches(filter: PatchFilter, first: Int, after: String): PatchConnection
     SIEMAlerts(filter: SIEMAlertFilter, first: Int, after: String, orderBy: [SIEMAlertOrderBy]): SIEMAlertConnection
+    IssueTrends(filter: IssueTrendFilter!): IssueTrend!
 }

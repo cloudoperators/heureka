@@ -172,6 +172,10 @@ func (r *queryResolver) SIEMAlerts(ctx context.Context, filter *model.SIEMAlertF
 	return baseResolver.SIEMAlertBaseResolver(r.App, ctx, filter, first, after, orderBy)
 }
 
+func (r *queryResolver) IssueTrends(ctx context.Context, filter model.IssueTrendFilter) (*model.IssueTrend, error) {
+	return baseResolver.IssueTrendBaseResolver(r.App, ctx, &filter)
+}
+
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }
