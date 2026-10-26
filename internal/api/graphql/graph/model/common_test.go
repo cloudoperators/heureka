@@ -95,3 +95,50 @@ var _ = Describe("NewVulnerability", func() {
 		})
 	})
 })
+
+var _ = Describe("NewVulnerability EPSS", func() {
+	Context("when EPSS score is present", func() {
+		epss := 0.042
+		percentile := 0.91
+
+		issue := entity.Issue{
+			Id:             99,
+			PrimaryName:    "CVE-2024-1337",
+			Description:    "test vuln",
+			EpssScore:      &epss,
+			EpssPercentile: &percentile,
+		}
+
+		It("propagates EpssScore", func() {
+			v := model.NewVulnerability(&issue)
+			Expect(v.EpssScore).NotTo(BeNil())
+			Expect(*v.EpssScore).To(BeNumerically("~", 0.042, 1e-9))
+		})
+
+		It("propagates EpssPercentile", func() {
+			v := model.NewVulnerability(&issue)
+			Expect(v.EpssPercentile).NotTo(BeNil())
+			Expect(*v.EpssPercentile).To(BeNumerically("~", 0.91, 1e-9))
+		})
+	})
+
+	Context("when EPSS score is absent", func() {
+		issue := entity.Issue{
+			Id:             100,
+			PrimaryName:    "CVE-2024-0000",
+			Description:    "no epss",
+			EpssScore:      nil,
+			EpssPercentile: nil,
+		}
+
+		It("leaves EpssScore nil", func() {
+			v := model.NewVulnerability(&issue)
+			Expect(v.EpssScore).To(BeNil())
+		})
+
+		It("leaves EpssPercentile nil", func() {
+			v := model.NewVulnerability(&issue)
+			Expect(v.EpssPercentile).To(BeNil())
+		})
+	})
+})

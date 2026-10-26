@@ -79,6 +79,7 @@ func scanAndProcess(scanner *s.Scanner, processor *p.Processor, yesterday string
 
 	contextWithTimeout, cancel := context.WithTimeout(context.Background(), time.Duration(2)*time.Hour)
 	defer cancel()
+	scanner.EpssClient.EnrichCVEsWithEPSS(contextWithTimeout, cves)
 	processCVESConcurrently(contextWithTimeout, processor, cves, false)
 }
 
@@ -104,6 +105,7 @@ func updateAndProcess(scanner *s.Scanner, processor *p.Processor, modStart strin
 
 	contextWithTimeout, cancel := context.WithTimeout(context.Background(), time.Duration(2)*time.Hour)
 	defer cancel()
+	scanner.EpssClient.EnrichCVEsWithEPSS(contextWithTimeout, cves)
 	processCVESConcurrently(contextWithTimeout, processor, cves, true)
 }
 

@@ -33,8 +33,8 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/valkey-io/valkey-go v1.0.75
 	github.com/vektah/gqlparser/v2 v2.5.37
-	golang.org/x/sync v0.22.0
-	golang.org/x/text v0.41.0
+	golang.org/x/sync v0.23.0
+	golang.org/x/text v0.42.0
 	golang.org/x/time v0.15.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 )
@@ -57,6 +57,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.6.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/docker v28.5.1+incompatible // indirect
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
@@ -107,6 +108,7 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/sosodev/duration v1.4.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -124,13 +126,13 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
-	golang.org/x/mod v0.40.0 // indirect
-	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/tools v0.49.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/grpc v1.83.1 // indirect
