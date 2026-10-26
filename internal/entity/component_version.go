@@ -53,6 +53,10 @@ type ComponentVersion struct {
 	ComponentInstances []ComponentInstance `json:"component_instances,omitempty"`
 	Issues             []Issue             `json:"issues,omitempty"`
 	EndOfLife          *bool               `json:"end_of_life,omitempty"`
+	// LatestVersion is the highest semantic-version tag available in the
+	// registry for this image's repository. Nil when unknown or when the
+	// repository has no semver tags.
+	LatestVersion *string `json:"latest_version,omitempty"`
 }
 
 func (cv *ComponentVersion) GetId() int64 {

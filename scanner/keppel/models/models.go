@@ -37,13 +37,14 @@ type Repository struct {
 }
 
 type Manifest struct {
-	Digest              string
-	MediaType           string `json:"media_type"`
-	SizeBytes           uint64 `json:"size_bytes"`
-	PushedAt            uint64 `json:"pushed_at"`
-	LastPulledAt        uint64 `json:"last_pulled_at"`
-	VulnerabilityStatus string `json:"vulnerability_status"`
+	Digest              string     `json:"digest"`
+	MediaType           string     `json:"media_type"`
+	SizeBytes           uint64     `json:"size_bytes"`
+	PushedAt            uint64     `json:"pushed_at"`
+	LastPulledAt        uint64     `json:"last_pulled_at"`
+	VulnerabilityStatus string     `json:"vulnerability_status"`
 	Labels              Labels
+	Tags                []Tag      `json:"tags"`
 	Children            []Manifest `json:"manifests"`
 	MaxLayerCreatedAt   int64      `json:"max_layer_created_at"`
 	MinLayerCreatedAt   int64      `json:"min_layer_created_at"`
@@ -55,8 +56,21 @@ type Platform struct {
 	OS           string `json:"os"`
 }
 
+// ManifestResponse is the paginated response body of the Keppel
+// GET /keppel/v1/accounts/{account}/repositories/{repo}/_manifests endpoint.
+// When Truncated is true the caller must resend with marker set to the digest
+// of the last manifest to retrieve the next page.
 type ManifestResponse struct {
-	Manifests []Manifest
+	Manifests []Manifest `json:"manifests"`
+	Truncated bool       `json:"truncated"`
+}
+
+// Tag represents a single tag entry nested within a Keppel manifest listing
+// response (GET /keppel/v1/accounts/{account}/repositories/{repo}/_manifests).
+type Tag struct {
+	Name         string `json:"name"`
+	PushedAt     int64  `json:"pushed_at"`
+	LastPulledAt int64  `json:"last_pulled_at"`
 }
 
 type Labels struct {

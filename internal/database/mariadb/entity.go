@@ -773,22 +773,30 @@ func (cr *ComponentRow) FromComponent(c *entity.Component) {
 }
 
 type ComponentVersionRow struct {
-	Id           sql.NullInt64  `db:"componentversion_id"           json:"id"`
-	Version      sql.NullString `db:"componentversion_version"      json:"version"`
-	Tag          sql.NullString `db:"componentversion_tag"          json:"tag"`
-	Repository   sql.NullString `db:"componentversion_repository"   json:"repository"`
-	Organization sql.NullString `db:"componentversion_organization" json:"organization"`
-	ComponentId  sql.NullInt64  `db:"componentversion_component_id"`
-	CreatedAt    sql.NullTime   `db:"componentversion_created_at"   json:"created_at"`
-	CreatedBy    sql.NullInt64  `db:"componentversion_created_by"   json:"created_by"`
-	DeletedAt    sql.NullTime   `db:"componentversion_deleted_at"   json:"deleted_at"`
-	UpdatedAt    sql.NullTime   `db:"componentversion_updated_at"   json:"updated_at"`
-	UpdatedBy    sql.NullInt64  `db:"componentversion_updated_by"   json:"updated_by"`
-	EndOfLife    sql.NullBool   `db:"componentversion_end_of_life"  json:"end_of_life"`
+	Id            sql.NullInt64  `db:"componentversion_id"           json:"id"`
+	Version       sql.NullString `db:"componentversion_version"      json:"version"`
+	Tag           sql.NullString `db:"componentversion_tag"          json:"tag"`
+	Repository    sql.NullString `db:"componentversion_repository"   json:"repository"`
+	Organization  sql.NullString `db:"componentversion_organization" json:"organization"`
+	ComponentId   sql.NullInt64  `db:"componentversion_component_id"`
+	CreatedAt     sql.NullTime   `db:"componentversion_created_at"   json:"created_at"`
+	CreatedBy     sql.NullInt64  `db:"componentversion_created_by"   json:"created_by"`
+	DeletedAt     sql.NullTime   `db:"componentversion_deleted_at"   json:"deleted_at"`
+	UpdatedAt     sql.NullTime   `db:"componentversion_updated_at"   json:"updated_at"`
+	UpdatedBy     sql.NullInt64  `db:"componentversion_updated_by"   json:"updated_by"`
+	EndOfLife     sql.NullBool   `db:"componentversion_end_of_life"  json:"end_of_life"`
+	LatestVersion sql.NullString `db:"componentversion_latest_version" json:"latest_version"`
 }
 
 func (cvr ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 	endOfLife := GetBoolValue(cvr.EndOfLife)
+
+	var latestVersion *string
+
+	if cvr.LatestVersion.Valid {
+		v := cvr.LatestVersion.String
+		latestVersion = &v
+	}
 
 	return entity.ComponentVersion{
 		Id:           GetInt64Value(cvr.Id),
@@ -804,7 +812,8 @@ func (cvr ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 			UpdatedAt: GetTimeValue(cvr.UpdatedAt),
 			UpdatedBy: GetInt64Value(cvr.UpdatedBy),
 		},
-		EndOfLife: &endOfLife,
+		EndOfLife:     &endOfLife,
+		LatestVersion: latestVersion,
 	}
 }
 
@@ -813,6 +822,11 @@ func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion
 
 	if cv.EndOfLife != nil {
 		cvr.EndOfLife = sql.NullBool{Bool: *cv.EndOfLife, Valid: true}
+	}
+
+	cvr.LatestVersion = sql.NullString{Valid: false}
+	if cv.LatestVersion != nil {
+		cvr.LatestVersion = sql.NullString{String: *cv.LatestVersion, Valid: true}
 	}
 
 	cvr.Id = sql.NullInt64{Int64: cv.Id, Valid: true}

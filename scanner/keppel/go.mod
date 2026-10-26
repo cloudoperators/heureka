@@ -4,6 +4,7 @@ go 1.26.3
 
 require (
 	github.com/Khan/genqlient v0.8.1
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/aquasecurity/trivy v0.72.0
 	github.com/cloudoperators/heureka v1.54.2
 	github.com/google/uuid v1.6.0
@@ -16,7 +17,6 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/alexflint/go-arg v1.5.1 // indirect
 	github.com/alexflint/go-scalar v1.2.0 // indirect

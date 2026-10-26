@@ -434,12 +434,13 @@ func (v *ComponentVersionFilter) GetOrganization() []string { return v.Organizat
 func (v *ComponentVersionFilter) GetEndOfLife() []bool { return v.EndOfLife }
 
 type ComponentVersionInput struct {
-	Version      string `json:"version"`
-	ComponentId  string `json:"componentId"`
-	Tag          string `json:"tag"`
-	Repository   string `json:"repository"`
-	Organization string `json:"organization"`
-	EndOfLife    bool   `json:"endOfLife"`
+	Version       string `json:"version"`
+	ComponentId   string `json:"componentId"`
+	Tag           string `json:"tag"`
+	Repository    string `json:"repository"`
+	Organization  string `json:"organization"`
+	EndOfLife     bool   `json:"endOfLife"`
+	LatestVersion string `json:"latestVersion"`
 }
 
 // GetVersion returns ComponentVersionInput.Version, and is useful for accessing the field via an interface.
@@ -459,6 +460,9 @@ func (v *ComponentVersionInput) GetOrganization() string { return v.Organization
 
 // GetEndOfLife returns ComponentVersionInput.EndOfLife, and is useful for accessing the field via an interface.
 func (v *ComponentVersionInput) GetEndOfLife() bool { return v.EndOfLife }
+
+// GetLatestVersion returns ComponentVersionInput.LatestVersion, and is useful for accessing the field via an interface.
+func (v *ComponentVersionInput) GetLatestVersion() string { return v.LatestVersion }
 
 // CreateComponentInstanceResponse is returned by CreateComponentInstance on success.
 type CreateComponentInstanceResponse struct {
