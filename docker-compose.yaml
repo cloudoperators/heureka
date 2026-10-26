@@ -25,7 +25,7 @@ services:
       # - MARIADB_RANDOM_ROOT_PASSWORD=yes
     healthcheck:
       test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
-      start_period: 10s
+      start_period: 45s
       interval: 10s
       timeout: 5s
       retries: 3
@@ -35,6 +35,7 @@ services:
       - "3306:3306"
 
   heureka-app:
+    image: heureka-app:latest
     build: .
     container_name: heureka-app
     profiles:
@@ -54,6 +55,7 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-anthropic}
       AI_HTTP_RATE_LIMIT: ${AI_HTTP_RATE_LIMIT:-5}
       AI_HTTP_RATE_BURST: ${AI_HTTP_RATE_BURST:-5}
+      TESTING_ENABLE: true
     depends_on:
       heureka-db:
         condition: service_healthy
@@ -73,6 +75,7 @@ services:
     restart: always
 
   ui:
+    image: juno-ui:latest
     build:
       context: ./ui/
       dockerfile: Dockerfile
@@ -142,7 +145,6 @@ services:
       # GRPC server
       - "8081:8081"
       # Playground
-      - "3000:3000"
-
+      - "8082:3000"
 volumes:
   valkey-data:
