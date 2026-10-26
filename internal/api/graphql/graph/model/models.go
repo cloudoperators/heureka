@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -485,33 +484,8 @@ func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 		Metadata:      getModelMetadata(componentVersion.Metadata),
 		EndOfLife:     componentVersion.EndOfLife,
 		LatestVersion: componentVersion.LatestVersion,
-		IsOutdated:    isVersionOutdated(componentVersion.Tag, componentVersion.LatestVersion),
+		IsOutdated:    componentVersion.IsOutdated,
 	}
-}
-
-// isVersionOutdated reports whether the running image tag is behind the highest
-// semantic-version tag available in the registry. It returns nil when the
-// comparison is not meaningful: when there is no known latest version, or when
-// either the running tag or the latest version does not parse as a semantic
-// version (e.g. floating tags like "latest" or digest-style tags).
-func isVersionOutdated(tag string, latest *string) *bool {
-	if latest == nil || *latest == "" || tag == "" {
-		return nil
-	}
-
-	current, err := semver.NewVersion(tag)
-	if err != nil {
-		return nil
-	}
-
-	latestVersion, err := semver.NewVersion(*latest)
-	if err != nil {
-		return nil
-	}
-
-	outdated := latestVersion.GreaterThan(current)
-
-	return &outdated
 }
 
 func NewVulnerability(issue *entity.Issue) Vulnerability {
@@ -751,7 +725,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		Metadata:      getModelMetadata(componentVersion.Metadata),
 		EndOfLife:     componentVersion.EndOfLife,
 		LatestVersion: componentVersion.LatestVersion,
-		IsOutdated:    isVersionOutdated(componentVersion.Tag, componentVersion.LatestVersion),
+		IsOutdated:    componentVersion.IsOutdated,
 	}
 }
 

@@ -395,6 +395,7 @@ type ComponentVersionFilter struct {
 	Repository        []string      `json:"repository"`
 	Organization      []string      `json:"organization"`
 	EndOfLife         []bool        `json:"endOfLife"`
+	IsOutdated        []bool        `json:"isOutdated"`
 }
 
 // GetComponentId returns ComponentVersionFilter.ComponentId, and is useful for accessing the field via an interface.
@@ -432,6 +433,9 @@ func (v *ComponentVersionFilter) GetOrganization() []string { return v.Organizat
 
 // GetEndOfLife returns ComponentVersionFilter.EndOfLife, and is useful for accessing the field via an interface.
 func (v *ComponentVersionFilter) GetEndOfLife() []bool { return v.EndOfLife }
+
+// GetIsOutdated returns ComponentVersionFilter.IsOutdated, and is useful for accessing the field via an interface.
+func (v *ComponentVersionFilter) GetIsOutdated() []bool { return v.IsOutdated }
 
 type ComponentVersionInput struct {
 	Version       string `json:"version"`

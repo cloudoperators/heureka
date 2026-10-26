@@ -37,6 +37,15 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 
 			return *cv.LatestVersion, true
 		}),
+		NewProperty("componentversion_is_outdated", func(cv *entity.ComponentVersion) (any, bool) {
+			// Always written (the handler computes it on every create/update);
+			// nil maps to SQL NULL to preserve the "not comparable" state.
+			if cv.IsOutdated == nil {
+				return nil, true
+			}
+
+			return *cv.IsOutdated, true
+		}),
 	},
 	FilterProperties: []*FilterProperty[*entity.ComponentVersionFilter]{
 		NewFilterProperty("CV.componentversion_id = ?", func(filter *entity.ComponentVersionFilter) any { return filter.Id }),
@@ -51,6 +60,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 		NewFilterProperty("CI.componentinstance_service_id = ?", func(filter *entity.ComponentVersionFilter) any { return filter.ServiceId }),
 		NewFilterProperty("IV.issuevariant_repository_id = ?", func(filter *entity.ComponentVersionFilter) any { return filter.IssueRepositoryId }),
 		NewFilterProperty("CV.componentversion_end_of_life = ?", func(filter *entity.ComponentVersionFilter) any { return filter.EndOfLife }),
+		NewFilterProperty("CV.componentversion_is_outdated = ?", func(filter *entity.ComponentVersionFilter) any { return filter.IsOutdated }),
 		NewStateFilterProperty("CV.componentversion", func(filter *entity.ComponentVersionFilter) any { return filter.State }),
 	},
 	JoinDefs: []*JoinDef[*entity.ComponentVersionFilter]{

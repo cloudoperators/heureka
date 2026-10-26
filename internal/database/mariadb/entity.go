@@ -786,6 +786,7 @@ type ComponentVersionRow struct {
 	UpdatedBy     sql.NullInt64  `db:"componentversion_updated_by"   json:"updated_by"`
 	EndOfLife     sql.NullBool   `db:"componentversion_end_of_life"  json:"end_of_life"`
 	LatestVersion sql.NullString `db:"componentversion_latest_version" json:"latest_version"`
+	IsOutdated    sql.NullBool   `db:"componentversion_is_outdated"  json:"is_outdated"`
 }
 
 func (cvr ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
@@ -796,6 +797,15 @@ func (cvr ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 	if cvr.LatestVersion.Valid {
 		v := cvr.LatestVersion.String
 		latestVersion = &v
+	}
+
+	// IsOutdated is tri-state: NULL means "not comparable", so leave it nil
+	// rather than coercing to false.
+	var isOutdated *bool
+
+	if cvr.IsOutdated.Valid {
+		b := cvr.IsOutdated.Bool
+		isOutdated = &b
 	}
 
 	return entity.ComponentVersion{
@@ -814,6 +824,7 @@ func (cvr ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 		},
 		EndOfLife:     &endOfLife,
 		LatestVersion: latestVersion,
+		IsOutdated:    isOutdated,
 	}
 }
 
@@ -827,6 +838,11 @@ func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion
 	cvr.LatestVersion = sql.NullString{Valid: false}
 	if cv.LatestVersion != nil {
 		cvr.LatestVersion = sql.NullString{String: *cv.LatestVersion, Valid: true}
+	}
+
+	cvr.IsOutdated = sql.NullBool{Valid: false}
+	if cv.IsOutdated != nil {
+		cvr.IsOutdated = sql.NullBool{Bool: *cv.IsOutdated, Valid: true}
 	}
 
 	cvr.Id = sql.NullInt64{Int64: cv.Id, Valid: true}

@@ -3,6 +3,8 @@
 
 package entity
 
+import "github.com/Masterminds/semver/v3"
+
 type ComponentVersionFilter struct {
 	Paginated
 	Id            []*int64  `json:"id"`
@@ -19,6 +21,7 @@ type ComponentVersionFilter struct {
 	Repository        []*string         `json:"repository"`
 	Organization      []*string         `json:"organization"`
 	EndOfLife         []*bool           `json:"end_of_life"`
+	IsOutdated        []*bool           `json:"is_outdated"`
 }
 
 func (f *ComponentVersionFilter) Get() any {
@@ -57,6 +60,10 @@ type ComponentVersion struct {
 	// registry for this image's repository. Nil when unknown or when the
 	// repository has no semver tags.
 	LatestVersion *string `json:"latest_version,omitempty"`
+	// IsOutdated reports whether the running Tag is behind LatestVersion. It is
+	// computed and persisted on write (see IsVersionOutdated); nil means the
+	// comparison is not meaningful (e.g. a floating "latest" or digest tag).
+	IsOutdated *bool `json:"is_outdated,omitempty"`
 }
 
 func (cv *ComponentVersion) GetId() int64 {
@@ -65,4 +72,29 @@ func (cv *ComponentVersion) GetId() int64 {
 
 func (cv *ComponentVersion) SetId(id int64) {
 	cv.Id = id
+}
+
+// IsVersionOutdated reports whether the running image tag is behind the highest
+// semantic-version tag available in the registry. It returns nil when the
+// comparison is not meaningful: when there is no known latest version, or when
+// either the running tag or the latest version does not parse as a semantic
+// version (e.g. floating tags like "latest" or digest-style tags).
+func IsVersionOutdated(tag string, latest *string) *bool {
+	if latest == nil || *latest == "" || tag == "" {
+		return nil
+	}
+
+	current, err := semver.NewVersion(tag)
+	if err != nil {
+		return nil
+	}
+
+	latestVersion, err := semver.NewVersion(*latest)
+	if err != nil {
+		return nil
+	}
+
+	outdated := latestVersion.GreaterThan(current)
+
+	return &outdated
 }
