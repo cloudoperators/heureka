@@ -2,6 +2,23 @@
     "go.testEnvFile": "${workspaceFolder}/.testenv-devcontainer",
     "ginkgotools.ginkgoPath": "go run github.com/onsi/ginkgo/v2/ginkgo",
     "go.delveConfig": {
-    "showGlobalVariables": true,
+        "showGlobalVariables": true,
     },
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MariaDB",
+            "name": "test",
+            "username": "my_username",
+            "database": "heureka",
+            "password": "my_password"
+        }
+    ],
 }

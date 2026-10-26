@@ -11,6 +11,8 @@ type ImageVersion implements Node {
     vulnerabilityCounts: SeverityCounts
     metadata: Metadata
     endOfLife: Boolean
+    latestVersion: String
+    isOutdated: Boolean
 }
 
 type ImageVersionConnection implements Connection {

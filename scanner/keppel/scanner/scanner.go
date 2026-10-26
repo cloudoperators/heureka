@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -33,17 +34,19 @@ type ImageInfo struct {
 }
 
 type Scanner struct {
-	KeppelBaseUrl    string
-	IdentityEndpoint string
-	Username         string
-	UserDomain       string
-	Password         string
-	AuthToken        string
-	Domain           string
-	Project          string
-	HTTPClient       *http.Client
-	RateLimiter      *rate.Limiter
-	TrivyRateLimiter *rate.Limiter
+	KeppelBaseUrl      string
+	KeppelFQDN         string
+	KeppelFQDNAliases  []string
+	IdentityEndpoint   string
+	Username           string
+	UserDomain         string
+	Password           string
+	AuthToken          string
+	Domain             string
+	Project            string
+	HTTPClient         *http.Client
+	RateLimiter        *rate.Limiter
+	TrivyRateLimiter   *rate.Limiter
 }
 
 func (i ImageInfo) FullRepository() string {
@@ -52,6 +55,14 @@ func (i ImageInfo) FullRepository() string {
 	} else {
 		return i.Repository
 	}
+}
+
+// OwnsRegistry reports whether registry (the hostname part of a CCRN) belongs
+// to this scanner instance, either as the primary FQDN or one of the configured
+// aliases. It must return true before querying tags or manifests to avoid
+// writing data from this registry onto components that belong to a different one.
+func (s *Scanner) OwnsRegistry(registry string) bool {
+	return registry == s.KeppelFQDN || slices.Contains(s.KeppelFQDNAliases, registry)
 }
 
 func NewScanner(cfg Config) *Scanner {
@@ -65,16 +76,18 @@ func NewScanner(cfg Config) *Scanner {
 	trivyRl := rate.NewLimiter(rate.Limit(cfg.TrivyRateLimit), cfg.TrivyRateBurst)
 
 	return &Scanner{
-		KeppelBaseUrl:    cfg.KeppelBaseUrl(),
-		Username:         cfg.KeppelUsername,
-		Password:         cfg.KeppelPassword,
-		Domain:           cfg.Domain,
-		UserDomain:       cfg.KeppelUserDomain,
-		Project:          cfg.Project,
-		IdentityEndpoint: cfg.IdentityEndpoint,
-		HTTPClient:       &http.Client{Transport: rt},
-		RateLimiter:      rl,
-		TrivyRateLimiter: trivyRl,
+		KeppelBaseUrl:     cfg.KeppelBaseUrl(),
+		KeppelFQDN:        cfg.KeppelFQDN,
+		KeppelFQDNAliases: cfg.KeppelFQDNAliases,
+		Username:          cfg.KeppelUsername,
+		Password:          cfg.KeppelPassword,
+		Domain:            cfg.Domain,
+		UserDomain:        cfg.KeppelUserDomain,
+		Project:           cfg.Project,
+		IdentityEndpoint:  cfg.IdentityEndpoint,
+		HTTPClient:        &http.Client{Transport: rt},
+		RateLimiter:       rl,
+		TrivyRateLimiter:  trivyRl,
 	}
 }
 
@@ -171,6 +184,54 @@ func (s *Scanner) ListRepositories(account string) ([]models.Repository, error) 
 	}
 
 	return repositoryResponse.Repositories, nil
+}
+
+// ListTags returns all tags of a repository by paging through the Keppel
+// manifest listing endpoint. Tags are nested per manifest in the response;
+// this function flattens them into a single slice.
+func (s *Scanner) ListTags(account string, repository string) ([]models.Tag, error) {
+	var allTags []models.Tag
+	marker := ""
+
+	for {
+		url := fmt.Sprintf(
+			"%s/keppel/v1/accounts/%s/repositories/%s/_manifests",
+			s.KeppelBaseUrl,
+			account,
+			repository,
+		)
+		if marker != "" {
+			url = fmt.Sprintf("%s?marker=%s", url, marker)
+		}
+
+		body, _, err := s.sendRequest(url, s.AuthToken)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"url": url,
+			}).WithError(err).Error("Error during request in ListTags")
+			return nil, err
+		}
+
+		var manifestResponse models.ManifestResponse
+		if err = json.Unmarshal(body, &manifestResponse); err != nil {
+			log.WithFields(log.Fields{
+				"url":  url,
+				"body": string(body),
+			}).WithError(err).Error("Error during unmarshal in ListTags")
+			return nil, err
+		}
+
+		for _, m := range manifestResponse.Manifests {
+			allTags = append(allTags, m.Tags...)
+		}
+
+		if !manifestResponse.Truncated || len(manifestResponse.Manifests) == 0 {
+			break
+		}
+		marker = manifestResponse.Manifests[len(manifestResponse.Manifests)-1].Digest
+	}
+
+	return allTags, nil
 }
 
 // GetManifest returns a single manifest including child manifests from the image registry

@@ -1,7 +1,11 @@
 # SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-mutation UpdateComponentVersion($id: ID!, $input: ComponentVersionInput!) {
+# @genqlient(for: "ComponentVersionInput.latestVersion", pointer: true, omitempty: true)
+mutation UpdateComponentVersion(
+    $id: ID!,
+    $input: ComponentVersionInput!
+) {
     updateComponentVersion (
         id: $id,
         input: $input

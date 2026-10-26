@@ -26,6 +26,17 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *entity.Componen
 		NewProperty("componentversion_end_of_life", func(cv *entity.ComponentVersion) (any, bool) {
 			return ValueOrDefault(cv.EndOfLife, false), cv.EndOfLife != nil
 		}),
+		NewProperty("componentversion_latest_version", func(cv *entity.ComponentVersion) (any, bool) {
+			if cv.LatestVersion == nil {
+				return nil, false
+			}
+
+			if *cv.LatestVersion == "" {
+				return nil, true
+			}
+
+			return *cv.LatestVersion, true
+		}),
 	},
 	FilterProperties: []*FilterProperty[*entity.ComponentVersionFilter]{
 		NewFilterProperty("CV.componentversion_id = ?", func(filter *entity.ComponentVersionFilter) any { return filter.Id }),

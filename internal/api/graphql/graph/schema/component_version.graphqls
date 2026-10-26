@@ -14,6 +14,8 @@ type ComponentVersion implements Node {
     repository: String
     organization: String
     endOfLife: Boolean
+    latestVersion: String
+    isOutdated: Boolean
 }
 
 input ComponentVersionInput {
@@ -23,6 +25,7 @@ input ComponentVersionInput {
   repository: String @constraint(maxLength: 255)
   organization: String @constraint(maxLength: 255)
   endOfLife: Boolean
+  latestVersion: String @constraint(maxLength: 255)
 }
 
 type ComponentVersionConnection implements Connection {

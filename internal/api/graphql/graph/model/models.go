@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -477,13 +478,40 @@ func NewImage(component *entity.Component) Image {
 
 func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 	return ImageVersion{
-		ID:         fmt.Sprintf("%d", componentVersion.Id),
-		Tag:        &componentVersion.Tag,
-		Version:    &componentVersion.Version,
-		Repository: &componentVersion.Repository,
-		Metadata:   getModelMetadata(componentVersion.Metadata),
-		EndOfLife:  componentVersion.EndOfLife,
+		ID:            fmt.Sprintf("%d", componentVersion.Id),
+		Tag:           &componentVersion.Tag,
+		Version:       &componentVersion.Version,
+		Repository:    &componentVersion.Repository,
+		Metadata:      getModelMetadata(componentVersion.Metadata),
+		EndOfLife:     componentVersion.EndOfLife,
+		LatestVersion: componentVersion.LatestVersion,
+		IsOutdated:    isVersionOutdated(componentVersion.Tag, componentVersion.LatestVersion),
 	}
+}
+
+// isVersionOutdated reports whether the running image tag is behind the highest
+// semantic-version tag available in the registry. It returns nil when the
+// comparison is not meaningful: when there is no known latest version, or when
+// either the running tag or the latest version does not parse as a semantic
+// version (e.g. floating tags like "latest" or digest-style tags).
+func isVersionOutdated(tag string, latest *string) *bool {
+	if latest == nil || *latest == "" || tag == "" {
+		return nil
+	}
+
+	current, err := semver.NewVersion(tag)
+	if err != nil {
+		return nil
+	}
+
+	latestVersion, err := semver.NewVersion(*latest)
+	if err != nil {
+		return nil
+	}
+
+	outdated := latestVersion.GreaterThan(current)
+
+	return &outdated
 }
 
 func NewVulnerability(issue *entity.Issue) Vulnerability {
@@ -714,14 +742,16 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 
 func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVersion {
 	return ComponentVersion{
-		ID:           fmt.Sprintf("%d", componentVersion.Id),
-		Version:      &componentVersion.Version,
-		ComponentID:  new(fmt.Sprintf("%d", componentVersion.ComponentId)),
-		Repository:   &componentVersion.Repository,
-		Organization: &componentVersion.Organization,
-		Tag:          &componentVersion.Tag,
-		Metadata:     getModelMetadata(componentVersion.Metadata),
-		EndOfLife:    componentVersion.EndOfLife,
+		ID:            fmt.Sprintf("%d", componentVersion.Id),
+		Version:       &componentVersion.Version,
+		ComponentID:   new(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Repository:    &componentVersion.Repository,
+		Organization:  &componentVersion.Organization,
+		Tag:           &componentVersion.Tag,
+		Metadata:      getModelMetadata(componentVersion.Metadata),
+		EndOfLife:     componentVersion.EndOfLife,
+		LatestVersion: componentVersion.LatestVersion,
+		IsOutdated:    isVersionOutdated(componentVersion.Tag, componentVersion.LatestVersion),
 	}
 }
 
@@ -732,12 +762,13 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	}
 
 	return entity.ComponentVersion{
-		Version:      lo.FromPtr(componentVersion.Version),
-		ComponentId:  componentId,
-		Repository:   lo.FromPtr(componentVersion.Repository),
-		Organization: lo.FromPtr(componentVersion.Organization),
-		Tag:          lo.FromPtr(componentVersion.Tag),
-		EndOfLife:    componentVersion.EndOfLife,
+		Version:       lo.FromPtr(componentVersion.Version),
+		ComponentId:   componentId,
+		Repository:    lo.FromPtr(componentVersion.Repository),
+		Organization:  lo.FromPtr(componentVersion.Organization),
+		Tag:           lo.FromPtr(componentVersion.Tag),
+		EndOfLife:     componentVersion.EndOfLife,
+		LatestVersion: componentVersion.LatestVersion,
 	}
 }
 
