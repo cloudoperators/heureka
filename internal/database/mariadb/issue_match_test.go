@@ -964,6 +964,163 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 		})
 	})
+	When("Filtering IssueMatches by TargetRemediationDate", Label("FilterIssueMatchTargetRemediationDate"), func() {
+		var (
+			seedCollection *test.SeedCollection
+			pastDate       time.Time
+			futureDate     time.Time
+			pastID         int64
+			futureID       int64
+		)
+
+		BeforeEach(func() {
+			// Seed only the FK dependencies without any IssueMatches, so the
+			// filter tests control exactly which IssueMatches exist.
+			users := seeder.SeedUsers(1)
+			services := seeder.SeedServices(1)
+			components := seeder.SeedComponents(1)
+			componentVersions := seeder.SeedComponentVersions(1, components)
+			componentInstances := seeder.SeedComponentInstances(1, componentVersions, services)
+			issues := seeder.SeedIssues(1)
+			seedCollection = &test.SeedCollection{
+				UserRows:              users,
+				ServiceRows:           services,
+				ComponentRows:         components,
+				ComponentVersionRows:  componentVersions,
+				ComponentInstanceRows: componentInstances,
+				IssueRows:             issues,
+			}
+
+			issue := seedCollection.IssueRows[0]
+			ci := seedCollection.ComponentInstanceRows[0]
+			user := seedCollection.UserRows[0]
+
+			pastDate = time.Now().UTC().Add(-10 * 24 * time.Hour).Truncate(time.Second)
+			futureDate = time.Now().UTC().Add(10 * 24 * time.Hour).Truncate(time.Second)
+
+			pastRow := test.NewFakeIssueMatch()
+			pastRow.IssueId = sql.NullInt64{Int64: issue.Id.Int64, Valid: true}
+			pastRow.ComponentInstanceId = sql.NullInt64{Int64: ci.Id.Int64, Valid: true}
+			pastRow.UserId = sql.NullInt64{Int64: user.Id.Int64, Valid: true}
+			pastRow.TargetRemediationDate = sql.NullTime{Time: pastDate, Valid: true}
+
+			var err error
+
+			pastID, err = seeder.InsertFakeIssueMatch(pastRow)
+			Expect(err).To(BeNil())
+
+			futureRow := test.NewFakeIssueMatch()
+			futureRow.IssueId = sql.NullInt64{Int64: issue.Id.Int64, Valid: true}
+			futureRow.ComponentInstanceId = sql.NullInt64{Int64: ci.Id.Int64, Valid: true}
+			futureRow.UserId = sql.NullInt64{Int64: user.Id.Int64, Valid: true}
+			futureRow.TargetRemediationDate = sql.NullTime{Time: futureDate, Valid: true}
+
+			futureID, err = seeder.InsertFakeIssueMatch(futureRow)
+			Expect(err).To(BeNil())
+		})
+
+		Context("with only Before set", func() {
+			It("returns only IssueMatches with TargetRemediationDate before the cutoff", func() {
+				cutoff := time.Now().UTC()
+				filter := &entity.IssueMatchFilter{
+					TargetRemediationDate: &entity.TimeFilter{Before: cutoff},
+				}
+
+				entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning only past-dated entries", func() {
+					ids := make([]int64, len(entries))
+					for i, e := range entries {
+						ids[i] = e.Id
+					}
+
+					Expect(ids).To(ContainElement(BeEquivalentTo(pastID)))
+					Expect(ids).NotTo(ContainElement(BeEquivalentTo(futureID)))
+				})
+
+				count, err := db.CountIssueMatches(context.Background(), filter)
+
+				By("CountIssueMatches matching GetIssueMatches result", func() {
+					Expect(err).To(BeNil())
+					Expect(count).To(BeEquivalentTo(len(entries)))
+				})
+			})
+		})
+
+		Context("with only After set", func() {
+			It("returns only IssueMatches with TargetRemediationDate after the cutoff", func() {
+				cutoff := time.Now().UTC()
+				filter := &entity.IssueMatchFilter{
+					TargetRemediationDate: &entity.TimeFilter{After: cutoff},
+				}
+
+				entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning only future-dated entries", func() {
+					ids := make([]int64, len(entries))
+					for i, e := range entries {
+						ids[i] = e.Id
+					}
+
+					Expect(ids).To(ContainElement(BeEquivalentTo(futureID)))
+					Expect(ids).NotTo(ContainElement(BeEquivalentTo(pastID)))
+				})
+			})
+		})
+
+		Context("with both After and Before forming a window", func() {
+			It("returns only IssueMatches within the date window", func() {
+				windowStart := pastDate.Add(-1 * time.Hour)
+				windowEnd := pastDate.Add(1 * time.Hour)
+				filter := &entity.IssueMatchFilter{
+					TargetRemediationDate: &entity.TimeFilter{
+						After:  windowStart,
+						Before: windowEnd,
+					},
+				}
+
+				entries, err := db.GetIssueMatches(context.Background(), filter, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning only entries inside the window", func() {
+					ids := make([]int64, len(entries))
+					for i, e := range entries {
+						ids[i] = e.Id
+					}
+
+					Expect(ids).To(ContainElement(BeEquivalentTo(pastID)))
+					Expect(ids).NotTo(ContainElement(BeEquivalentTo(futureID)))
+				})
+			})
+		})
+
+		Context("with nil TargetRemediationDate filter", func() {
+			It("returns all IssueMatches without date filtering", func() {
+				entries, err := db.GetIssueMatches(context.Background(), nil, nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("including both past and future dated entries", func() {
+					ids := make([]int64, len(entries))
+					for i, e := range entries {
+						ids[i] = e.Id
+					}
+
+					Expect(ids).To(ContainElement(BeEquivalentTo(pastID)))
+					Expect(ids).To(ContainElement(BeEquivalentTo(futureID)))
+				})
+			})
+		})
+	})
 })
 
 var _ = Describe("Ordering IssueMatches", func() {

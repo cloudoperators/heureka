@@ -987,6 +987,57 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Expect(i[0].Issue.KnownExploitedDueDate).To(BeNil())
 				})
 			})
+			It("can insert and round-trip EPSS fields", func() {
+				score := 0.04258
+				percentile := 0.87612
+				newIssueRow.EpssScore = sql.NullFloat64{Float64: score, Valid: true}
+				newIssueRow.EpssPercentile = sql.NullFloat64{Float64: percentile, Valid: true}
+				newIssue = newIssueRow.AsIssue()
+
+				issue, err := db.CreateIssue(&newIssue)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&issue.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+
+				By("throwing no error on read-back", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning the issue", func() {
+					Expect(i).To(HaveLen(1))
+				})
+				By("persisting EpssScore", func() {
+					Expect(i[0].Issue.EpssScore).NotTo(BeNil())
+					Expect(*i[0].Issue.EpssScore).To(BeNumerically("~", score, 1e-9))
+				})
+				By("persisting EpssPercentile", func() {
+					Expect(i[0].Issue.EpssPercentile).NotTo(BeNil())
+					Expect(*i[0].Issue.EpssPercentile).To(BeNumerically("~", percentile, 1e-9))
+				})
+			})
+			It("stores nil EPSS when not provided", func() {
+				newIssueRow.EpssScore = sql.NullFloat64{Valid: false}
+				newIssueRow.EpssPercentile = sql.NullFloat64{Valid: false}
+				newIssue = newIssueRow.AsIssue()
+
+				issue, err := db.CreateIssue(&newIssue)
+				Expect(err).To(BeNil())
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&issue.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				Expect(err).To(BeNil())
+				Expect(i).To(HaveLen(1))
+
+				By("having nil EpssScore", func() {
+					Expect(i[0].Issue.EpssScore).To(BeNil())
+				})
+				By("having nil EpssPercentile", func() {
+					Expect(i[0].Issue.EpssPercentile).To(BeNil())
+				})
+			})
 			It("does not insert issue with existing primary name", func() {
 				issueRow := seedCollection.IssueRows[0]
 				issue := issueRow.AsIssue()
@@ -1108,6 +1159,72 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				By("clearing KnownExploitedDueDate", func() {
 					Expect(i[0].Issue.KnownExploitedDueDate).To(BeNil())
+				})
+			})
+			It("can update EPSS score on an existing issue", func() {
+				score := 0.12345
+				percentile := 0.67890
+
+				newIssueRow := test.NewFakeIssue()
+				newIssueRow.EpssScore = sql.NullFloat64{Float64: 0.001, Valid: true}
+				newIssueRow.EpssPercentile = sql.NullFloat64{Float64: 0.1, Valid: true}
+				issue := newIssueRow.AsIssue()
+
+				created, err := db.CreateIssue(&issue)
+				Expect(err).To(BeNil())
+
+				created.EpssScore = &score
+				created.EpssPercentile = &percentile
+				err = db.UpdateIssue(created)
+
+				By("throwing no error on update", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&created.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				Expect(err).To(BeNil())
+				Expect(i).To(HaveLen(1))
+
+				By("persisting updated EpssScore", func() {
+					Expect(i[0].Issue.EpssScore).NotTo(BeNil())
+					Expect(*i[0].Issue.EpssScore).To(BeNumerically("~", score, 1e-9))
+				})
+				By("persisting updated EpssPercentile", func() {
+					Expect(i[0].Issue.EpssPercentile).NotTo(BeNil())
+					Expect(*i[0].Issue.EpssPercentile).To(BeNumerically("~", percentile, 1e-9))
+				})
+			})
+			It("can clear EPSS score to nil", func() {
+				score := 0.04258
+				percentile := 0.87612
+
+				newIssueRow := test.NewFakeIssue()
+				newIssueRow.EpssScore = sql.NullFloat64{Float64: score, Valid: true}
+				newIssueRow.EpssPercentile = sql.NullFloat64{Float64: percentile, Valid: true}
+				issue := newIssueRow.AsIssue()
+
+				created, err := db.CreateIssue(&issue)
+				Expect(err).To(BeNil())
+
+				created.EpssScore = nil
+				created.EpssPercentile = nil
+				err = db.UpdateIssue(created)
+
+				By("throwing no error on update", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{Id: []*int64{&created.Id}}
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				Expect(err).To(BeNil())
+				Expect(i).To(HaveLen(1))
+
+				By("clearing EpssScore", func() {
+					Expect(i[0].Issue.EpssScore).To(BeNil())
+				})
+				By("clearing EpssPercentile", func() {
+					Expect(i[0].Issue.EpssPercentile).To(BeNil())
 				})
 			})
 		})

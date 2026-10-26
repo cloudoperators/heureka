@@ -16,3 +16,5 @@ bindings:
     unmarshaler: github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.UnmarshalJson
   DateTime:
     type: string
+  Float:
+    type: "*float64"

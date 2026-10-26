@@ -80,6 +80,8 @@ type GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue struct {
 	Description    string                                                                                    `json:"description"`
 	Type           IssueTypes                                                                                `json:"type"`
 	KnownExploited bool                                                                                      `json:"knownExploited"`
+	EpssScore      *float64                                                                                  `json:"epssScore"`
+	EpssPercentile *float64                                                                                  `json:"epssPercentile"`
 	IssueVariants  *GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssueIssueVariantsIssueVariantConnection `json:"issueVariants"`
 }
 
@@ -102,6 +104,16 @@ func (v *GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue) GetType() IssueT
 // GetKnownExploited returns GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue.KnownExploited, and is useful for accessing the field via an interface.
 func (v *GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue) GetKnownExploited() bool {
 	return v.KnownExploited
+}
+
+// GetEpssScore returns GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue.EpssScore, and is useful for accessing the field via an interface.
+func (v *GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue) GetEpssScore() *float64 {
+	return v.EpssScore
+}
+
+// GetEpssPercentile returns GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue.EpssPercentile, and is useful for accessing the field via an interface.
+func (v *GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue) GetEpssPercentile() *float64 {
+	return v.EpssPercentile
 }
 
 // GetIssueVariants returns GetIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue.IssueVariants, and is useful for accessing the field via an interface.
@@ -250,6 +262,8 @@ type IssueInput struct {
 	KnownExploited          bool       `json:"knownExploited"`
 	KnownExploitedAddedDate string     `json:"knownExploitedAddedDate"`
 	KnownExploitedDueDate   string     `json:"knownExploitedDueDate"`
+	EpssScore               *float64   `json:"epssScore"`
+	EpssPercentile          *float64   `json:"epssPercentile"`
 }
 
 // GetPrimaryName returns IssueInput.PrimaryName, and is useful for accessing the field via an interface.
@@ -272,6 +286,12 @@ func (v *IssueInput) GetKnownExploitedAddedDate() string { return v.KnownExploit
 
 // GetKnownExploitedDueDate returns IssueInput.KnownExploitedDueDate, and is useful for accessing the field via an interface.
 func (v *IssueInput) GetKnownExploitedDueDate() string { return v.KnownExploitedDueDate }
+
+// GetEpssScore returns IssueInput.EpssScore, and is useful for accessing the field via an interface.
+func (v *IssueInput) GetEpssScore() *float64 { return v.EpssScore }
+
+// GetEpssPercentile returns IssueInput.EpssPercentile, and is useful for accessing the field via an interface.
+func (v *IssueInput) GetEpssPercentile() *float64 { return v.EpssPercentile }
 
 type IssueMatchStatusValues string
 
@@ -699,6 +719,8 @@ query GetIssues ($filter: IssueFilter) {
 				description
 				type
 				knownExploited
+				epssScore
+				epssPercentile
 				issueVariants(first: 1) {
 					edges {
 						node {

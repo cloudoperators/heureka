@@ -321,6 +321,8 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 		"I.issue_known_exploited",
 		"I.issue_known_exploited_added_date",
 		"I.issue_known_exploited_due_date",
+		"I.issue_epss_score",
+		"I.issue_epss_percentile",
 	).
 		Column(fmt.Sprintf("%s AS effective_severity", severityExpr)).
 		Column("MVL.earliest_remediation_date").
@@ -402,6 +404,10 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 
 		var kevDueDate sql.NullTime
 
+		var epssScore sql.NullFloat64
+
+		var epssPercentile sql.NullFloat64
+
 		if err := rows.Scan(
 			&componentID,
 			&issueID,
@@ -410,6 +416,8 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 			&knownExploited,
 			&kevAddedDate,
 			&kevDueDate,
+			&epssScore,
+			&epssPercentile,
 			&severity,
 			&remediationDate,
 			&sourceURL,
@@ -443,6 +451,14 @@ func (s *SqlDatabase) GetVulnerabilitiesByComponentIDs(ctx context.Context, comp
 
 		if kevDueDate.Valid {
 			vr.KnownExploitedDueDate = &kevDueDate.Time
+		}
+
+		if epssScore.Valid {
+			vr.EpssScore = &epssScore.Float64
+		}
+
+		if epssPercentile.Valid {
+			vr.EpssPercentile = &epssPercentile.Float64
 		}
 
 		result[componentID.Int64] = append(result[componentID.Int64], vr)

@@ -115,6 +115,8 @@ type Issue struct {
 	KnownExploited          bool               `json:"known_exploited"`
 	KnownExploitedAddedDate *time.Time         `json:"known_exploited_added_date,omitempty"`
 	KnownExploitedDueDate   *time.Time         `json:"known_exploited_due_date,omitempty"`
+	EpssScore               *float64           `json:"epss_score,omitempty"`
+	EpssPercentile          *float64           `json:"epss_percentile,omitempty"`
 	IssueVariants           []IssueVariant     `json:"issue_variants,omitempty"`
 	IssueMatches            []IssueMatch       `json:"issue_matches,omitempty"`
 	ComponentVersions       []ComponentVersion `json:"component_versions,omitempty"`
@@ -183,4 +185,6 @@ type VulnerabilityResult struct {
 	KnownExploited          bool
 	KnownExploitedAddedDate *time.Time
 	KnownExploitedDueDate   *time.Time
+	EpssScore               *float64
+	EpssPercentile          *float64
 }

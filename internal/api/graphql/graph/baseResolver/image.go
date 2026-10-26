@@ -200,6 +200,8 @@ func ImageBaseResolver(
 						Name:           &vr.PrimaryName,
 						Description:    &vr.Description,
 						KnownExploited: &vr.KnownExploited,
+						EpssScore:      vr.EpssScore,
+						EpssPercentile: vr.EpssPercentile,
 					}
 
 					if vr.KnownExploitedAddedDate != nil {
