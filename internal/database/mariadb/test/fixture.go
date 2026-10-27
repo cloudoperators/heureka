@@ -2386,14 +2386,20 @@ type IssueTrendSeedData struct {
 //	Service1 → SupportGroup1
 //	Service2 → SupportGroup1, SupportGroup2  (multi-group: verifies no fan-out)
 //
-// Matches per service (CI per service, one issue):
+// Each IssueMatch gets its own distinct Issue so that COUNT(DISTINCT (component_id, issue_id))
+// equals the number of matches — matching the deduplication logic used by the MV tables.
 //
-//	Service1: 2 × Critical/mitigated, 1 × High/new
-//	Service2: 1 × Critical/mitigated, 1 × Medium/false_positive, 1 × Low/risk_accepted
+// Matches per service (CI per service, one issue each):
+//
+//	Service1: 2 × Critical (issues[0,1], remediated), 1 × High (issues[2], new)
+//	Service2: 1 × Critical (issues[3], remediated), 1 × Medium (issues[4], remediated), 1 × Low (issues[5], new)
+//
+// "Remediated" means an active Remediation record exists for (service_id, issue_id) —
+// consistent with how the MV tables count remediated issues.
 //
 // Total across both services (no filter): 3 critical, 1 high, 1 medium, 1 low → total=6, remediated=3
 // SupportGroup1 filter (service1 + service2):         same → 6, remediated=3
-// SupportGroup2 filter (service2 only):               1 critical, 1 medium, 1 low → total=3, remediated=1
+// SupportGroup2 filter (service2 only):               1 critical, 1 medium, 1 low → total=3, remediated=2
 func (s *DatabaseSeeder) SeedForIssueTrend() (*IssueTrendSeedData, error) {
 	components := s.SeedComponents(1)
 	if len(components) == 0 {
@@ -2410,8 +2416,8 @@ func (s *DatabaseSeeder) SeedForIssueTrend() (*IssueTrendSeedData, error) {
 		return nil, fmt.Errorf("failed to seed users")
 	}
 
-	issues := s.SeedIssues(1)
-	if len(issues) == 0 {
+	issues := s.SeedIssues(6)
+	if len(issues) < 6 {
 		return nil, fmt.Errorf("failed to seed issues")
 	}
 
@@ -2506,18 +2512,20 @@ func (s *DatabaseSeeder) SeedForIssueTrend() (*IssueTrendSeedData, error) {
 	bucketDate := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
 
 	type matchSpec struct {
-		ci     mariadb.ComponentInstanceRow
-		rating string
-		status entity.IssueMatchStatusValue
+		ci          mariadb.ComponentInstanceRow
+		serviceCCRN string
+		issue       mariadb.IssueRow
+		rating      string
+		remediated  bool
 	}
 
 	specs := []matchSpec{
-		{ci1, "Critical", entity.IssueMatchStatusValuesMitigated},
-		{ci1, "Critical", entity.IssueMatchStatusValuesMitigated},
-		{ci1, "High", entity.IssueMatchStatusValuesNew},
-		{ci2, "Critical", entity.IssueMatchStatusValuesMitigated},
-		{ci2, "Medium", entity.IssueMatchStatusValuesFalsePositive},
-		{ci2, "Low", entity.IssueMatchStatusValuesRiskAccepted},
+		{ci1, service1.CCRN.String, issues[0], "Critical", true},
+		{ci1, service1.CCRN.String, issues[1], "Critical", true},
+		{ci1, service1.CCRN.String, issues[2], "High", false},
+		{ci2, service2.CCRN.String, issues[3], "Critical", true},
+		{ci2, service2.CCRN.String, issues[4], "Medium", true},
+		{ci2, service2.CCRN.String, issues[5], "Low", false},
 	}
 
 	var issueMatches []mariadb.IssueMatchRow
@@ -2525,10 +2533,10 @@ func (s *DatabaseSeeder) SeedForIssueTrend() (*IssueTrendSeedData, error) {
 	for _, spec := range specs {
 		im := NewFakeIssueMatch()
 		im.ComponentInstanceId = spec.ci.Id
-		im.IssueId = issues[0].Id
+		im.IssueId = spec.issue.Id
 		im.UserId = users[0].Id
 		im.Rating = sql.NullString{String: spec.rating, Valid: true}
-		im.Status = sql.NullString{String: spec.status.String(), Valid: true}
+		im.Status = sql.NullString{String: entity.IssueMatchStatusValuesNew.String(), Valid: true}
 
 		imId, err := s.InsertFakeIssueMatchAt(im, bucketDate)
 		if err != nil {
@@ -2537,6 +2545,20 @@ func (s *DatabaseSeeder) SeedForIssueTrend() (*IssueTrendSeedData, error) {
 
 		im.Id = sql.NullInt64{Int64: imId, Valid: true}
 		issueMatches = append(issueMatches, im)
+
+		if spec.remediated {
+			r := NewFakeRemediation()
+			r.ServiceId = spec.ci.ServiceId
+			r.Service = sql.NullString{String: spec.serviceCCRN, Valid: true}
+			r.IssueId = spec.issue.Id
+			r.Issue = spec.issue.PrimaryName
+			r.ExpirationDate = sql.NullTime{Valid: false}
+			r.Type = sql.NullString{String: "mitigation", Valid: true}
+
+			if _, err := s.InsertFakeRemediation(r); err != nil {
+				return nil, fmt.Errorf("failed to seed remediation: %w", err)
+			}
+		}
 	}
 
 	return &IssueTrendSeedData{
