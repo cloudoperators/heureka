@@ -661,18 +661,28 @@ func (s *SqlDatabase) GetIssueTrend(ctx context.Context, filter entity.IssueTren
 	effectiveRating := effectiveRatingCol("IM.issuematch_rating")
 	rescoreJoinExpr, rescoreJoinArgs := latestRescoreJoin("CI.componentinstance_service_id", "IM.issuematch_issue_id")
 
+	distinctPair := "CONCAT(CV.componentversion_component_id, ',', I.issue_id)"
+
 	q := sq.Select(
 		fmt.Sprintf("%s AS bucket_date", bucketExpr),
-		fmt.Sprintf("SUM(%s = 'Critical') AS critical_count", effectiveRating),
-		fmt.Sprintf("SUM(%s = 'High') AS high_count", effectiveRating),
-		fmt.Sprintf("SUM(%s = 'Medium') AS medium_count", effectiveRating),
-		fmt.Sprintf("SUM(%s = 'Low') AS low_count", effectiveRating),
-		fmt.Sprintf("SUM(%s = 'None') AS none_count", effectiveRating),
-		"COUNT(*) AS total_count",
-		fmt.Sprintf("SUM(IM.issuematch_status = '%s') AS remediated_count", entity.IssueMatchStatusValuesMitigated),
+		fmt.Sprintf("COUNT(DISTINCT CASE WHEN %s = 'Critical' THEN %s END) AS critical_count", effectiveRating, distinctPair),
+		fmt.Sprintf("COUNT(DISTINCT CASE WHEN %s = 'High' THEN %s END) AS high_count", effectiveRating, distinctPair),
+		fmt.Sprintf("COUNT(DISTINCT CASE WHEN %s = 'Medium' THEN %s END) AS medium_count", effectiveRating, distinctPair),
+		fmt.Sprintf("COUNT(DISTINCT CASE WHEN %s = 'Low' THEN %s END) AS low_count", effectiveRating, distinctPair),
+		fmt.Sprintf("COUNT(DISTINCT CASE WHEN %s = 'None' THEN %s END) AS none_count", effectiveRating, distinctPair),
+		fmt.Sprintf("COUNT(DISTINCT %s) AS total_count", distinctPair),
+		fmt.Sprintf(`COUNT(DISTINCT CASE WHEN EXISTS (
+			SELECT 1 FROM Remediation R
+			WHERE R.remediation_service_id = CI.componentinstance_service_id
+			  AND R.remediation_issue_id = IM.issuematch_issue_id
+			  AND R.remediation_deleted_at IS NULL
+			  AND (R.remediation_expiration_date IS NULL OR R.remediation_expiration_date >= CURDATE())
+		) THEN %s END) AS remediated_count`, distinctPair),
 	).
 		From("IssueMatch IM").
 		LeftJoin("ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id AND CI.componentinstance_deleted_at IS NULL").
+		LeftJoin("ComponentVersion CV ON CV.componentversion_id = CI.componentinstance_component_version_id AND CV.componentversion_deleted_at IS NULL").
+		LeftJoin("Issue I ON I.issue_id = IM.issuematch_issue_id AND I.issue_deleted_at IS NULL").
 		LeftJoin(rescoreJoinExpr, rescoreJoinArgs...).
 		Where("IM.issuematch_deleted_at IS NULL").
 		Where("IM.issuematch_created_at BETWEEN ? AND ?", filter.After, filter.Before).

@@ -104,7 +104,7 @@ var _ = Describe("Getting IssueTrends via API", Label("e2e", "IssueTrends"), fun
 			Expect(b.High).To(Equal(1), "1 high match")
 			Expect(b.Medium).To(Equal(1), "1 medium match")
 			Expect(b.Low).To(Equal(1), "1 low match")
-			Expect(b.Remediated).To(Equal(3), "only mitigated matches count as remediated")
+			Expect(b.Remediated).To(Equal(4), "4 active Remediation records across both services")
 
 			bucketTime, parseErr := time.Parse(time.RFC3339, b.Date)
 			Expect(parseErr).ToNot(HaveOccurred())
@@ -121,7 +121,7 @@ var _ = Describe("Getting IssueTrends via API", Label("e2e", "IssueTrends"), fun
 			Expect(b.Total).To(Equal(3), "service1 has 3 matches")
 			Expect(b.Critical).To(Equal(2))
 			Expect(b.High).To(Equal(1))
-			Expect(b.Remediated).To(Equal(2), "service1 has 2 mitigated matches")
+			Expect(b.Remediated).To(Equal(2), "service1 has 2 active Remediation records")
 		})
 
 		Context("supportGroupCcrn filter", func() {
@@ -136,7 +136,7 @@ var _ = Describe("Getting IssueTrends via API", Label("e2e", "IssueTrends"), fun
 
 				b := buckets[0]
 				Expect(b.Total).To(Equal(6), "sg1 covers both services → 6 matches, no fan-out")
-				Expect(b.Remediated).To(Equal(3))
+				Expect(b.Remediated).To(Equal(4))
 			})
 
 			It("returns only service2 matches when filtering by the single-service group", func() {
@@ -150,12 +150,12 @@ var _ = Describe("Getting IssueTrends via API", Label("e2e", "IssueTrends"), fun
 				Expect(b.Critical).To(Equal(1))
 				Expect(b.Medium).To(Equal(1))
 				Expect(b.Low).To(Equal(1))
-				Expect(b.Remediated).To(Equal(1), "only the mitigated match counts")
+				Expect(b.Remediated).To(Equal(2), "service2 has 2 active Remediation records (critical + medium)")
 			})
 		})
 
-		It("counts only mitigated status as remediated, not false_positive or risk_accepted", func() {
-			// service2 has exactly: 1 mitigated, 1 false_positive, 1 risk_accepted.
+		It("counts only active Remediation records as remediated, not missing ones", func() {
+			// service2 has exactly: 2 with active Remediation records (critical, medium), 1 without (low).
 			buckets, err := queryTrendBuckets(filterAfter, filterBefore, "DAILY",
 				[]string{seed.Service2.CCRN.String}, nil)
 			Expect(err).ToNot(HaveOccurred())
@@ -163,7 +163,7 @@ var _ = Describe("Getting IssueTrends via API", Label("e2e", "IssueTrends"), fun
 
 			b := buckets[0]
 			Expect(b.Total).To(Equal(3))
-			Expect(b.Remediated).To(Equal(1), "false_positive and risk_accepted must not count as remediated")
+			Expect(b.Remediated).To(Equal(2), "low match has no Remediation record and must not count as remediated")
 		})
 
 		It("returns no buckets when the time window is outside all matches", func() {
