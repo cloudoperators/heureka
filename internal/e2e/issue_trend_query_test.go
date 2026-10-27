@@ -172,5 +172,25 @@ var _ = Describe("Getting IssueTrends via API", Label("e2e", "IssueTrends"), fun
 			Expect(err).ToNot(HaveOccurred())
 			Expect(buckets).To(BeEmpty())
 		})
+
+		It("returns one bucket with correct totals for MONTHLY granularity", func() {
+			// All seed matches are on 2025-06-15, so a monthly window covering June 2025
+			// must produce exactly one bucket dated 2025-06-01 with the same counts as DAILY.
+			buckets, err := queryTrendBuckets("2025-06-01T00:00:00Z", "2025-06-30T23:59:59Z", "MONTHLY", nil, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(buckets).To(HaveLen(1), "one monthly bucket for June 2025")
+
+			b := buckets[0]
+			Expect(b.Total).To(Equal(6))
+			Expect(b.Critical).To(Equal(3))
+			Expect(b.High).To(Equal(1))
+			Expect(b.Medium).To(Equal(1))
+			Expect(b.Low).To(Equal(1))
+			Expect(b.Remediated).To(Equal(4))
+
+			bucketTime, parseErr := time.Parse(time.RFC3339, b.Date)
+			Expect(parseErr).ToNot(HaveOccurred())
+			Expect(bucketTime.UTC().Format("2006-01-02")).To(Equal("2025-06-01"))
+		})
 	})
 })
