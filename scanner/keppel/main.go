@@ -167,6 +167,41 @@ func processComponent(
 		return fmt.Errorf("cannot extract image information from component ccrn: %w", err)
 	}
 
+	// Determine the highest semantic-version tag currently available in the
+	// registry for this image and record it on every ComponentVersion, so the
+	// API can report whether a running version is outdated. This is done before
+	// manifest processing so a later end-of-life update is not overwritten.
+	// Skip this entirely for components whose CCRN points to a different
+	// registry: ListTags always queries the configured Keppel instance, so
+	// querying it for a foreign-registry path would write that instance's
+	// latest tag onto an unrelated component.
+	if !keppelScanner.OwnsRegistry(imageInfo.Registry) {
+		log.WithFields(log.Fields{
+			"registry":  imageInfo.Registry,
+			"component": comp.Ccrn,
+		}).Debug("Skipping latest-version update: component belongs to a different registry")
+	} else {
+		tags, err := keppelScanner.ListTags(imageInfo.Account, imageInfo.FullRepository())
+		if err != nil {
+			log.WithFields(log.Fields{
+				"account":    imageInfo.Account,
+				"repository": imageInfo.FullRepository(),
+			}).WithError(err).Warn("Could not list tags; skipping latest-version update for component")
+		} else {
+			latestVersion := processor.HighestSemverTag(tags)
+			for _, cv := range comp.ComponentVersions.Edges {
+				if err := keppelProcessor.UpdateComponentVersionLatestVersion(
+					ctx,
+					cv.Node.Id,
+					latestVersion,
+					cv.Node.EndOfLife,
+				); err != nil {
+					log.WithError(err).Error("Could not update ComponentVersion latest version")
+				}
+			}
+		}
+	}
+
 	for _, cv := range comp.ComponentVersions.Edges {
 		manifestInfo := ManifestInfo{
 			ComponentID:      comp.Id,

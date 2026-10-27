@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/Masterminds/semver/v3"
 	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
@@ -392,4 +393,60 @@ func (p *Processor) CreateIssueVariant(
 	}).Info("IssueVariant created")
 
 	return issueVariant, nil
+}
+
+// HighestSemverTag returns the highest semantic-version tag name among the
+// given registry tags. Tags that do not parse as a semantic version (e.g.
+// floating tags like "latest" or digest-style tags) are ignored. It returns an
+// empty string when no tag parses as a semantic version.
+func HighestSemverTag(tags []models.Tag) string {
+	var highest *semver.Version
+	highestName := ""
+
+	for _, tag := range tags {
+		v, err := semver.NewVersion(tag.Name)
+		if err != nil {
+			continue
+		}
+		if highest == nil || v.GreaterThan(highest) {
+			highest = v
+			highestName = tag.Name
+		}
+	}
+
+	return highestName
+}
+
+// UpdateComponentVersionLatestVersion records the highest semantic-version tag
+// currently available in the registry for a ComponentVersion. endOfLife is
+// passed through because ComponentVersionInput.endOfLife has no omitempty and
+// would otherwise reset the stored flag to false.
+func (p *Processor) UpdateComponentVersionLatestVersion(
+	ctx context.Context,
+	componentVersionId string,
+	latestVersion string,
+	endOfLife bool,
+) error {
+	_, err := client.UpdateComponentVersion(
+		ctx,
+		*p.Client,
+		componentVersionId,
+		&client.ComponentVersionInput{
+			LatestVersion: &latestVersion,
+			EndOfLife:     endOfLife,
+		},
+	)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"componentVersionId": componentVersionId,
+			"latestVersion":      latestVersion,
+		}).WithError(err).Error("Could not update ComponentVersion latest version")
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"componentVersionId": componentVersionId,
+		"latestVersion":      latestVersion,
+	}).Info("Updated ComponentVersion latest version")
+	return nil
 }
