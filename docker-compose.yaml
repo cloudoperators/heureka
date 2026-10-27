@@ -3,36 +3,142 @@
 
 # This docker-compose file is used to run the application localy in containarized environment.
 # ensure to set .env file accordingly
-networks:
-  openfga:
-
 services:
-  heureka-db:
+  mariadb-primary:
     image: mariadb:latest
-    container_name: mariadb
-    restart: always
-    command: --lower_case_table_names=1
-    profiles:
-      - db
     environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
       MARIADB_USER: ${DB_USER}
       MARIADB_PASSWORD: ${DB_PASSWORD}
-      MARIADB_DATABASE: ${DB_NAME}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      # Uncomment the following lines and comment the MARIADB_ROOT_PASSWORD line to use other options
-      # - MARIADB_ROOT_PASSWORD_HASH=*HASHED_PASSWORD
-      # - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes
-      # - MARIADB_RANDOM_ROOT_PASSWORD=yes
-    healthcheck:
-      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
-      start_period: 45s
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    command:
+      - --server-id=1
+      - --log-bin=mariadb-bin
+      - --binlog-format=ROW
+      - --gtid-strict-mode=ON
+      - --log-slave-updates=ON
+      - --lower_case_table_names=1
     volumes:
-      - ./.db/data:/var/lib/mysql
+      - .db/mariadb-primary-data:/var/lib/mysql
+    networks:
+      database:
+        aliases:
+          - mariadb-primary
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mariadb-replica1:
+    image: mariadb:latest
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    command:
+      - --server-id=2
+      - --log-bin=mariadb-bin
+      - --binlog-format=ROW
+      - --gtid-strict-mode=ON
+      - --log-slave-updates=ON
+      - --read-only=ON
+      - --lower_case_table_names=1
+    volumes:
+      - .db/mariadb-replica1-data:/var/lib/mysql
+    networks:
+      database:
+        aliases:
+          - mariadb-replica1
+    depends_on:
+      mariadb-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mariadb-replica2:
+    image: mariadb:latest
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    command:
+      - --server-id=3
+      - --log-bin=mariadb-bin
+      - --binlog-format=ROW
+      - --gtid-strict-mode=ON
+      - --log-slave-updates=ON
+      - --read-only=ON
+      - --lower_case_table_names=1
+    volumes:
+      - .db/mariadb-replica2-data:/var/lib/mysql
+    networks:
+      database:
+        aliases:
+          - mariadb-replica2
+    depends_on:
+      mariadb-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  maxscale:
+    image: mariadb/maxscale:latest
+    volumes:
+      - ./maxscale/maxscale.cnf:/etc/maxscale.cnf:ro
     ports:
-      - "3306:3306"
+      - "4006:4006"
+    depends_on:
+      mariadb-primary:
+        condition: service_healthy
+      mariadb-replica1:
+        condition: service_healthy
+      mariadb-replica2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "maxctrl list servers >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - database
+      - app
+
+#  heureka-db:
+#    image: mariadb:latest
+#    container_name: mariadb
+#    restart: always
+#    command: --lower_case_table_names=1
+#    profiles:
+#      - db
+#    environment:
+#      MARIADB_USER: ${DB_USER}
+#      MARIADB_PASSWORD: ${DB_PASSWORD}
+#      MARIADB_DATABASE: ${DB_NAME}
+#      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+#      # Uncomment the following lines and comment the MARIADB_ROOT_PASSWORD line to use other options
+#      # - MARIADB_ROOT_PASSWORD_HASH=*HASHED_PASSWORD
+#      # - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes
+#      # - MARIADB_RANDOM_ROOT_PASSWORD=yes
+#    healthcheck:
+#      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+#      start_period: 45s
+#      interval: 10s
+#      timeout: 5s
+#      retries: 3
+#    volumes:
+#      - ./.db/data:/var/lib/mysql
+#    ports:
+#      - "3306:3306"
 
   heureka-app:
     image: heureka-app:latest
@@ -41,8 +147,9 @@ services:
     profiles:
       - heureka
     environment:
-      DB_ADDRESS: heureka-db
-      DB_PORT: 3306
+#      DB_ADDRESS: heureka-db
+      DB_ADDRESS: maxscale
+      DB_PORT: 4006
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
@@ -57,10 +164,13 @@ services:
       AI_HTTP_RATE_BURST: ${AI_HTTP_RATE_BURST:-5}
       TESTING_ENABLE: true
     depends_on:
-      heureka-db:
+#      heureka-db:
+      maxscale:
         condition: service_healthy
     ports:
       - "80:80"
+    networks:
+      - app
 
   valkey:
     image: valkey/valkey:7.2
@@ -73,6 +183,8 @@ services:
     volumes:
       - valkey-data:/data
     restart: always
+    networks:
+      - app
 
   ui:
     image: juno-ui:latest
@@ -88,6 +200,8 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    networks:
+      - app
 
   postgres:
     image: postgres:17
@@ -148,3 +262,15 @@ services:
       - "8082:3000"
 volumes:
   valkey-data:
+  mariadb-primary-data:
+  mariadb-replica1-data:
+  mariadb-replica2-data:
+
+networks:
+  app:
+    driver: bridge
+  database:
+    driver: bridge
+    internal: true
+  openfga:
+

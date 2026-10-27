@@ -145,7 +145,8 @@ pre-commit-prepare: install-pre-commit
 	pre-commit install --hook-type pre-push
 
 DOCKER_COMPOSE := docker-compose -f docker-compose.yaml
-DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey
+DOCKER_COMPOSE_SERVICES := heureka-app maxscale valkey
+#DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey
 compose-prepare:
 	sed 's/^SEED_MODE=false/SEED_MODE=true/g' .test.env > .env
 

@@ -7,7 +7,7 @@ Library    Process
 
 *** Variables ***
 ${DB_HOST}              localhost
-${DB_PORT}              3306
+${DB_PORT}              4006
 ${DB_NAME}              heureka
 ${DB_USER_NAME}         my_username
 ${DB_USER_PASSWORD}     my_password
@@ -23,6 +23,7 @@ Connect to mariadb
     ...    db_password=${DB_USER_PASSWORD}
     ...    db_host=${DB_HOST}
     ...    db_port=${DB_PORT}
+    ...    ssl_disabled=${True}
 
 Connection to database is established
     Connect to mariadb
@@ -59,7 +60,7 @@ Feed database from gzip
     ${command}=    Catenate
     ...    set -o pipefail;
     ...    gunzip -c "${gzip_path}" |
-    ...    mariadb -u"${db_user}" -P"${db_port}" -p"${db_password}" -h"${db_host}" "${db_name}"
+    ...    mariadb -u"${db_user}" -P"${db_port}" -p"${db_password}" -h"${db_host}" --skip-ssl "${db_name}"
 
     # shell=True is mandatory to allow the pipe (|) character to function
     ${result}=    Run process    ${command}    shell=True    stderr=STDOUT

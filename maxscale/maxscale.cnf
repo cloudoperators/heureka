@@ -1,0 +1,44 @@
+[maxscale]
+threads=auto
+
+# MariaDB servers
+[primary]
+type=server
+address=mariadb-primary
+port=3306
+protocol=MariaDBBackend
+
+[replica1]
+type=server
+address=mariadb-replica1
+port=3306
+protocol=MariaDBBackend
+
+[replica2]
+type=server
+address=mariadb-replica2
+port=3306
+protocol=MariaDBBackend
+
+# Monitors primary/replica roles
+[MariaDB-Monitor]
+type=monitor
+module=mariadbmon
+servers=primary,replica1,replica2
+user=maxscale_monitor
+password=TestMonitor2026!
+monitor_interval=2s
+
+# Routes writes to primary and eligible reads to replicas
+[Read-Write-Service]
+type=service
+router=readwritesplit
+servers=primary,replica1,replica2
+user=maxscale_svc
+password=my_password
+
+[Read-Write-Listener]
+type=listener
+service=Read-Write-Service
+protocol=MariaDBClient
+port=4006
