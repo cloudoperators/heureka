@@ -653,7 +653,7 @@ func (s *SqlDatabase) GetIssueTrend(ctx context.Context, filter entity.IssueTren
 	case entity.TrendGranularityWeekly:
 		bucketExpr = "DATE(DATE_SUB(IM.issuematch_created_at, INTERVAL WEEKDAY(IM.issuematch_created_at) DAY))"
 	case entity.TrendGranularityMonthly:
-		bucketExpr = "DATE_FORMAT(IM.issuematch_created_at, '%Y-%m-01')"
+		bucketExpr = "CAST(DATE_FORMAT(IM.issuematch_created_at, '%Y-%m-01') AS DATE)"
 	default:
 		bucketExpr = "DATE(IM.issuematch_created_at)"
 	}
