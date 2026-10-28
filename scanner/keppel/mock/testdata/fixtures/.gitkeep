@@ -1,0 +1,3 @@
+# Optional override fixtures for the keppel mock live here as <name>.json
+# (accounts, repositories, manifest, trivy_report). When absent, the mock serves
+# defaults built in Go. Refresh them from a real Keppel with `make keppel-mock-record`.
