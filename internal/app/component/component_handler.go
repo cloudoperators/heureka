@@ -36,8 +36,9 @@ func NewComponentHandler(hc common.HandlerContext) ComponentHandler {
 			ListEventFn: func(f *entity.ComponentFilter, o *entity.ListOptions, r *entity.List[entity.ComponentResult]) any {
 				return &ListComponentsEvent{Filter: f, Options: o, Components: r}
 			},
-			DeleteFn:      hc.DB.DeleteComponent,
-			DeleteEventFn: func(id int64) any { return &DeleteComponentEvent{ComponentID: id} },
+			DeleteFn:             hc.DB.DeleteComponent,
+			DeleteEventFn:        func(id int64) any { return &DeleteComponentEvent{ComponentID: id} },
+			AuthzWriteObjectType: openfga.TypeComponent,
 		}),
 	}
 }
@@ -55,6 +56,10 @@ func (ch *componentHandler) CreateComponent(
 	component *entity.Component,
 ) (*entity.Component, error) {
 	op := appErrors.CallerOp()
+
+	if err := ch.CheckSystemAdminPermission(ctx, op); err != nil {
+		return nil, err
+	}
 
 	f := &entity.ComponentFilter{
 		CCRN: []*string{&component.CCRN},
@@ -95,6 +100,10 @@ func (ch *componentHandler) UpdateComponent(
 	component *entity.Component,
 ) (*entity.Component, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := ch.CheckWritePermission(ctx, op, "Component", openfga.TypeComponent, component.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 

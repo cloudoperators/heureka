@@ -93,3 +93,26 @@ relations
     # Relations
     define component_version: [component_version]
     define role: [role]
+
+type issue_repository
+relations
+    # Operations
+    define can_view: [user] or admin from role or component_scanner from role or issue_scanner from role
+    define can_write: [user] or admin from role
+
+    # Relations
+    define role: [role]
+
+type issue_variant
+relations
+    # Operations
+    define can_view: [user] or can_view_from_repository or admin from role or component_scanner from role or issue_scanner from role
+    define can_write: [user] or can_write_from_repository or admin from role
+
+    # Roles
+    define can_view_from_repository: can_view from issue_repository
+    define can_write_from_repository: can_write from issue_repository
+
+    # Relations
+    define issue_repository: [issue_repository]
+    define role: [role]

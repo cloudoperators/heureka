@@ -41,8 +41,9 @@ func NewIssueMatchHandler(
 			ListEventFn: func(f *entity.IssueMatchFilter, o *entity.ListOptions, r *entity.List[entity.IssueMatchResult]) any {
 				return &ListIssueMatchesEvent{Filter: f, Options: o, Results: r}
 			},
-			DeleteFn:      handlerContext.DB.DeleteIssueMatch,
-			DeleteEventFn: func(id int64) any { return &DeleteIssueMatchEvent{IssueMatchID: id} },
+			DeleteFn:             handlerContext.DB.DeleteIssueMatch,
+			DeleteEventFn:        func(id int64) any { return &DeleteIssueMatchEvent{IssueMatchID: id} },
+			AuthzWriteObjectType: openfga.TypeIssueMatch,
 		}),
 		severityHandler: ss,
 	}
@@ -110,6 +111,10 @@ func (im *issueMatchHandler) CreateIssueMatch(
 ) (*entity.IssueMatch, error) {
 	op := appErrors.CallerOp()
 
+	if _, err := im.CheckWritePermission(ctx, op, "ComponentInstance", openfga.TypeComponentInstance, issueMatch.ComponentInstanceId); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	issueMatch.CreatedBy, err = common.GetCurrentUserId(ctx, im.DB())
@@ -145,6 +150,10 @@ func (im *issueMatchHandler) UpdateIssueMatch(
 ) (*entity.IssueMatch, error) {
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issueMatch.Id, 10)
+
+	if _, err := im.CheckWritePermission(ctx, op, "IssueMatch", openfga.TypeIssueMatch, issueMatch.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 

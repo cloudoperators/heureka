@@ -37,8 +37,9 @@ func NewComponentVersionHandler(hc common.HandlerContext) ComponentVersionHandle
 			ListEventFn: func(f *entity.ComponentVersionFilter, o *entity.ListOptions, r *entity.List[entity.ComponentVersionResult]) any {
 				return &ListComponentVersionsEvent{Filter: f, Options: o, ComponentVersions: r}
 			},
-			DeleteFn:      hc.DB.DeleteComponentVersion,
-			DeleteEventFn: func(id int64) any { return &DeleteComponentVersionEvent{ComponentVersionID: id} },
+			DeleteFn:             hc.DB.DeleteComponentVersion,
+			DeleteEventFn:        func(id int64) any { return &DeleteComponentVersionEvent{ComponentVersionID: id} },
+			AuthzWriteObjectType: openfga.TypeComponentVersion,
 		}),
 	}
 }
@@ -56,6 +57,10 @@ func (cv *componentVersionHandler) CreateComponentVersion(
 	componentVersion *entity.ComponentVersion,
 ) (*entity.ComponentVersion, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := cv.CheckWritePermission(ctx, op, "Component", openfga.TypeComponent, componentVersion.ComponentId); err != nil {
+		return nil, err
+	}
 
 	var err error
 
@@ -86,6 +91,10 @@ func (cv *componentVersionHandler) UpdateComponentVersion(
 	componentVersion *entity.ComponentVersion,
 ) (*entity.ComponentVersion, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := cv.CheckWritePermission(ctx, op, "ComponentVersion", openfga.TypeComponentVersion, componentVersion.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 

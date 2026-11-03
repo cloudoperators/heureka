@@ -36,8 +36,9 @@ func NewSupportGroupHandler(handlerContext common.HandlerContext) SupportGroupHa
 			ListEventFn: func(f *entity.SupportGroupFilter, o *entity.ListOptions, r *entity.List[entity.SupportGroupResult]) any {
 				return &ListSupportGroupsEvent{Filter: f, Options: o, SupportGroups: r}
 			},
-			DeleteFn:      handlerContext.DB.DeleteSupportGroup,
-			DeleteEventFn: func(id int64) any { return &DeleteSupportGroupEvent{SupportGroupID: id} },
+			DeleteFn:             handlerContext.DB.DeleteSupportGroup,
+			DeleteEventFn:        func(id int64) any { return &DeleteSupportGroupEvent{SupportGroupID: id} },
+			AuthzWriteObjectType: openfga.TypeSupportGroup,
 		}),
 	}
 }
@@ -103,6 +104,10 @@ func (sg *supportGroupHandler) CreateSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
+	if err := sg.CheckSystemAdminPermission(ctx, op); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	supportGroup.CreatedBy, err = common.GetCurrentUserId(ctx, sg.DB())
@@ -141,6 +146,10 @@ func (sg *supportGroupHandler) UpdateSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
+	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroup.Id); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	supportGroup.UpdatedBy, err = common.GetCurrentUserId(ctx, sg.DB())
@@ -168,6 +177,10 @@ func (sg *supportGroupHandler) AddServiceToSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
+	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+		return nil, err
+	}
+
 	if err := sg.DB().AddServiceToSupportGroup(supportGroupId, serviceId); err != nil {
 		return nil, appErrors.InternalError(string(op), "SupportGroup", fmt.Sprint(supportGroupId), err)
 	}
@@ -183,6 +196,10 @@ func (sg *supportGroupHandler) RemoveServiceFromSupportGroup(
 	serviceId int64,
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+		return nil, err
+	}
 
 	if err := sg.DB().RemoveServiceFromSupportGroup(supportGroupId, serviceId); err != nil {
 		return nil, appErrors.InternalError(string(op), "SupportGroup", fmt.Sprint(supportGroupId), err)
@@ -200,6 +217,10 @@ func (sg *supportGroupHandler) AddUserToSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
+	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+		return nil, err
+	}
+
 	if err := sg.DB().AddUserToSupportGroup(supportGroupId, userId); err != nil {
 		return nil, appErrors.InternalError(string(op), "SupportGroup", fmt.Sprint(supportGroupId), err)
 	}
@@ -215,6 +236,10 @@ func (sg *supportGroupHandler) RemoveUserFromSupportGroup(
 	userId int64,
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+		return nil, err
+	}
 
 	if err := sg.DB().RemoveUserFromSupportGroup(supportGroupId, userId); err != nil {
 		return nil, appErrors.InternalError(string(op), "SupportGroup", fmt.Sprint(supportGroupId), err)

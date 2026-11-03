@@ -5,6 +5,7 @@ package support_group_test
 
 import (
 	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -26,6 +28,14 @@ import (
 func TestSupportGroupHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Support Group Service Test Suite")
+}
+
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
 }
 
 var (
@@ -338,6 +348,43 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 				})
 			})
 		})
+
+		Context("and checking write permission for CreateSupportGroup", func() {
+			It("denies creation when the user lacks admin permission on the system role", func() {
+				userId := int64(9101)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				newSg := test.NewFakeSupportGroupEntity()
+				_, err := supportGroupHandler.CreateSupportGroup(common.NewAdminContext(), &newSg)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows creation when the user has admin permission on the system role", func() {
+				userId := int64(9101)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelAdmin,
+					ObjectType: openfga.TypeRole,
+					ObjectId:   openfga.SystemRoleId,
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				newSg := test.NewFakeSupportGroupEntity()
+				filter.CCRN = []*string{&newSg.CCRN}
+				db.On("CreateSupportGroup", &newSg).Return(&newSg, nil)
+				db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				newSupportGroup, err := supportGroupHandler.CreateSupportGroup(common.NewAdminContext(), &newSg)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(newSupportGroup).NotTo(BeNil(), "supportGroup should be returned")
+			})
+		})
 	})
 })
 
@@ -384,6 +431,56 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedSupportGroup.CCRN).To(BeEquivalentTo(supportGroup.CCRN))
+		})
+	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies the update when the user lacks can_write permission on the support group", func() {
+			userId := int64(9102)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+			_, err := supportGroupHandler.UpdateSupportGroup(common.NewAdminContext(), supportGroup.SupportGroup)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows the update when the user has can_write permission on the support group", func() {
+			userId := int64(9102)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("UpdateSupportGroup", supportGroup.SupportGroup).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeSupportGroup,
+				ObjectId:   openfga.ObjectIdFromInt(supportGroup.Id),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			filter.Id = []*int64{&supportGroup.Id}
+			db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
+
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+			updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(common.NewAdminContext(), supportGroup.SupportGroup)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedSupportGroup).NotTo(BeNil(), "supportGroup should be returned")
 		})
 	})
 })
@@ -550,6 +647,37 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 				})
 			})
 		})
+
+		Context("and checking write permission for DeleteSupportGroup", func() {
+			It("denies deletion when the user lacks can_write permission on the support group", func() {
+				userId := int64(9103)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				err := supportGroupHandler.DeleteSupportGroup(common.NewAdminContext(), id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows deletion when the user has can_write permission on the support group", func() {
+				userId := int64(9103)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("DeleteSupportGroup", id, mock.Anything).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeSupportGroup,
+					ObjectId:   openfga.ObjectIdFromInt(id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				err = supportGroupHandler.DeleteSupportGroup(common.NewAdminContext(), id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+			})
+		})
 	})
 })
 
@@ -694,6 +822,70 @@ var _ = Describe(
 				})
 			})
 		})
+
+		Context("and checking write permission for AddServiceToSupportGroup/RemoveServiceFromSupportGroup", func() {
+			It("denies adding a service when the user lacks can_write permission on the support group", func() {
+				userId := int64(9104)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				_, err := supportGroupHandler.AddServiceToSupportGroup(ctx, supportGroup.Id, service.Id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows adding a service when the user has can_write permission on the support group", func() {
+				userId := int64(9104)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
+				db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeSupportGroup,
+					ObjectId:   openfga.ObjectIdFromInt(supportGroup.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				result, err := supportGroupHandler.AddServiceToSupportGroup(ctx, supportGroup.Id, service.Id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "supportGroup should be returned")
+			})
+
+			It("denies removing a service when the user lacks can_write permission on the support group", func() {
+				userId := int64(9105)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				_, err := supportGroupHandler.RemoveServiceFromSupportGroup(ctx, supportGroup.Id, service.Id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows removing a service when the user has can_write permission on the support group", func() {
+				userId := int64(9105)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
+				db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeSupportGroup,
+					ObjectId:   openfga.ObjectIdFromInt(supportGroup.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				result, err := supportGroupHandler.RemoveServiceFromSupportGroup(ctx, supportGroup.Id, service.Id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "supportGroup should be returned")
+			})
+		})
 	},
 )
 
@@ -836,6 +1028,70 @@ var _ = Describe(
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
 				})
+			})
+		})
+
+		Context("and checking write permission for AddUserToSupportGroup/RemoveUserFromSupportGroup", func() {
+			It("denies adding a user when the user lacks can_write permission on the support group", func() {
+				userId := int64(9106)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				_, err := supportGroupHandler.AddUserToSupportGroup(ctx, supportGroup.Id, user.Id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows adding a user when the user has can_write permission on the support group", func() {
+				userId := int64(9106)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
+				db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeSupportGroup,
+					ObjectId:   openfga.ObjectIdFromInt(supportGroup.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				result, err := supportGroupHandler.AddUserToSupportGroup(ctx, supportGroup.Id, user.Id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "supportGroup should be returned")
+			})
+
+			It("denies removing a user when the user lacks can_write permission on the support group", func() {
+				userId := int64(9107)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				_, err := supportGroupHandler.RemoveUserFromSupportGroup(ctx, supportGroup.Id, user.Id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows removing a user when the user has can_write permission on the support group", func() {
+				userId := int64(9107)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
+				db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeSupportGroup,
+					ObjectId:   openfga.ObjectIdFromInt(supportGroup.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				result, err := supportGroupHandler.RemoveUserFromSupportGroup(ctx, supportGroup.Id, user.Id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "supportGroup should be returned")
 			})
 		})
 	},

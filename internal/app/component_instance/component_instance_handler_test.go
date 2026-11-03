@@ -32,6 +32,14 @@ func TestComponentInstanceHandler(t *testing.T) {
 	RunSpecs(t, "Component Instance Service Test Suite")
 }
 
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
+}
+
 var (
 	handlerContext common.HandlerContext
 	cfg            *util.Config
@@ -524,6 +532,43 @@ var _ = Describe(
 					})
 				})
 			})
+
+			Context("and checking write permission for CreateComponentInstance", func() {
+				It("denies creation when the user lacks can_write permission on the parent service", func() {
+					userId := int64(9401)
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+					newCi := test.NewFakeComponentInstanceEntity()
+					newCi.Type = "RecordSet"
+					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+					_, err := componentInstanceHandler.CreateComponentInstance(common.NewAdminContext(), &newCi, nil)
+
+					expectPermissionDenied(err)
+				})
+
+				It("allows creation when the user has can_write permission on the parent service", func() {
+					userId := int64(9401)
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+					newCi := test.NewFakeComponentInstanceEntity()
+					newCi.Type = "RecordSet"
+					db.On("CreateComponentInstance", mock.AnythingOfType("*entity.ComponentInstance")).Return(&newCi, nil)
+
+					err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanWrite,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(newCi.ServiceId),
+					})
+					Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+					newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(common.NewAdminContext(), &newCi, nil)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(newComponentInstance).NotTo(BeNil(), "componentInstance should be returned")
+				})
+			})
 		})
 	},
 )
@@ -811,6 +856,41 @@ var _ = Describe(
 					).ToNot(BeEmpty(), "old component_version relation should remain")
 				})
 			})
+
+			Context("and checking write permission for UpdateComponentInstance", func() {
+				It("denies the update when the user lacks can_write permission on the component instance", func() {
+					userId := int64(9402)
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+					_, err := componentInstanceHandler.UpdateComponentInstance(common.NewAdminContext(), componentInstance.ComponentInstance, nil)
+
+					expectPermissionDenied(err)
+				})
+
+				It("allows the update when the user has can_write permission on the component instance", func() {
+					userId := int64(9402)
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+					db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
+
+					err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanWrite,
+						ObjectType: openfga.TypeComponentInstance,
+						ObjectId:   openfga.ObjectIdFromInt(componentInstance.Id),
+					})
+					Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+					filter.Id = []*int64{&componentInstance.Id}
+					db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
+
+					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+					updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(common.NewAdminContext(), componentInstance.ComponentInstance, nil)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(updatedComponentInstance).NotTo(BeNil(), "componentInstance should be returned")
+				})
+			})
 		})
 	},
 )
@@ -997,6 +1077,37 @@ var _ = Describe(
 								}
 							},
 						)
+					})
+				})
+
+				Context("and checking write permission for DeleteComponentInstance", func() {
+					It("denies deletion when the user lacks can_write permission on the component instance", func() {
+						userId := int64(9403)
+						db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+						componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+						err := componentInstanceHandler.DeleteComponentInstance(common.NewAdminContext(), id)
+
+						expectPermissionDenied(err)
+					})
+
+					It("allows deletion when the user has can_write permission on the component instance", func() {
+						userId := int64(9403)
+						db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+						db.On("DeleteComponentInstance", id, mock.Anything).Return(nil)
+
+						err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+							UserType:   openfga.TypeUser,
+							UserId:     openfga.UserIdFromInt(userId),
+							Relation:   openfga.RelCanWrite,
+							ObjectType: openfga.TypeComponentInstance,
+							ObjectId:   openfga.ObjectIdFromInt(id),
+						})
+						Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+						componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+						err = componentInstanceHandler.DeleteComponentInstance(common.NewAdminContext(), id)
+						Expect(err).To(BeNil(), "no error should be thrown")
 					})
 				})
 			})

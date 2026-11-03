@@ -13,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	s "github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 
@@ -24,6 +25,14 @@ import (
 	"github.com/samber/lo"
 	mock "github.com/stretchr/testify/mock"
 )
+
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
+}
 
 func TestServiceHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -559,6 +568,43 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				})
 			})
 		})
+
+		Context("and checking write permission for CreateService", func() {
+			It("denies creation when the user lacks admin permission on the system role", func() {
+				userId := int64(9001)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				srv := test.NewFakeServiceEntity()
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				_, err := serviceHandler.CreateService(common.NewAdminContext(), &srv)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows creation when the user has admin permission on the system role", func() {
+				userId := int64(9001)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelAdmin,
+					ObjectType: openfga.TypeRole,
+					ObjectId:   openfga.SystemRoleId,
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				srv := test.NewFakeServiceEntity()
+				filter.CCRN = []*string{&srv.CCRN}
+				db.On("CreateService", &srv).Return(&srv, nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				newService, err := serviceHandler.CreateService(common.NewAdminContext(), &srv)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(newService).NotTo(BeNil(), "service should be returned")
+			})
+		})
 	})
 })
 
@@ -602,6 +648,56 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedService.CCRN).To(BeEquivalentTo(service.CCRN))
+		})
+	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies the update when the user lacks can_write permission on the service", func() {
+			userId := int64(9002)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			serviceHandler = s.NewServiceHandler(handlerContext)
+			_, err := serviceHandler.UpdateService(common.NewAdminContext(), service.Service)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows the update when the user has can_write permission on the service", func() {
+			userId := int64(9002)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("UpdateService", service.Service).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeService,
+				ObjectId:   openfga.ObjectIdFromInt(service.Id),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			filter.Id = []*int64{&service.Id}
+			db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+
+			serviceHandler = s.NewServiceHandler(handlerContext)
+			updatedService, err := serviceHandler.UpdateService(common.NewAdminContext(), service.Service)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedService).NotTo(BeNil(), "service should be returned")
 		})
 	})
 })
@@ -761,6 +857,37 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 				})
 			})
 		})
+
+		Context("and checking write permission for DeleteService", func() {
+			It("denies deletion when the user lacks can_write permission on the service", func() {
+				userId := int64(9003)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				err := serviceHandler.DeleteService(common.NewAdminContext(), id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows deletion when the user has can_write permission on the service", func() {
+				userId := int64(9003)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("DeleteService", id, mock.Anything).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeService,
+					ObjectId:   openfga.ObjectIdFromInt(id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				err = serviceHandler.DeleteService(common.NewAdminContext(), id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+			})
+		})
 	})
 })
 
@@ -916,6 +1043,70 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 				Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
 			})
 		})
+
+		Context("and checking write permission for AddOwnerToService/RemoveOwnerFromService", func() {
+			It("denies adding an owner when the user lacks can_write permission on the service", func() {
+				userId := int64(9004)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				_, err := serviceHandler.AddOwnerToService(ctx, service.Id, owner.Id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows adding an owner when the user has can_write permission on the service", func() {
+				userId := int64(9004)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("AddOwnerToService", service.Id, owner.Id).Return(nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeService,
+					ObjectId:   openfga.ObjectIdFromInt(service.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				result, err := serviceHandler.AddOwnerToService(ctx, service.Id, owner.Id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "service should be returned")
+			})
+
+			It("denies removing an owner when the user lacks can_write permission on the service", func() {
+				userId := int64(9005)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				_, err := serviceHandler.RemoveOwnerFromService(ctx, service.Id, owner.Id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows removing an owner when the user has can_write permission on the service", func() {
+				userId := int64(9005)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeService,
+					ObjectId:   openfga.ObjectIdFromInt(service.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				result, err := serviceHandler.RemoveOwnerFromService(ctx, service.Id, owner.Id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "service should be returned")
+			})
+		})
 	})
 })
 
@@ -986,6 +1177,131 @@ var _ = Describe(
 			)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(service).NotTo(BeNil(), "service should be returned")
+		})
+
+		Context("when authz is enabled", func() {
+			BeforeEach(func() {
+				authEnabled := true
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+				handlerContext.Authz.RemoveAllRelations()
+			})
+
+			AfterEach(func() {
+				authEnabled := false
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			})
+
+			It("denies adding an issueRepository when the user lacks can_write on the service", func() {
+				userId := int64(9006)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeIssueRepository,
+					ObjectId:   openfga.ObjectIdFromInt(issueRepository.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				_, err = serviceHandler.AddIssueRepositoryToService(ctx, service.Id, issueRepository.Id, priority)
+
+				expectPermissionDenied(err)
+			})
+
+			It("denies adding an issueRepository when the user lacks can_write on the issueRepository", func() {
+				userId := int64(9007)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeService,
+					ObjectId:   openfga.ObjectIdFromInt(service.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				_, err = serviceHandler.AddIssueRepositoryToService(ctx, service.Id, issueRepository.Id, priority)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows adding an issueRepository when the user has can_write on both the service and the issueRepository", func() {
+				userId := int64(9008)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("AddIssueRepositoryToService", service.Id, issueRepository.Id, priority).Return(nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+
+				err := handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
+					{
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanWrite,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(service.Id),
+					},
+					{
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanWrite,
+						ObjectType: openfga.TypeIssueRepository,
+						ObjectId:   openfga.ObjectIdFromInt(issueRepository.Id),
+					},
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				result, err := serviceHandler.AddIssueRepositoryToService(ctx, service.Id, issueRepository.Id, priority)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "service should be returned")
+			})
+
+			It("denies removing an issueRepository when the user lacks can_write on either side", func() {
+				userId := int64(9009)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				_, err := serviceHandler.RemoveIssueRepositoryFromService(ctx, service.Id, issueRepository.Id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows removing an issueRepository when the user has can_write on both the service and the issueRepository", func() {
+				userId := int64(9010)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("RemoveIssueRepositoryFromService", service.Id, issueRepository.Id).Return(nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+
+				err := handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
+					{
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanWrite,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(service.Id),
+					},
+					{
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanWrite,
+						ObjectType: openfga.TypeIssueRepository,
+						ObjectId:   openfga.ObjectIdFromInt(issueRepository.Id),
+					},
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				result, err := serviceHandler.RemoveIssueRepositoryFromService(ctx, service.Id, issueRepository.Id)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "service should be returned")
+			})
 		})
 	},
 )

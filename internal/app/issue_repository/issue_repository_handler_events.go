@@ -108,3 +108,68 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.
 		l.Error(wrappedErr)
 	}
 }
+
+// OnIssueRepositoryCreateAuthz is a handler for the CreateIssueRepositoryEvent
+// It creates an OpenFGA relation tuple for the issue repository and the current user
+func OnIssueRepositoryCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.CallerOp()
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueRepositoryCreateAuthz",
+		"payload": e,
+	})
+
+	if createEvent, ok := e.(*CreateIssueRepositoryEvent); ok {
+		userId := openfga.UserIdFromInt(createEvent.IssueRepository.BaseIssueRepository.CreatedBy)
+
+		relations := []openfga.RelationInput{
+			{
+				UserType:   openfga.TypeRole,
+				UserId:     userId,
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeIssueRepository,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.IssueRepository.Id),
+			},
+		}
+
+		err := authz.AddRelationBulk(relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
+			l.Error(wrappedErr)
+		}
+	} else {
+		err := errors.New("OnIssueRepositoryCreateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
+		l.Error(wrappedErr)
+	}
+}
+
+// OnIssueRepositoryDeleteAuthz is a handler for the DeleteIssueRepositoryEvent
+// It deletes all OpenFGA relation tuples containing that issue repository
+func OnIssueRepositoryDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.CallerOp()
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueRepositoryDeleteAuthz",
+		"payload": e,
+	})
+
+	if deleteEvent, ok := e.(*DeleteIssueRepositoryEvent); ok {
+		deleteInput := []openfga.RelationInput{
+			{
+				ObjectType: openfga.TypeIssueRepository,
+				ObjectId:   openfga.ObjectIdFromInt(deleteEvent.IssueRepositoryID),
+			},
+		}
+
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
+			l.Error(wrappedErr)
+		}
+	} else {
+		err := errors.New("OnIssueRepositoryDeleteAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
+		l.Error(wrappedErr)
+	}
+}

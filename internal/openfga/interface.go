@@ -29,6 +29,7 @@ const (
 	IDComponentVersion  = "componentVersionID"
 	IDComponentInstance = "componentInstanceID"
 	IDIssueMatch        = "issueMatchID"
+	IDIssueRepository   = "issueRepositoryID"
 )
 
 // Types (shared across userType/objectType tuple definitions)
@@ -41,6 +42,8 @@ const (
 	TypeComponentVersion  = "component_version"
 	TypeComponentInstance = "component_instance"
 	TypeIssueMatch        = "issue_match"
+	TypeIssueRepository   = "issue_repository"
+	TypeIssueVariant      = "issue_variant"
 )
 
 // Relations (shared across relations tuple definitions)
@@ -55,7 +58,13 @@ const (
 	RelMember            = "member"
 	RelComponentInstance = "component_instance"
 	RelComponentVersion  = "component_version"
+	RelIssueRepository   = "issue_repository"
 )
+
+// SystemRoleId is the well-known role object used for the creation of root-level
+// entities (Service, SupportGroup, Component), which have no parent object to check can_write
+// against before they exist. Admins of this role are provisioned externally (see store.fga.yaml).
+const SystemRoleId ObjectId = "system_role"
 
 type RelationInput struct {
 	UserType   UserType

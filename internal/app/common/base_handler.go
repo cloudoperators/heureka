@@ -49,6 +49,10 @@ type BaseConfig[R entity.HasCursor, F entity.Filter] struct {
 	AuthzObjectType       openfga.ObjectType
 	AuthzApplyFn          func(filter F, accessibleIds []*int64)
 	GetWithAggregationsFn func(context.Context, F, []entity.Order) ([]R, error)
+
+	// AuthzWriteObjectType, when set, gates Delete() behind a can_write check on the object's own id.
+	// Entities with no corresponding OpenFGA type leave this unset and skip the check.
+	AuthzWriteObjectType openfga.ObjectType
 }
 
 // BaseHandler provides the canonical List implementation shared by all entity handlers.
@@ -92,6 +96,64 @@ func (b *BaseHandler[R, F]) Cache() cache.Cache { return b.cache }
 
 // Authz exposes the configured authorization for entity-specific per-item permission checks.
 func (b *BaseHandler[R, F]) Authz() openfga.Authorization { return b.cfg.Authz }
+
+// CheckWritePermission verifies the current user has can_write on the given object,
+// returning the current user id on success. objectEntity is used for error context,
+// e.g. "Service" when writing to a service, or "Component" when writing to a parent component.
+func (b *BaseHandler[R, F]) CheckWritePermission(
+	ctx context.Context, op appErrors.Op, objectEntity string, objectType openfga.ObjectType, objectId int64,
+) (int64, error) {
+	idStr := strconv.FormatInt(objectId, 10)
+
+	currentUserId, err := GetCurrentUserId(ctx, b.db)
+	if err != nil {
+		return 0, appErrors.InternalError(string(op), objectEntity, idStr, err)
+	}
+
+	hasPermission, err := b.cfg.Authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   openfga.RelCanWrite,
+		ObjectType: objectType,
+		ObjectId:   openfga.ObjectId(idStr),
+	})
+	if err != nil {
+		return 0, appErrors.InternalError(string(op), objectEntity, idStr, err)
+	}
+
+	if !hasPermission {
+		return 0, appErrors.PermissionDeniedError(string(op), objectEntity, idStr)
+	}
+
+	return currentUserId, nil
+}
+
+// CheckSystemAdminPermission verifies the current user is admin on the system role.
+// It authorizes can_write against creation of root-level entities (Service, SupportGroup, Component)
+// or admin-only User management because there is no parent permission to reference.
+func (b *BaseHandler[R, F]) CheckSystemAdminPermission(ctx context.Context, op appErrors.Op) error {
+	currentUserId, err := GetCurrentUserId(ctx, b.db)
+	if err != nil {
+		return appErrors.InternalError(string(op), b.cfg.Entity, "", err)
+	}
+
+	hasPermission, err := b.cfg.Authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   openfga.RelAdmin,
+		ObjectType: openfga.TypeRole,
+		ObjectId:   openfga.SystemRoleId,
+	})
+	if err != nil {
+		return appErrors.InternalError(string(op), b.cfg.Entity, "", err)
+	}
+
+	if !hasPermission {
+		return appErrors.PermissionDeniedError(string(op), b.cfg.Entity, "")
+	}
+
+	return nil
+}
 
 // PushEvent forwards an event to the registry.
 func (b *BaseHandler[R, F]) PushEvent(e event.Event) { b.eventRegistry.PushEvent(e) }
@@ -191,6 +253,12 @@ func (b *BaseHandler[R, F]) List(
 func (b *BaseHandler[R, F]) Delete(ctx context.Context, id int64) error {
 	op := b.cfg.Op
 	idStr := strconv.FormatInt(id, 10)
+
+	if b.cfg.Authz != nil && b.cfg.AuthzWriteObjectType != "" {
+		if _, err := b.CheckWritePermission(ctx, op, b.cfg.Entity, b.cfg.AuthzWriteObjectType, id); err != nil {
+			return err
+		}
+	}
 
 	userId, err := GetCurrentUserId(ctx, b.db)
 	if err != nil {

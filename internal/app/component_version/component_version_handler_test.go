@@ -5,6 +5,7 @@ package component_version_test
 
 import (
 	"context"
+	"errors"
 	"math"
 	"strconv"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -27,6 +29,14 @@ import (
 func TestComponentVersionHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Component Version Service Test Suite")
+}
+
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
 }
 
 var (
@@ -474,6 +484,41 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 				})
 			})
 		})
+
+		Context("and checking write permission for CreateComponentVersion", func() {
+			It("denies creation when the user lacks can_write permission on the parent component", func() {
+				userId := int64(9301)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				newCv := test.NewFakeComponentVersionEntity()
+				componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+				_, err := componenVersionService.CreateComponentVersion(common.NewAdminContext(), &newCv)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows creation when the user has can_write permission on the parent component", func() {
+				userId := int64(9301)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				newCv := test.NewFakeComponentVersionEntity()
+				db.On("CreateComponentVersion", &newCv).Return(&newCv, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeComponent,
+					ObjectId:   openfga.ObjectIdFromInt(newCv.ComponentId),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+				newComponentVersion, err := componenVersionService.CreateComponentVersion(common.NewAdminContext(), &newCv)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(newComponentVersion).NotTo(BeNil(), "componentVersion should be returned")
+			})
+		})
 	})
 })
 
@@ -589,6 +634,41 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 				remainingNew, err := handlerContext.Authz.ListRelations(newRelation)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+			})
+		})
+
+		Context("and checking write permission for UpdateComponentVersion", func() {
+			It("denies the update when the user lacks can_write permission on the component version", func() {
+				userId := int64(9302)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+				_, err := componenVersionService.UpdateComponentVersion(common.NewAdminContext(), componentVersion.ComponentVersion)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows the update when the user has can_write permission on the component version", func() {
+				userId := int64(9302)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("UpdateComponentVersion", componentVersion.ComponentVersion).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeComponentVersion,
+					ObjectId:   openfga.ObjectIdFromInt(componentVersion.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				filter.Id = []*int64{&componentVersion.Id}
+				db.On("GetComponentVersions", mock.Anything, filter, []entity.Order{}).Return([]entity.ComponentVersionResult{componentVersion}, nil)
+
+				componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+				updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(common.NewAdminContext(), componentVersion.ComponentVersion)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(updatedComponentVersion).NotTo(BeNil(), "componentVersion should be returned")
 			})
 		})
 	})
@@ -750,6 +830,37 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 						Expect(ok).To(BeFalse(), "permission should NOT be granted")
 					}
 				})
+			})
+		})
+
+		Context("and checking write permission for DeleteComponentVersion", func() {
+			It("denies deletion when the user lacks can_write permission on the component version", func() {
+				userId := int64(9303)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+				err := componenVersionService.DeleteComponentVersion(common.NewAdminContext(), id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows deletion when the user has can_write permission on the component version", func() {
+				userId := int64(9303)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeComponentVersion,
+					ObjectId:   openfga.ObjectIdFromInt(id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+				err = componenVersionService.DeleteComponentVersion(common.NewAdminContext(), id)
+				Expect(err).To(BeNil(), "no error should be thrown")
 			})
 		})
 	})

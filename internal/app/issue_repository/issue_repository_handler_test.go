@@ -5,6 +5,7 @@ package issue_repository_test
 
 import (
 	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
@@ -27,13 +29,25 @@ func TestIssueRepositoryHandler(t *testing.T) {
 	RunSpecs(t, "Test IssueRepository Service")
 }
 
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
+}
+
 var (
 	er    event.EventRegistry
 	authz openfga.Authorization
 )
 
 var _ = BeforeSuite(func() {
+	authEnabled := false
+	cfg := common.GetTestConfig(authEnabled)
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
 })
 
@@ -243,6 +257,58 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 			)
 		})
 	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies creation when the user lacks admin permission on the system role", func() {
+			userId := int64(9801)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			newIr := test.NewFakeIssueRepositoryEntity()
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
+			_, err := issueRepositoryHandler.CreateIssueRepository(common.NewAdminContext(), &newIr)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows creation when the user has admin permission on the system role", func() {
+			userId := int64(9801)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelAdmin,
+				ObjectType: openfga.TypeRole,
+				ObjectId:   openfga.SystemRoleId,
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			newIr := test.NewFakeIssueRepositoryEntity()
+			filter.Name = []*string{&newIr.Name}
+			db.On("CreateIssueRepository", &newIr).Return(&newIr, nil)
+			db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).Return([]entity.IssueRepositoryResult{}, nil)
+
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
+			newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(common.NewAdminContext(), &newIr)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(newIssueRepository).NotTo(BeNil(), "issueRepository should be returned")
+		})
+	})
 })
 
 var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepository"), func() {
@@ -291,6 +357,56 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueRepository.Name).To(BeEquivalentTo(issueRepository.Name))
+		})
+	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies the update when the user lacks can_write permission on the issue repository", func() {
+			userId := int64(9802)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
+			_, err := issueRepositoryHandler.UpdateIssueRepository(common.NewAdminContext(), &issueRepository)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows the update when the user has can_write permission on the issue repository", func() {
+			userId := int64(9802)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("UpdateIssueRepository", &issueRepository).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeIssueRepository,
+				ObjectId:   openfga.ObjectIdFromInt(issueRepository.Id),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			filter.Id = []*int64{&issueRepository.Id}
+			db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).Return([]entity.IssueRepositoryResult{{IssueRepository: &issueRepository}}, nil)
+
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
+			updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(common.NewAdminContext(), &issueRepository)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedIssueRepository).NotTo(BeNil(), "issueRepository should be returned")
 		})
 	})
 })
@@ -344,5 +460,51 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueRepositories.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies deletion when the user lacks can_write permission on the issue repository", func() {
+			userId := int64(9803)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
+			err := issueRepositoryHandler.DeleteIssueRepository(common.NewAdminContext(), id)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows deletion when the user has can_write permission on the issue repository", func() {
+			userId := int64(9803)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeIssueRepository,
+				ObjectId:   openfga.ObjectIdFromInt(id),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
+			err = issueRepositoryHandler.DeleteIssueRepository(common.NewAdminContext(), id)
+			Expect(err).To(BeNil(), "no error should be thrown")
+		})
 	})
 })

@@ -5,6 +5,7 @@ package issue_variant_test
 
 import (
 	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
@@ -22,6 +24,14 @@ import (
 	"github.com/samber/lo"
 	mock "github.com/stretchr/testify/mock"
 )
+
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
+}
 
 func TestIssueVariantHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -34,7 +44,11 @@ var (
 )
 
 var _ = BeforeSuite(func() {
+	authEnabled := false
+	cfg := common.GetTestConfig(authEnabled)
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
 })
 
@@ -79,7 +93,6 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		rs                  issue_repository.IssueRepositoryHandler
 		filter              *entity.IssueVariantFilter
 		options             *entity.ListOptions
-		authz               openfga.Authorization
 		handlerContext      common.HandlerContext
 	)
 
@@ -190,7 +203,6 @@ var _ = Describe(
 			repositories        []entity.IssueRepository
 			irResults           []entity.IssueRepositoryResult
 			rs                  issue_repository.IssueRepositoryHandler
-			authz               openfga.Authorization
 			handlerContext      common.HandlerContext
 		)
 
@@ -314,7 +326,6 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		issueVariant        entity.IssueVariant
 		filter              *entity.IssueVariantFilter
 		rs                  issue_repository.IssueRepositoryHandler
-		authz               openfga.Authorization
 		handlerContext      common.HandlerContext
 	)
 
@@ -367,6 +378,53 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 			Expect(newIssueVariant.Severity.Value).To(BeEquivalentTo(issueVariant.Severity.Value))
 		})
 	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies creation when the user lacks can_write permission on the parent issue repository", func() {
+			userId := int64(9901)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+			_, err := issueVariantHandler.CreateIssueVariant(common.NewAdminContext(), &issueVariant)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows creation when the user has can_write permission on the parent issue repository", func() {
+			userId := int64(9901)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeIssueRepository,
+				ObjectId:   openfga.ObjectIdFromInt(issueVariant.IssueRepositoryId),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+			newIssueVariant, err := issueVariantHandler.CreateIssueVariant(common.NewAdminContext(), &issueVariant)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(newIssueVariant).NotTo(BeNil(), "issueVariant should be returned")
+		})
+	})
 })
 
 var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"), func() {
@@ -376,7 +434,6 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		issueVariant        entity.IssueVariant
 		filter              *entity.IssueVariantFilter
 		rs                  issue_repository.IssueRepositoryHandler
-		authz               openfga.Authorization
 		handlerContext      common.HandlerContext
 	)
 
@@ -436,6 +493,56 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 			).To(BeEquivalentTo(issueVariant.Severity.Value))
 		})
 	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies the update when the user lacks can_write permission on the issue variant", func() {
+			userId := int64(9902)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+			_, err := issueVariantHandler.UpdateIssueVariant(common.NewAdminContext(), &issueVariant)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows the update when the user has can_write permission on the issue variant", func() {
+			userId := int64(9902)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("UpdateIssueVariant", &issueVariant).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeIssueVariant,
+				ObjectId:   openfga.ObjectIdFromInt(issueVariant.Id),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			filter.Id = []*int64{&issueVariant.Id}
+			db.On("GetIssueVariants", mock.Anything, filter, mock.Anything).Return([]entity.IssueVariantResult{{IssueVariant: &issueVariant}}, nil)
+
+			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+			updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(common.NewAdminContext(), &issueVariant)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedIssueVariant).NotTo(BeNil(), "issueVariant should be returned")
+		})
+	})
 })
 
 var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"), func() {
@@ -445,7 +552,6 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		id                  int64
 		filter              *entity.IssueVariantFilter
 		rs                  issue_repository.IssueRepositoryHandler
-		authz               openfga.Authorization
 		handlerContext      common.HandlerContext
 	)
 
@@ -485,5 +591,51 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		issueVariants, err := issueVariantHandler.ListIssueVariants(context.Background(), filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueVariants.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg := common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies deletion when the user lacks can_write permission on the issue variant", func() {
+			userId := int64(9903)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+			err := issueVariantHandler.DeleteIssueVariant(common.NewAdminContext(), id)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows deletion when the user has can_write permission on the issue variant", func() {
+			userId := int64(9903)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("DeleteIssueVariant", id, mock.Anything).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeIssueVariant,
+				ObjectId:   openfga.ObjectIdFromInt(id),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+			err = issueVariantHandler.DeleteIssueVariant(common.NewAdminContext(), id)
+			Expect(err).To(BeNil(), "no error should be thrown")
+		})
 	})
 })

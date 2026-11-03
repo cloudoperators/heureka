@@ -17,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 
@@ -33,6 +34,14 @@ import (
 func TestIssueMatchHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "IssueMatch Service Test Suite")
+}
+
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
 }
 
 var (
@@ -521,6 +530,61 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 				})
 			})
 		})
+
+		Context("and checking write permission for CreateIssueMatch", func() {
+			It("denies creation when the user lacks can_write permission on the parent component instance", func() {
+				userId := int64(9501)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				newIm := test.NewFakeIssueMatch()
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, ss)
+				_, err := issueMatchHandler.CreateIssueMatch(common.NewAdminContext(), &newIm)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows creation when the user has can_write permission on the parent component instance", func() {
+				userId := int64(9501)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				issueVariants = test.NNewFakeIssueVariants(1)
+				repositories = test.NNewFakeIssueRepositories(1)
+				issueVariants[0].IssueRepositoryId = repositories[0].Id
+				irFilter.Id = []*int64{&repositories[0].Id}
+
+				newIm := test.NewFakeIssueMatch()
+				ivFilter.IssueId = []*int64{&newIm.IssueId}
+				newIm.Severity = issueVariants[0].Severity
+
+				db.On("CreateIssueMatch", &newIm).Return(&newIm, nil)
+				db.On("GetIssueVariants", mock.Anything, ivFilter, mock.Anything).Return([]entity.IssueVariantResult{
+					{
+						IssueVariant: &issueVariants[0],
+					},
+				}, nil)
+
+				irResults := make([]entity.IssueRepositoryResult, 0, len(repositories))
+				for _, ir := range repositories {
+					irResults = append(irResults, entity.IssueRepositoryResult{IssueRepository: &ir})
+				}
+
+				db.On("GetIssueRepositories", mock.Anything, irFilter, mock.Anything).Return(irResults, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeComponentInstance,
+					ObjectId:   openfga.ObjectIdFromInt(newIm.ComponentInstanceId),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, ss)
+				newIssueMatch, err := issueMatchHandler.CreateIssueMatch(common.NewAdminContext(), &newIm)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(newIssueMatch).NotTo(BeNil(), "issueMatch should be returned")
+			})
+		})
 	})
 })
 
@@ -650,6 +714,41 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 				remainingNew, err := handlerContext.Authz.ListRelations(newRelation)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+			})
+		})
+
+		Context("and checking write permission for UpdateIssueMatch", func() {
+			It("denies the update when the user lacks can_write permission on the issue match", func() {
+				userId := int64(9502)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				_, err := issueMatchHandler.UpdateIssueMatch(common.NewAdminContext(), issueMatch.IssueMatch)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows the update when the user has can_write permission on the issue match", func() {
+				userId := int64(9502)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("UpdateIssueMatch", issueMatch.IssueMatch).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeIssueMatch,
+					ObjectId:   openfga.ObjectIdFromInt(issueMatch.Id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				filter.Id = []*int64{&issueMatch.Id}
+				db.On("GetIssueMatches", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
+
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(common.NewAdminContext(), issueMatch.IssueMatch)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(updatedIssueMatch).NotTo(BeNil(), "issueMatch should be returned")
 			})
 		})
 	})
@@ -803,6 +902,37 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 						Expect(ok).To(BeFalse(), "permission should NOT be granted")
 					}
 				})
+			})
+		})
+
+		Context("and checking write permission for DeleteIssueMatch", func() {
+			It("denies deletion when the user lacks can_write permission on the issue match", func() {
+				userId := int64(9503)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				err := issueMatchHandler.DeleteIssueMatch(common.NewAdminContext(), id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows deletion when the user has can_write permission on the issue match", func() {
+				userId := int64(9503)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("DeleteIssueMatch", id, mock.Anything).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeIssueMatch,
+					ObjectId:   openfga.ObjectIdFromInt(id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				err = issueMatchHandler.DeleteIssueMatch(common.NewAdminContext(), id)
+				Expect(err).To(BeNil(), "no error should be thrown")
 			})
 		})
 	})

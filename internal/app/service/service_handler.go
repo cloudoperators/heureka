@@ -38,8 +38,9 @@ func NewServiceHandler(handlerContext common.HandlerContext) ServiceHandler {
 			ListEventFn: func(f *entity.ServiceFilter, o *entity.ListOptions, r *entity.List[entity.ServiceResult]) any {
 				return &ListServicesEvent{Filter: f, Options: o, Services: r}
 			},
-			DeleteFn:      handlerContext.DB.DeleteService,
-			DeleteEventFn: func(id int64) any { return &DeleteServiceEvent{ServiceID: id} },
+			DeleteFn:             handlerContext.DB.DeleteService,
+			DeleteEventFn:        func(id int64) any { return &DeleteServiceEvent{ServiceID: id} },
+			AuthzWriteObjectType: openfga.TypeService,
 		}),
 	}
 }
@@ -92,6 +93,10 @@ func (s *serviceHandler) ListServices(
 func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Service) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 
+	if err := s.CheckSystemAdminPermission(ctx, op); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	service.BaseService.CreatedBy, err = common.GetCurrentUserId(ctx, s.DB())
@@ -124,6 +129,10 @@ func (s *serviceHandler) UpdateService(ctx context.Context, service *entity.Serv
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(service.Id, 10)
 
+	if _, err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, service.Id); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	service.BaseService.UpdatedBy, err = common.GetCurrentUserId(ctx, s.DB())
@@ -147,6 +156,10 @@ func (s *serviceHandler) DeleteService(ctx context.Context, id int64) error {
 func (s *serviceHandler) AddOwnerToService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 
+	if _, err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
+
 	if err := s.DB().AddOwnerToService(serviceId, ownerId); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
@@ -158,6 +171,10 @@ func (s *serviceHandler) AddOwnerToService(ctx context.Context, serviceId, owner
 
 func (s *serviceHandler) RemoveOwnerFromService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
 
 	if err := s.DB().RemoveOwnerFromService(serviceId, ownerId); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
@@ -174,6 +191,14 @@ func (s *serviceHandler) AddIssueRepositoryToService(
 ) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 
+	if _, err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueRepositoryId); err != nil {
+		return nil, err
+	}
+
 	if err := s.DB().AddIssueRepositoryToService(serviceId, issueRepositoryId, priority); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
@@ -188,6 +213,14 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(
 	serviceId, issueRepositoryId int64,
 ) (*entity.Service, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueRepositoryId); err != nil {
+		return nil, err
+	}
 
 	if err := s.DB().RemoveIssueRepositoryFromService(serviceId, issueRepositoryId); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)

@@ -41,8 +41,9 @@ func NewComponentInstanceHandler(hc common.HandlerContext) ComponentInstanceHand
 			ListEventFn: func(f *entity.ComponentInstanceFilter, o *entity.ListOptions, r *entity.List[entity.ComponentInstanceResult]) any {
 				return &ListComponentInstancesEvent{Filter: f, Options: o, ComponentInstances: r}
 			},
-			DeleteFn:      hc.DB.DeleteComponentInstance,
-			DeleteEventFn: func(id int64) any { return &DeleteComponentInstanceEvent{ComponentInstanceID: id} },
+			DeleteFn:             hc.DB.DeleteComponentInstance,
+			DeleteEventFn:        func(id int64) any { return &DeleteComponentInstanceEvent{ComponentInstanceID: id} },
+			AuthzWriteObjectType: openfga.TypeComponentInstance,
 		}),
 	}
 }
@@ -109,6 +110,10 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 		})
 
 		return nil, wrappedErr
+	}
+
+	if _, err := ci.CheckWritePermission(ctx, op, "Service", openfga.TypeService, componentInstance.ServiceId); err != nil {
+		return nil, err
 	}
 
 	componentInstance.UpdatedBy = componentInstance.CreatedBy
@@ -182,6 +187,10 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(
 	}
 
 	id := strconv.FormatInt(componentInstance.Id, 10)
+
+	if _, err := ci.CheckWritePermission(ctx, op, "ComponentInstance", openfga.TypeComponentInstance, componentInstance.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 

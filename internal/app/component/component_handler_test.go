@@ -5,6 +5,7 @@ package component_test
 
 import (
 	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -26,6 +28,14 @@ import (
 func TestComponentHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Component Service Test Suite")
+}
+
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
 }
 
 var (
@@ -353,6 +363,43 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 				})
 			})
 		})
+
+		Context("and checking write permission for CreateComponent", func() {
+			It("denies creation when the user lacks admin permission on the system role", func() {
+				userId := int64(9201)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				newComp := test.NewFakeComponentEntity()
+				componentHandler = c.NewComponentHandler(handlerContext)
+				_, err := componentHandler.CreateComponent(common.NewAdminContext(), &newComp)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows creation when the user has admin permission on the system role", func() {
+				userId := int64(9201)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelAdmin,
+					ObjectType: openfga.TypeRole,
+					ObjectId:   openfga.SystemRoleId,
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				newComp := test.NewFakeComponentEntity()
+				filter.CCRN = []*string{&newComp.CCRN}
+				db.On("CreateComponent", &newComp).Return(&newComp, nil)
+				db.On("GetComponents", mock.Anything, filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
+
+				componentHandler = c.NewComponentHandler(handlerContext)
+				newComponent, err := componentHandler.CreateComponent(common.NewAdminContext(), &newComp)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(newComponent).NotTo(BeNil(), "component should be returned")
+			})
+		})
 	})
 })
 
@@ -402,6 +449,56 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		By("setting fields", func() {
 			Expect(updatedComponent.CCRN).To(BeEquivalentTo(component.CCRN))
 			Expect(updatedComponent.Type).To(BeEquivalentTo(component.Type))
+		})
+	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("denies the update when the user lacks can_write permission on the component", func() {
+			userId := int64(9202)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+			componentHandler = c.NewComponentHandler(handlerContext)
+			_, err := componentHandler.UpdateComponent(common.NewAdminContext(), component.Component)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows the update when the user has can_write permission on the component", func() {
+			userId := int64(9202)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+			db.On("UpdateComponent", component.Component).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(userId),
+				Relation:   openfga.RelCanWrite,
+				ObjectType: openfga.TypeComponent,
+				ObjectId:   openfga.ObjectIdFromInt(component.Id),
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			filter.Id = []*int64{&component.Id}
+			db.On("GetComponents", mock.Anything, filter, []entity.Order{}).Return([]entity.ComponentResult{component}, nil)
+
+			componentHandler = c.NewComponentHandler(handlerContext)
+			updatedComponent, err := componentHandler.UpdateComponent(common.NewAdminContext(), component.Component)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedComponent).NotTo(BeNil(), "component should be returned")
 		})
 	})
 })
@@ -555,6 +652,37 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 						Expect(ok).To(BeFalse(), "permission should NOT be granted")
 					}
 				})
+			})
+		})
+
+		Context("and checking write permission for DeleteComponent", func() {
+			It("denies deletion when the user lacks can_write permission on the component", func() {
+				userId := int64(9203)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				componentHandler = c.NewComponentHandler(handlerContext)
+				err := componentHandler.DeleteComponent(common.NewAdminContext(), id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows deletion when the user has can_write permission on the component", func() {
+				userId := int64(9203)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("DeleteComponent", id, mock.Anything).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelCanWrite,
+					ObjectType: openfga.TypeComponent,
+					ObjectId:   openfga.ObjectIdFromInt(id),
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				componentHandler = c.NewComponentHandler(handlerContext)
+				err = componentHandler.DeleteComponent(common.NewAdminContext(), id)
+				Expect(err).To(BeNil(), "no error should be thrown")
 			})
 		})
 	})

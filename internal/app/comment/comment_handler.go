@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 )
 
 type commentHandler struct {
@@ -28,6 +29,7 @@ func NewCommentHandler(hc common.HandlerContext) CommentHandler {
 				GetFn:        hc.DB.GetComments,
 				CursorsFn:    hc.DB.GetAllCommentCursors,
 				CountFn:      hc.DB.CountComments,
+				Authz:        hc.Authz,
 				ListEventFn: func(f *entity.CommentFilter, o *entity.ListOptions, r *entity.List[entity.CommentResult]) any {
 					return &ListCommentsEvent{Filter: f, Options: o, Results: r}
 				},
@@ -46,6 +48,10 @@ func (ch *commentHandler) CreateComment(
 	ctx context.Context, comment *entity.Comment,
 ) (*entity.Comment, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := ch.CheckWritePermission(ctx, op, "IssueMatch", openfga.TypeIssueMatch, comment.IssueMatchId); err != nil {
+		return nil, err
+	}
 
 	var err error
 

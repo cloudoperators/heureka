@@ -5,6 +5,7 @@ package user_test
 
 import (
 	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -26,6 +28,14 @@ import (
 func TestUserHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "User Service Test Suite")
+}
+
+func expectPermissionDenied(err error) {
+	Expect(err).ToNot(BeNil(), "an error should be thrown")
+
+	var appErr *appErrors.Error
+	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
 }
 
 var (
@@ -350,6 +360,69 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 			Expect(updatedUser.UniqueUserID).To(BeEquivalentTo(user.UniqueUserID))
 		})
 	})
+
+	Context("when authz is enabled", func() {
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			handlerContext.Authz.RemoveAllRelations()
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		It("allows a user to update themselves without any admin permission", func() {
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{user.Id}, nil)
+			db.On("UpdateUser", &user).Return(nil)
+
+			filter.Id = []*int64{&user.Id}
+			db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{{User: &user}}, nil)
+
+			userHandler = u.NewUserHandler(handlerContext)
+			updatedUser, err := userHandler.UpdateUser(common.NewAdminContext(), &user)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedUser).NotTo(BeNil(), "user should be returned")
+		})
+
+		It("denies updating another user when the acting user lacks admin permission", func() {
+			actingUserId := int64(9701)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{actingUserId}, nil)
+
+			userHandler = u.NewUserHandler(handlerContext)
+			_, err := userHandler.UpdateUser(common.NewAdminContext(), &user)
+
+			expectPermissionDenied(err)
+		})
+
+		It("allows updating another user when the acting user has admin permission", func() {
+			actingUserId := int64(9701)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{actingUserId}, nil)
+			db.On("UpdateUser", &user).Return(nil)
+
+			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(actingUserId),
+				Relation:   openfga.RelAdmin,
+				ObjectType: openfga.TypeRole,
+				ObjectId:   openfga.SystemRoleId,
+			})
+			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+			filter.Id = []*int64{&user.Id}
+			db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{{User: &user}}, nil)
+
+			userHandler = u.NewUserHandler(handlerContext)
+			updatedUser, err := userHandler.UpdateUser(common.NewAdminContext(), &user)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedUser).NotTo(BeNil(), "user should be returned")
+		})
+	})
 })
 
 var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
@@ -532,6 +605,37 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 						Expect(ok).To(BeFalse(), "permission should NOT be granted")
 					}
 				})
+			})
+		})
+
+		Context("and checking admin permission for DeleteUser", func() {
+			It("denies deletion when the user lacks admin permission on the system role", func() {
+				userId := int64(9702)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+
+				userHandler = u.NewUserHandler(handlerContext)
+				err := userHandler.DeleteUser(common.NewAdminContext(), id)
+
+				expectPermissionDenied(err)
+			})
+
+			It("allows deletion when the user has admin permission on the system role", func() {
+				userId := int64(9702)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
+				db.On("DeleteUser", id, mock.Anything).Return(nil)
+
+				err := handlerContext.Authz.AddRelation(openfga.RelationInput{
+					UserType:   openfga.TypeUser,
+					UserId:     openfga.UserIdFromInt(userId),
+					Relation:   openfga.RelAdmin,
+					ObjectType: openfga.TypeRole,
+					ObjectId:   openfga.SystemRoleId,
+				})
+				Expect(err).To(BeNil(), "no error should be thrown when adding relation")
+
+				userHandler = u.NewUserHandler(handlerContext)
+				err = userHandler.DeleteUser(common.NewAdminContext(), id)
+				Expect(err).To(BeNil(), "no error should be thrown")
 			})
 		})
 	})

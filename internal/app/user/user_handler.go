@@ -89,12 +89,18 @@ func (u *userHandler) UpdateUser(ctx context.Context, user *entity.User) (*entit
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(user.Id, 10)
 
-	var err error
-
-	user.UpdatedBy, err = common.GetCurrentUserId(ctx, u.DB())
+	currentUserId, err := common.GetCurrentUserId(ctx, u.DB())
 	if err != nil {
 		return nil, appErrors.InternalError(string(op), "User", id, err)
 	}
+
+	if currentUserId != user.Id {
+		if err := u.CheckSystemAdminPermission(ctx, op); err != nil {
+			return nil, err
+		}
+	}
+
+	user.UpdatedBy = currentUserId
 
 	if err = u.DB().UpdateUser(user); err != nil {
 		return nil, appErrors.InternalError(string(op), "User", id, err)
@@ -120,6 +126,12 @@ func (u *userHandler) UpdateUser(ctx context.Context, user *entity.User) (*entit
 }
 
 func (u *userHandler) DeleteUser(ctx context.Context, id int64) error {
+	op := appErrors.CallerOp()
+
+	if err := u.CheckSystemAdminPermission(ctx, op); err != nil {
+		return err
+	}
+
 	return u.Delete(ctx, id)
 }
 
