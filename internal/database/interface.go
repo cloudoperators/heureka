@@ -179,6 +179,7 @@ type Database interface {
 	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error
 
 	Autopatch(context.Context) (bool, error)
+	Autoclean(context.Context, uint64) error
 
 	// Batch pre-load methods for GetVulnerabilities query optimization
 	GetMaxSeverityByIssueIDs(context.Context, []int64) (map[int64]string, error)
