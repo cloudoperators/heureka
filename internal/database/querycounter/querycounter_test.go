@@ -41,7 +41,7 @@ var _ = Describe("Query Counter", Label("QueryCount"), func() {
 		})
 	})
 	When("GetQueryCount with concurrent increments", func() {
-		It("Returns number equal to number of increments ensruring concurrent safety", func() {
+		It("Returns number equal to number of increments ensuring concurrent safety", func() {
 			ctx := querycounter.Init(context.Background())
 
 			const goroutines = 100
