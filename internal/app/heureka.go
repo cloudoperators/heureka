@@ -211,10 +211,26 @@ func (h *HeurekaApp) SubscribeHandlers() {
 	}
 }
 
-func (h *HeurekaApp) onRemediationChange(_ database.Database, _ event.Event, _ openfga.Authorization) {
-	if h.mve != nil {
-		h.mve.TriggerAsync()
+func (h *HeurekaApp) onRemediationChange(_ database.Database, e event.Event, _ openfga.Authorization) {
+	if h.mve == nil {
+		return
 	}
+
+	// Update the severity MV rows for the affected (service, issue) right away so a
+	// rescore's new severity is visible without waiting for the full refresh.
+	switch ev := e.(type) {
+	case *remediation.CreateRemediationEvent:
+		if ev.Remediation != nil {
+			h.mve.TargetedVulnerabilityRefresh(ev.Remediation.ServiceId, ev.Remediation.IssueId)
+		}
+	case *remediation.UpdateRemediationEvent:
+		if ev.Remediation != nil {
+			h.mve.TargetedVulnerabilityRefresh(ev.Remediation.ServiceId, ev.Remediation.IssueId)
+		}
+	}
+
+	// Refresh the remaining MV tables (counts) in the background.
+	h.mve.TriggerAsync()
 }
 
 func (h *HeurekaApp) registerMveCallbacks() {

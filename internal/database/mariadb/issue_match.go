@@ -229,6 +229,28 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *entity.IssueMatchFilter, en
 			IssueMatch: im,
 		}
 	},
+
+	// Fast cursor path for pageInfo.pages on the 8.9M-row table: when ordered only
+	// by issuematch_id (the default), the cursor needs just the id, so we skip
+	// selecting IM.* and building the full entity (reflection + CVSS decode per row).
+	// Produces byte-identical cursors to RowToData for this order; any other order
+	// falls back to the full path.
+	FastCursorColumns: []string{"IM.issuematch_id"},
+	FastCursorEligible: func(order []entity.Order) bool {
+		for _, o := range order {
+			if o.By != entity.IssueMatchId {
+				return false
+			}
+		}
+
+		return true
+	},
+	FastRowToCursor: func(e RowComposite, order []entity.Order) string {
+		im := entity.IssueMatch{Id: GetInt64Value(e.IssueMatchRow.Id)}
+		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
+
+		return cursor
+	},
 }
 
 func (s *SqlDatabase) GetAllIssueMatchIds(ctx context.Context, filter *entity.IssueMatchFilter) ([]int64, error) {
