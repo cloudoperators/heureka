@@ -6,7 +6,6 @@
 DROP INDEX idx_im_target_remediation_date ON IssueMatch;
 DROP INDEX idx_im_created_at              ON IssueMatch;
 DROP INDEX idx_im_rating                  ON IssueMatch;
-DROP INDEX idx_im_status                  ON IssueMatch;
 DROP INDEX idx_im_acknowledged            ON IssueMatch;
 
 DROP INDEX idx_ci_region    ON ComponentInstance;
