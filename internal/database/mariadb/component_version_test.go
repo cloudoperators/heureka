@@ -835,7 +835,14 @@ var _ = Describe("Ordering ComponentVersions", func() {
 
 		It("can order by repository", func() {
 			sort.Slice(seedCollection.ComponentVersionRows, func(i, j int) bool {
-				return seedCollection.ComponentVersionRows[i].Repository.String < seedCollection.ComponentVersionRows[j].Repository.String
+				ri := seedCollection.ComponentVersionRows[i].Repository.String
+				rj := seedCollection.ComponentVersionRows[j].Repository.String
+				if ri != rj {
+					return ri < rj
+				}
+				// repository is non-unique, so the query appends the primary
+				// key (id ASC) as a stable tiebreak; mirror that here.
+				return seedCollection.ComponentVersionRows[i].Id.Int64 < seedCollection.ComponentVersionRows[j].Id.Int64
 			})
 
 			order := []entity.Order{
@@ -877,7 +884,14 @@ var _ = Describe("Ordering ComponentVersions", func() {
 
 		It("can order by repository", func() {
 			sort.Slice(seedCollection.ComponentVersionRows, func(i, j int) bool {
-				return seedCollection.ComponentVersionRows[i].Repository.String > seedCollection.ComponentVersionRows[j].Repository.String
+				ri := seedCollection.ComponentVersionRows[i].Repository.String
+				rj := seedCollection.ComponentVersionRows[j].Repository.String
+				if ri != rj {
+					return ri > rj
+				}
+				// repository is non-unique, so the query appends the primary
+				// key (id ASC) as a stable tiebreak; mirror that here.
+				return seedCollection.ComponentVersionRows[i].Id.Int64 < seedCollection.ComponentVersionRows[j].Id.Int64
 			})
 
 			order := []entity.Order{
