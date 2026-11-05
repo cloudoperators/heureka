@@ -36,8 +36,6 @@ func loadOverride(name string, v any) (bool, error) {
 	return true, nil
 }
 
-// mustOverride applies an override fixture if present, logging and ignoring a
-// missing file but failing fast on a malformed one.
 func mustOverride(name string, v any) {
 	used, err := loadOverride(name, v)
 	if err != nil {
@@ -48,10 +46,31 @@ func mustOverride(name string, v any) {
 	}
 }
 
-// writeFixture persists v as pretty JSON under fixturesDir (used by record mode).
 func writeFixture(name string, b []byte) error {
 	if err := os.MkdirAll(fixturesDir, 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(fixturesDir, name+".json"), b, 0o644)
+
+	tmp, err := os.CreateTemp(fixturesDir, name+".*.tmp")
+	if err != nil {
+		return err
+	}
+
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+
+	if _, err := tmp.Write(b); err != nil {
+		tmp.Close()
+		return err
+	}
+
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	if err := os.Chmod(tmpName, 0o644); err != nil {
+		return err
+	}
+
+	return os.Rename(tmpName, filepath.Join(fixturesDir, name+".json"))
 }

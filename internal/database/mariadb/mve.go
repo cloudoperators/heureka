@@ -22,6 +22,7 @@ type MvEngine struct {
 	once              sync.Once
 	cfg               util.Config
 	triggerMu         sync.Mutex
+	refreshMu         sync.Mutex
 	running           bool
 	pending           bool
 	OnRefreshComplete func()
@@ -44,6 +45,16 @@ func TriggerMVE(cfg util.Config) error {
 	return runInBackground(db, MVProcedures).Wait()
 }
 
+// runFullRefresh serializes the whole build-and-swap cycle (scheduled run and async
+// trigger alike) under refreshMu, so no two full refreshes collide on the shared
+// _tmp/_old tables and no swap lands on top of a concurrent targeted write.
+func (mve *MvEngine) runFullRefresh() error {
+	mve.refreshMu.Lock()
+	defer mve.refreshMu.Unlock()
+
+	return TriggerMVE(mve.cfg)
+}
+
 func (mve *MvEngine) Start() {
 	periodMinutes := mve.cfg.DBMvCalcPeriodMinutes
 	if periodMinutes <= 0 {
@@ -53,7 +64,7 @@ func (mve *MvEngine) Start() {
 	logrus.Debugf("MVE scheduling period set to %d minutes", periodMinutes)
 
 	_, err := mve.scheduler.Every(periodMinutes).Minutes().SingletonMode().Do(func() {
-		err := TriggerMVE(mve.cfg)
+		err := mve.runFullRefresh()
 		if err != nil {
 			logrus.WithError(err).Error("MVE Trigger error")
 		}
@@ -124,7 +135,7 @@ func (mve *MvEngine) TriggerAsync() {
 					}
 				}()
 
-				if err := TriggerMVE(mve.cfg); err != nil {
+				if err := mve.runFullRefresh(); err != nil {
 					logrus.WithError(err).Error("MVE async trigger error")
 					return
 				}
@@ -139,6 +150,38 @@ func (mve *MvEngine) TriggerAsync() {
 
 func (mve *MvEngine) WaitForFirstRun() {
 	<-mve.firstRunDone
+}
+
+// TargetedVulnerabilityRefresh recomputes only the mvVulnerabilityList and
+// mvVulnerabilityService rows affected by a remediation on (serviceID, issueID), so
+// a rescore's new severity shows up without waiting for a full MV refresh. Cheap
+// (one issue + one service/issue key); the count tables are reconciled by the full
+// refresh. It takes refreshMu so it cannot run while a full refresh is mid build-and-
+// swap: otherwise a swap of a snapshot taken before the rescore committed would revert
+// this write until the next full refresh.
+func (mve *MvEngine) TargetedVulnerabilityRefresh(serviceID, issueID int64) {
+	db, err := NewDb(mve.cfg)
+	if err != nil {
+		logrus.WithError(err).Error("targeted vulnerability MV refresh: could not create db")
+		return
+	}
+
+	defer func() {
+		_ = db.Close()
+	}()
+
+	mve.refreshMu.Lock()
+	err = RefreshVulnerabilityForRemediation(context.Background(), db, serviceID, issueID)
+	mve.refreshMu.Unlock()
+
+	if err != nil {
+		logrus.WithError(err).Warn("targeted vulnerability MV refresh failed; full refresh will reconcile")
+		return
+	}
+
+	if cb := mve.OnRefreshComplete; cb != nil {
+		cb()
+	}
 }
 
 ////////// Internals
