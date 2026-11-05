@@ -926,6 +926,61 @@ func RefreshMVVulnerabilityService(ctx context.Context, db DBTX) error {
 	return SwapTmpTables(ctx, db, "mvVulnerabilityService")
 }
 
+// RefreshMVComponentVersionVulnerability populates the (component_version, issue)
+// junction with the issue's max IssueVariant severity and earliest remediation date,
+// scoped to issues that have a 'new' IssueMatch on an instance of that component
+// version. Mirrors the live aggregation the nested image/component-version
+// "vulnerabilities" resolver used to run per request.
+func RefreshMVComponentVersionVulnerability(ctx context.Context, db DBTX) error {
+	if err := PrepareTmpTables(ctx, db, "mvComponentVersionVulnerability"); err != nil {
+		return err
+	}
+
+	effectiveRating := effectiveRatingCol("IM.issuematch_rating")
+	rescoreJoinExpr, rescoreJoinArgs := latestRescoreJoin("CI.componentinstance_service_id", "IM.issuematch_issue_id")
+
+	selectBuilder := sq.
+		Select(
+			"CV.componentversion_id",
+			"I.issue_id",
+			fmt.Sprintf(
+				`ELT(
+					MAX(FIELD(%s, 'None', 'Low', 'Medium', 'High', 'Critical')),
+					'None', 'Low', 'Medium', 'High', 'Critical'
+				)`,
+				effectiveRating,
+			),
+			"MIN(IM.issuematch_target_remediation_date)",
+		).
+		From("IssueMatch IM").
+		Join("ComponentInstance CI ON IM.issuematch_component_instance_id = CI.componentinstance_id").
+		Join("ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id").
+		Join("Issue I ON IM.issuematch_issue_id = I.issue_id").
+		LeftJoin(rescoreJoinExpr, rescoreJoinArgs...).
+		Where("IM.issuematch_status = 'new'").
+		Where("IM.issuematch_deleted_at IS NULL").
+		Where("I.issue_type = 'Vulnerability'").
+		Where("I.issue_deleted_at IS NULL").
+		Where("CI.componentinstance_deleted_at IS NULL").
+		Where("CV.componentversion_deleted_at IS NULL").
+		GroupBy("CV.componentversion_id", "I.issue_id")
+
+	insertSQL, args, err := sq.
+		Insert("mvComponentVersionVulnerability_tmp").
+		Columns("component_version_id", "issue_id", "max_severity", "earliest_remediation_date").
+		Select(selectBuilder).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	if _, err = db.ExecContext(ctx, insertSQL, args...); err != nil {
+		return err
+	}
+
+	return SwapTmpTables(ctx, db, "mvComponentVersionVulnerability")
+}
+
 func RefreshMVComponentService(ctx context.Context, db DBTX) error {
 	if err := PrepareTmpTables(ctx, db, "mvComponentService"); err != nil {
 		return err
