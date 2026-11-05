@@ -837,6 +837,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 			sort.Slice(seedCollection.ComponentVersionRows, func(i, j int) bool {
 				ri := seedCollection.ComponentVersionRows[i].Repository.String
 				rj := seedCollection.ComponentVersionRows[j].Repository.String
+
 				if ri != rj {
 					return ri < rj
 				}
@@ -886,6 +887,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 			sort.Slice(seedCollection.ComponentVersionRows, func(i, j int) bool {
 				ri := seedCollection.ComponentVersionRows[i].Repository.String
 				rj := seedCollection.ComponentVersionRows[j].Repository.String
+
 				if ri != rj {
 					return ri > rj
 				}
