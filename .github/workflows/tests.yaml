@@ -50,5 +50,13 @@ jobs:
         run: make gqlgen
       - name: Start OpenFGA server
         run: docker compose -f docker-compose.yaml --profile openfga up -d
+      - name: Raise MariaDB max_connections
+        # The MV engine fans out one transaction per procedure list concurrently,
+        # and each test schema keeps its own pool; the stock default (151) is too
+        # low for that combined load. GitHub service containers don't support a
+        # command override, so set it at runtime once the DB is healthy.
+        run: |
+          mariadb -h 127.0.0.1 -P 3306 -u root -pmy_password \
+            -e "SET GLOBAL max_connections = 512;"
       - name: Run Tests
         run: ginkgo --trace -r -randomize-all -randomize-suites

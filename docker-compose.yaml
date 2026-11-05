@@ -23,6 +23,7 @@ services:
       --innodb_file_per_table=1
       --tmp_table_size=128M
       --max_heap_table_size=128M
+      --max_connections=512
     profiles:
       - db
     environment:
