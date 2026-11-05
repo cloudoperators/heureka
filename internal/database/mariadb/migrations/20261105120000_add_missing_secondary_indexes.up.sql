@@ -29,13 +29,20 @@ CREATE INDEX idx_im_rating                  ON IssueMatch (issuematch_deleted_at
 CREATE INDEX idx_im_acknowledged            ON IssueMatch (issuematch_deleted_at, issuematch_acknowledged);
 
 -- Tier 2: ComponentInstance label columns (filtered + cursor-sorted)
-CREATE INDEX idx_ci_region    ON ComponentInstance (componentinstance_deleted_at, componentinstance_region);
-CREATE INDEX idx_ci_cluster   ON ComponentInstance (componentinstance_deleted_at, componentinstance_cluster);
-CREATE INDEX idx_ci_namespace ON ComponentInstance (componentinstance_deleted_at, componentinstance_namespace);
-CREATE INDEX idx_ci_domain    ON ComponentInstance (componentinstance_deleted_at, componentinstance_domain);
-CREATE INDEX idx_ci_project   ON ComponentInstance (componentinstance_deleted_at, componentinstance_project);
-CREATE INDEX idx_ci_pod       ON ComponentInstance (componentinstance_deleted_at, componentinstance_pod);
-CREATE INDEX idx_ci_container ON ComponentInstance (componentinstance_deleted_at, componentinstance_container);
+--
+-- The label columns are VARCHAR(1024). At utf8mb4 (4 bytes/char) a full-width
+-- key column is 4096 bytes on its own -- already past InnoDB's 3072-byte max
+-- key length -- so we index a 255-character prefix of each. 255 chars retains
+-- more than enough selectivity for these labels while keeping the composite
+-- (deleted_at + prefix) comfortably within the limit. componentinstance_type is
+-- a narrow ENUM and needs no prefix.
+CREATE INDEX idx_ci_region    ON ComponentInstance (componentinstance_deleted_at, componentinstance_region(255));
+CREATE INDEX idx_ci_cluster   ON ComponentInstance (componentinstance_deleted_at, componentinstance_cluster(255));
+CREATE INDEX idx_ci_namespace ON ComponentInstance (componentinstance_deleted_at, componentinstance_namespace(255));
+CREATE INDEX idx_ci_domain    ON ComponentInstance (componentinstance_deleted_at, componentinstance_domain(255));
+CREATE INDEX idx_ci_project   ON ComponentInstance (componentinstance_deleted_at, componentinstance_project(255));
+CREATE INDEX idx_ci_pod       ON ComponentInstance (componentinstance_deleted_at, componentinstance_pod(255));
+CREATE INDEX idx_ci_container ON ComponentInstance (componentinstance_deleted_at, componentinstance_container(255));
 CREATE INDEX idx_ci_type      ON ComponentInstance (componentinstance_deleted_at, componentinstance_type);
 
 -- Tier 3: ComponentVersion filter-only columns
