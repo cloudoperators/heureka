@@ -56,7 +56,7 @@ jobs:
         # low for that combined load. GitHub service containers don't support a
         # command override, so set it at runtime once the DB is healthy.
         run: |
-          mariadb -h 127.0.0.1 -P 3306 -u root -pmy_password \
+          mysql -h 127.0.0.1 -P 3306 -u root -pmy_password \
             -e "SET GLOBAL max_connections = 512;"
       - name: Run Tests
         run: ginkgo --trace -r -randomize-all -randomize-suites
