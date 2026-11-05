@@ -56,7 +56,7 @@ func Connect(cfg util.Config) (*sqlx.DB, error) {
 		return nil, err
 	}
 
-	db.SetConnMaxLifetime(time.Second * 5)
+	db.SetConnMaxLifetime(time.Duration(cfg.DBConnMaxLifetimeSec) * time.Second)
 	db.SetMaxIdleConns(cfg.DBMaxIdleConnections)
 	db.SetMaxOpenConns(cfg.DBMaxOpenConnections)
 
