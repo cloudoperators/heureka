@@ -477,12 +477,14 @@ func NewImage(component *entity.Component) Image {
 
 func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 	return ImageVersion{
-		ID:         fmt.Sprintf("%d", componentVersion.Id),
-		Tag:        &componentVersion.Tag,
-		Version:    &componentVersion.Version,
-		Repository: &componentVersion.Repository,
-		Metadata:   getModelMetadata(componentVersion.Metadata),
-		EndOfLife:  componentVersion.EndOfLife,
+		ID:            fmt.Sprintf("%d", componentVersion.Id),
+		Tag:           &componentVersion.Tag,
+		Version:       &componentVersion.Version,
+		Repository:    &componentVersion.Repository,
+		Metadata:      getModelMetadata(componentVersion.Metadata),
+		EndOfLife:     componentVersion.EndOfLife,
+		LatestVersion: componentVersion.LatestVersion,
+		IsOutdated:    componentVersion.IsOutdated,
 	}
 }
 
@@ -714,14 +716,16 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 
 func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVersion {
 	return ComponentVersion{
-		ID:           fmt.Sprintf("%d", componentVersion.Id),
-		Version:      &componentVersion.Version,
-		ComponentID:  new(fmt.Sprintf("%d", componentVersion.ComponentId)),
-		Repository:   &componentVersion.Repository,
-		Organization: &componentVersion.Organization,
-		Tag:          &componentVersion.Tag,
-		Metadata:     getModelMetadata(componentVersion.Metadata),
-		EndOfLife:    componentVersion.EndOfLife,
+		ID:            fmt.Sprintf("%d", componentVersion.Id),
+		Version:       &componentVersion.Version,
+		ComponentID:   new(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Repository:    &componentVersion.Repository,
+		Organization:  &componentVersion.Organization,
+		Tag:           &componentVersion.Tag,
+		Metadata:      getModelMetadata(componentVersion.Metadata),
+		EndOfLife:     componentVersion.EndOfLife,
+		LatestVersion: componentVersion.LatestVersion,
+		IsOutdated:    componentVersion.IsOutdated,
 	}
 }
 
@@ -732,12 +736,13 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	}
 
 	return entity.ComponentVersion{
-		Version:      lo.FromPtr(componentVersion.Version),
-		ComponentId:  componentId,
-		Repository:   lo.FromPtr(componentVersion.Repository),
-		Organization: lo.FromPtr(componentVersion.Organization),
-		Tag:          lo.FromPtr(componentVersion.Tag),
-		EndOfLife:    componentVersion.EndOfLife,
+		Version:       lo.FromPtr(componentVersion.Version),
+		ComponentId:   componentId,
+		Repository:    lo.FromPtr(componentVersion.Repository),
+		Organization:  lo.FromPtr(componentVersion.Organization),
+		Tag:           lo.FromPtr(componentVersion.Tag),
+		EndOfLife:     componentVersion.EndOfLife,
+		LatestVersion: componentVersion.LatestVersion,
 	}
 }
 

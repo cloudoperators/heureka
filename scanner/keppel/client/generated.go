@@ -154,6 +154,7 @@ type ComponentVersion struct {
 	Id          string `json:"id"`
 	Version     string `json:"version"`
 	ComponentId string `json:"componentId"`
+	EndOfLife   bool   `json:"endOfLife"`
 }
 
 // GetId returns ComponentVersion.Id, and is useful for accessing the field via an interface.
@@ -164,6 +165,9 @@ func (v *ComponentVersion) GetVersion() string { return v.Version }
 
 // GetComponentId returns ComponentVersion.ComponentId, and is useful for accessing the field via an interface.
 func (v *ComponentVersion) GetComponentId() string { return v.ComponentId }
+
+// GetEndOfLife returns ComponentVersion.EndOfLife, and is useful for accessing the field via an interface.
+func (v *ComponentVersion) GetEndOfLife() bool { return v.EndOfLife }
 
 // ComponentVersionConnection includes the requested fields of the GraphQL type ComponentVersionConnection.
 type ComponentVersionConnection struct {
@@ -237,12 +241,13 @@ func (v *ComponentVersionFilter) GetOrganization() []string { return v.Organizat
 func (v *ComponentVersionFilter) GetEndOfLife() []bool { return v.EndOfLife }
 
 type ComponentVersionInput struct {
-	Version      string `json:"version"`
-	ComponentId  string `json:"componentId"`
-	Tag          string `json:"tag"`
-	Repository   string `json:"repository"`
-	Organization string `json:"organization"`
-	EndOfLife    bool   `json:"endOfLife"`
+	Version       string  `json:"version"`
+	ComponentId   string  `json:"componentId"`
+	Tag           string  `json:"tag"`
+	Repository    string  `json:"repository"`
+	Organization  string  `json:"organization"`
+	EndOfLife     bool    `json:"endOfLife"`
+	LatestVersion *string `json:"latestVersion,omitempty"`
 }
 
 // GetVersion returns ComponentVersionInput.Version, and is useful for accessing the field via an interface.
@@ -262,6 +267,9 @@ func (v *ComponentVersionInput) GetOrganization() string { return v.Organization
 
 // GetEndOfLife returns ComponentVersionInput.EndOfLife, and is useful for accessing the field via an interface.
 func (v *ComponentVersionInput) GetEndOfLife() bool { return v.EndOfLife }
+
+// GetLatestVersion returns ComponentVersionInput.LatestVersion, and is useful for accessing the field via an interface.
+func (v *ComponentVersionInput) GetLatestVersion() *string { return v.LatestVersion }
 
 // ComponentVersions includes the requested fields of the GraphQL type ComponentVersionConnection.
 type ComponentVersions struct {
@@ -423,10 +431,13 @@ func (v *IssueFilter) GetSearch() []string { return v.Search }
 func (v *IssueFilter) GetAllServices() bool { return v.AllServices }
 
 type IssueInput struct {
-	PrimaryName string     `json:"primaryName"`
-	Description string     `json:"description"`
-	Uuid        string     `json:"uuid"`
-	Type        IssueTypes `json:"type"`
+	PrimaryName             string     `json:"primaryName"`
+	Description             string     `json:"description"`
+	Uuid                    string     `json:"uuid"`
+	Type                    IssueTypes `json:"type"`
+	KnownExploited          bool       `json:"knownExploited"`
+	KnownExploitedAddedDate string     `json:"knownExploitedAddedDate"`
+	KnownExploitedDueDate   string     `json:"knownExploitedDueDate"`
 }
 
 // GetPrimaryName returns IssueInput.PrimaryName, and is useful for accessing the field via an interface.
@@ -440,6 +451,15 @@ func (v *IssueInput) GetUuid() string { return v.Uuid }
 
 // GetType returns IssueInput.Type, and is useful for accessing the field via an interface.
 func (v *IssueInput) GetType() IssueTypes { return v.Type }
+
+// GetKnownExploited returns IssueInput.KnownExploited, and is useful for accessing the field via an interface.
+func (v *IssueInput) GetKnownExploited() bool { return v.KnownExploited }
+
+// GetKnownExploitedAddedDate returns IssueInput.KnownExploitedAddedDate, and is useful for accessing the field via an interface.
+func (v *IssueInput) GetKnownExploitedAddedDate() string { return v.KnownExploitedAddedDate }
+
+// GetKnownExploitedDueDate returns IssueInput.KnownExploitedDueDate, and is useful for accessing the field via an interface.
+func (v *IssueInput) GetKnownExploitedDueDate() string { return v.KnownExploitedDueDate }
 
 type IssueMatchStatusValues string
 
@@ -934,6 +954,7 @@ mutation CreateComponentVersion ($input: ComponentVersionInput!) {
 		id
 		version
 		componentId
+		endOfLife
 	}
 }
 `
@@ -1154,6 +1175,7 @@ query ListComponentVersions ($filter: ComponentVersionFilter) {
 				id
 				version
 				componentId
+				endOfLife
 			}
 		}
 	}
@@ -1201,6 +1223,7 @@ query ListComponents ($filter: ComponentFilter, $first: Int, $after: String) {
 							id
 							version
 							componentId
+							endOfLife
 						}
 					}
 				}

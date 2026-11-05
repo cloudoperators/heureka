@@ -11,6 +11,8 @@ type ImageVersion implements Node {
     vulnerabilityCounts: SeverityCounts
     metadata: Metadata
     endOfLife: Boolean
+    latestVersion: String
+    isOutdated: Boolean
 }
 
 type ImageVersionConnection implements Connection {
@@ -33,4 +35,5 @@ input ImageVersionFilter {
     repository: [String]
     state: [StateFilter!]
     endOfLife: [Boolean]
+    isOutdated: [Boolean]
 }
