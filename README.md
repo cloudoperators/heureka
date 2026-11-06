@@ -89,6 +89,12 @@ The application can be started by using the provided Makefile:
 make start-all-heureka
 ```
 
+### Local scanner environment
+
+To run and test the `k8s-assets` and `keppel` scanners locally against a
+[kind](https://kind.sigs.k8s.io/) cluster and an in-repo keppel mock (no remote cluster or
+registry needed), see [docs/local-environment.md](./docs/local-environment.md).
+
 ### Devcontainers
 
 Devcontainers is a new standard for development environments based on (docker)

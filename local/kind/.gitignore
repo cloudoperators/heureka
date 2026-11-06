@@ -1,0 +1,3 @@
+# The kubeconfig exported by `kind export kubeconfig` is machine-local and
+# contains cluster credentials — never commit it.
+kubeconfig
