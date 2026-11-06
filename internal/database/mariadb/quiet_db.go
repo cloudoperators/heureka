@@ -22,6 +22,10 @@ func (qdb *QuietDb) Exec(query string, args ...any) (sql.Result, error) {
 	return qdb.db.Exec(query, args...)
 }
 
+func (qdb *QuietDb) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return qdb.db.ExecContext(ctx, query, args...)
+}
+
 func (qdb *QuietDb) Get(dest any, query string, args ...any) error {
 	return qdb.db.Get(dest, query, args...)
 }

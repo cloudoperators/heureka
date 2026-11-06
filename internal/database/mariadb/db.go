@@ -32,6 +32,7 @@ type SqlRows interface {
 type Db interface {
 	Close() error
 	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	Get(dest any, query string, args ...any) error
 	GetDbInstance() *sql.DB
 	Preparex(query string) (Stmt, error)

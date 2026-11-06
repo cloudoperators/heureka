@@ -7,7 +7,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/Masterminds/squirrel"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -69,75 +68,81 @@ var _ = Describe("Autoclean", Label("database", "Autoclean"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	When("Running autoclean", Label("Autoclean"), func() {
-		Context("With retention set to 1", func() {
+	When("Running autoclean with retention set to 1", func() {
+		It("Should leave only one (latest) scannerrun per tag in database", func() {
 			err := db.Autoclean(context.Background(), 1)
 			Expect(err).To(BeNil())
-			It("Should leave only one (latest) scannerrun per tag in database", func() {
-				scannerRuns := fetchScannerRuns(db.GetDb())
-				for tag, srs := range scannerRuns {
-					Expect(srs).To(HaveLen(1))
 
-					ts := getScannerRunTimestamp(db.GetDb(), srs[0])
-					Expect(ts).To(BeEquivalentTo(scannerruns[tag][len(scannerruns[tag])-1].Timestamp))
-				}
-			})
+			scannerRuns := fetchScannerRuns(db.GetDb())
+			for tag, srs := range scannerRuns {
+				Expect(srs).To(HaveLen(1))
+
+				ts := getScannerRunTimestamp(db.GetDb(), srs[0])
+				Expect(*ts).To(BeEquivalentTo(scannerruns[tag][len(scannerruns[tag])-1].Timestamp))
+			}
 		})
-		Context("With retention set to 0", func() {
+	})
+	When("Running autoclean with retention set to 0", func() {
+		It("Should not remove any scannerrun from database", func() {
 			err := db.Autoclean(context.Background(), 0)
 			Expect(err).To(BeNil())
-			It("Should not remove any scannerrun from database", func() {
-				scannerRuns := fetchScannerRuns(db.GetDb())
-				for tag, srs := range scannerRuns {
-					expectedTagTimestamps := lo.Map(scannerruns[tag], func(sr test.ScannerRunWithAssociatedData, _ int) time.Time { return sr.Timestamp })
-					actualTagTimestamps := []time.Time{}
-					for _, sr := range srs {
-						ts := getScannerRunTimestamp(db.GetDb(), sr)
-						actualTagTimestamps = append(actualTagTimestamps, *ts)
-					}
 
-					Expect(actualTagTimestamps).To(ConsistOf(expectedTagTimestamps))
+			scannerRuns := fetchScannerRuns(db.GetDb())
+			for tag, srs := range scannerRuns {
+				expectedTagTimestamps := lo.Map(scannerruns[tag], func(sr test.ScannerRunWithAssociatedData, _ int) time.Time { return sr.Timestamp })
+				actualTagTimestamps := []time.Time{}
+
+				for _, sr := range srs {
+					ts := getScannerRunTimestamp(db.GetDb(), sr)
+					actualTagTimestamps = append(actualTagTimestamps, *ts)
 				}
-			})
+
+				Expect(actualTagTimestamps).To(ConsistOf(expectedTagTimestamps))
+			}
 		})
-		Context("Tracker", func() {
+	})
+	When("Runing autoclean for tracker", func() {
+		It("Should remove associated scannerrun trackers of removed run from database", func() {
 			err := db.Autoclean(context.Background(), 1)
 			Expect(err).To(BeNil())
-			It("Should remove associated scannerrun trackers of removed run from database", func() {
-				scannerRuns := fetchScannerRuns(db.GetDb())
 
-				allExistingScannerRunIds := []int64{}
-				for _, srs := range scannerRuns {
-					allExistingScannerRunIds = append(allExistingScannerRunIds, srs...)
+			scannerRuns := fetchScannerRuns(db.GetDb())
+
+			allExistingScannerRunIds := []int64{}
+			for _, srs := range scannerRuns {
+				allExistingScannerRunIds = append(allExistingScannerRunIds, srs...)
+			}
+
+			scannerRunIdsForAllTrackers := getScannerRunIdsForAllTrackers(db.GetDb())
+
+			expectedNumberOfTrackers := 0
+
+			for _, srs := range scannerruns {
+				if len(srs) > 0 {
+					expectedNumberOfTrackers += srs[len(srs)-1].TrackersCnt
 				}
+			}
 
-				scannerRunIdsForAllTrackers := getScannerRunIdsForAllTrackers(db.GetDb())
+			Expect(scannerRunIdsForAllTrackers).To(HaveLen(expectedNumberOfTrackers))
 
-				expectedNumberOfTrackers := 0
-				for _, srs := range scannerruns {
-					if len(srs) > 0 {
-						expectedNumberOfTrackers += srs[len(srs)-1].TrackersCnt
-					}
-				}
-
-				Expect(scannerRunIdsForAllTrackers).To(HaveLen(expectedNumberOfTrackers))
-
-				Expect(scannerRunIdsForAllTrackers).To(ContainElements(allExistingScannerRunIds))
-			})
+			for _, tid := range scannerRunIdsForAllTrackers {
+				Expect(tid).To(BeElementOf(allExistingScannerRunIds))
+			}
 		})
-		Context("Errors", func() {
+	})
+	When("Running autoclean for errors", func() {
+		It("Should remove associated scannerrun errors of removed run from database", func() {
 			err := db.Autoclean(context.Background(), 1)
 			Expect(err).To(BeNil())
-			It("Should remove associated scannerrun errors of removed run from database", func() {
-				expectedErrors := []string{}
-				for _, sr := range scannerruns {
-					expectedErrors = append(expectedErrors, sr[len(sr)-1].ErrorMsgs...)
-				}
 
-				errs := getAllScannerRunErrors(db.GetDb())
+			expectedErrors := []string{}
+			for _, sr := range scannerruns {
+				expectedErrors = append(expectedErrors, sr[len(sr)-1].ErrorMsgs...)
+			}
 
-				Expect(errs).To(ConsistOf(expectedErrors))
-			})
+			errs := getAllScannerRunErrors(db.GetDb())
+
+			Expect(errs).To(ConsistOf(expectedErrors))
 		})
 	})
 })
@@ -151,6 +156,7 @@ func fetchScannerRuns(db mariadb.Db) map[string][]int64 {
 
 	rows, err := db.Query(query, args...)
 	Expect(err).To(BeNil())
+
 	defer rows.Close()
 
 	runs := map[string][]int64{}
@@ -175,15 +181,17 @@ func fetchScannerRuns(db mariadb.Db) map[string][]int64 {
 func getScannerRunTimestamp(db mariadb.Db, srid int64) *time.Time {
 	query, args, err := sq.Select("scannerrun_end_run").
 		From("ScannerRun").
-		Where(squirrel.Eq{"scannerrun_run_id": srid}).
+		Where(sq.Eq{"scannerrun_run_id": srid}).
 		ToSql()
 	Expect(err).To(BeNil())
 
 	rows, err := db.Query(query, args...)
 	Expect(err).To(BeNil())
+
 	defer rows.Close()
 
 	var ts time.Time
+
 	err = db.QueryRow(query, args...).Scan(&ts)
 	Expect(err).To(BeNil())
 
@@ -196,14 +204,17 @@ func getAllScannerRunErrors(db mariadb.Db) []string {
 
 	rows, err := db.Query(query, args...)
 	Expect(err).To(BeNil())
+
 	defer rows.Close()
 
 	var errorTexts []string
 
 	for rows.Next() {
 		var errMsg string
+
 		err := rows.Scan(&errMsg)
 		Expect(err).To(BeNil())
+
 		errorTexts = append(errorTexts, errMsg)
 	}
 
@@ -212,7 +223,7 @@ func getAllScannerRunErrors(db mariadb.Db) []string {
 	return errorTexts
 }
 
-func getScannerRunIdsForAllTrackers(db mariadb.Db) []string {
+func getScannerRunIdsForAllTrackers(db mariadb.Db) []int64 {
 	query, args, err := sq.Select("scannerruncomponentinstancetracker_scannerrun_run_id").
 		From("ScannerRunComponentInstanceTracker").
 		ToSql()
@@ -220,18 +231,21 @@ func getScannerRunIdsForAllTrackers(db mariadb.Db) []string {
 
 	rows, err := db.Query(query, args...)
 	Expect(err).To(BeNil())
+
 	defer rows.Close()
 
-	var tags []string
+	var ids []int64
 
 	for rows.Next() {
-		var tag string
-		err := rows.Scan(&tag)
+		var id int64
+
+		err := rows.Scan(&id)
 		Expect(err).To(BeNil())
-		tags = append(tags, tag)
+
+		ids = append(ids, id)
 	}
 
 	Expect(rows.Err()).To(BeNil())
 
-	return tags
+	return ids
 }
