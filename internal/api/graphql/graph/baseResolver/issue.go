@@ -138,8 +138,8 @@ func IssueBaseResolver(
 		Search: filter.Search,
 
 		IssueMatchStatus:                nil, //@todo Implement
-		IssueMatchDiscoveryDate:         nil, //@todo Implement
-		IssueMatchTargetRemediationDate: nil, //@todo Implement
+		IssueMatchDiscoveryDate:         mapDateTimeFilter(filter.DiscoveryDate),
+		IssueMatchTargetRemediationDate: mapDateTimeFilter(filter.TargetRemediationDate),
 		State:                           model.GetStateFilterType(filter.State),
 	}
 
@@ -233,8 +233,8 @@ func IssueNameBaseResolver(
 		IssueRepositoryId:               irId,
 		Search:                          filter.Search,
 		IssueMatchStatus:                nil, //@todo Implement
-		IssueMatchDiscoveryDate:         nil, //@todo Implement
-		IssueMatchTargetRemediationDate: nil, //@todo Implement
+		IssueMatchDiscoveryDate:         mapDateTimeFilter(filter.DiscoveryDate),
+		IssueMatchTargetRemediationDate: mapDateTimeFilter(filter.TargetRemediationDate),
 		State:                           model.GetStateFilterType(filter.State),
 	}
 

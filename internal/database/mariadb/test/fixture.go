@@ -2325,6 +2325,252 @@ func (s *DatabaseSeeder) RefreshMVVulnerabilityService() error {
 	return mariadb.TxCall(mariadb.RefreshMVVulnerabilityService, context.Background(), s.db)
 }
 
+// InsertFakeIssueMatchAt inserts an IssueMatch with a specific created_at timestamp, which
+// the regular InsertFakeIssueMatch omits (letting the DB default to NOW()). This is needed
+// to place matches into a known time bucket for trend query tests.
+func (s *DatabaseSeeder) InsertFakeIssueMatchAt(im mariadb.IssueMatchRow, createdAt time.Time) (int64, error) {
+	im.CreatedAt = sql.NullTime{Time: createdAt, Valid: true}
+
+	query := `
+		INSERT INTO IssueMatch (
+			issuematch_status,
+			issuematch_acknowledged,
+			issuematch_component_instance_id,
+			issuematch_vector,
+			issuematch_rating,
+			issuematch_issue_id,
+			issuematch_user_id,
+			issuematch_remediation_date,
+			issuematch_target_remediation_date,
+			issuematch_deleted_at,
+			issuematch_created_at,
+			issuematch_created_by,
+			issuematch_updated_by
+		) VALUES (
+			:issuematch_status,
+			:issuematch_acknowledged,
+			:issuematch_component_instance_id,
+			:issuematch_vector,
+			:issuematch_rating,
+			:issuematch_issue_id,
+			:issuematch_user_id,
+			:issuematch_remediation_date,
+			:issuematch_target_remediation_date,
+			:issuematch_deleted_at,
+			:issuematch_created_at,
+			:issuematch_created_by,
+			:issuematch_updated_by
+		)`
+
+	return s.ExecPreparedNamed(query, im)
+}
+
+// IssueTrendSeedData holds the entities created by SeedForIssueTrend with enough
+// information for tests to compute expected bucket counts independently.
+type IssueTrendSeedData struct {
+	// Service1 belongs to SupportGroup1 only.
+	// Service2 belongs to both SupportGroup1 and SupportGroup2 (the fan-out service).
+	Service1      mariadb.BaseServiceRow
+	Service2      mariadb.BaseServiceRow
+	SupportGroup1 mariadb.SupportGroupRow
+	SupportGroup2 mariadb.SupportGroupRow
+	IssueMatches  []mariadb.IssueMatchRow
+	// BucketDate is the day bucket all matches land in.
+	BucketDate time.Time
+}
+
+// SeedForIssueTrend seeds a deterministic dataset for IssueTrend query tests.
+//
+// Layout (all matches on the same day → one bucket):
+//
+//	Service1 → SupportGroup1
+//	Service2 → SupportGroup1, SupportGroup2  (multi-group: verifies no fan-out)
+//
+// Each IssueMatch gets its own distinct Issue so that COUNT(DISTINCT (component_id, issue_id))
+// equals the number of matches — matching the deduplication logic used by the MV tables.
+//
+// Matches per service (CI per service, one issue each):
+//
+//	Service1: 2 × Critical (issues[0,1], remediated), 1 × High (issues[2], new)
+//	Service2: 1 × Critical (issues[3], remediated), 1 × Medium (issues[4], remediated), 1 × Low (issues[5], new)
+//
+// "Remediated" means an active Remediation record exists for (service_id, issue_id) —
+// consistent with how the MV tables count remediated issues.
+//
+// Total across both services (no filter): 3 critical, 1 high, 1 medium, 1 low → total=6, remediated=3
+// SupportGroup1 filter (service1 + service2):         same → 6, remediated=3
+// SupportGroup2 filter (service2 only):               1 critical, 1 medium, 1 low → total=3, remediated=2
+func (s *DatabaseSeeder) SeedForIssueTrend() (*IssueTrendSeedData, error) {
+	components := s.SeedComponents(1)
+	if len(components) == 0 {
+		return nil, fmt.Errorf("failed to seed components")
+	}
+
+	componentVersions := s.SeedComponentVersions(1, components)
+	if len(componentVersions) == 0 {
+		return nil, fmt.Errorf("failed to seed component versions")
+	}
+
+	users := s.SeedUsers(1)
+	if len(users) == 0 {
+		return nil, fmt.Errorf("failed to seed users")
+	}
+
+	issues := s.SeedIssues(6)
+	if len(issues) < 6 {
+		return nil, fmt.Errorf("failed to seed issues")
+	}
+
+	service1 := NewFakeBaseService()
+
+	svc1Id, err := s.InsertFakeBaseService(service1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to seed service1: %w", err)
+	}
+
+	service1.Id = sql.NullInt64{Int64: svc1Id, Valid: true}
+
+	service2 := NewFakeBaseService()
+
+	svc2Id, err := s.InsertFakeBaseService(service2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to seed service2: %w", err)
+	}
+
+	service2.Id = sql.NullInt64{Int64: svc2Id, Valid: true}
+
+	sg1 := NewFakeSupportGroup()
+
+	sg1Id, err := s.InsertFakeSupportGroup(sg1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to seed support group 1: %w", err)
+	}
+
+	sg1.Id = sql.NullInt64{Int64: sg1Id, Valid: true}
+
+	sg2 := NewFakeSupportGroup()
+
+	sg2Id, err := s.InsertFakeSupportGroup(sg2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to seed support group 2: %w", err)
+	}
+
+	sg2.Id = sql.NullInt64{Int64: sg2Id, Valid: true}
+
+	// service1 → sg1
+	sgs1 := mariadb.SupportGroupServiceRow{
+		ServiceId:      service1.Id,
+		SupportGroupId: sg1.Id,
+	}
+
+	if _, err = s.InsertFakeSupportGroupService(sgs1); err != nil {
+		return nil, fmt.Errorf("failed to link service1 to sg1: %w", err)
+	}
+
+	// service2 → sg1 (fan-out test: service2 in both groups)
+	sgs2 := mariadb.SupportGroupServiceRow{
+		ServiceId:      service2.Id,
+		SupportGroupId: sg1.Id,
+	}
+
+	if _, err = s.InsertFakeSupportGroupService(sgs2); err != nil {
+		return nil, fmt.Errorf("failed to link service2 to sg1: %w", err)
+	}
+
+	// service2 → sg2
+	sgs3 := mariadb.SupportGroupServiceRow{
+		ServiceId:      service2.Id,
+		SupportGroupId: sg2.Id,
+	}
+
+	if _, err = s.InsertFakeSupportGroupService(sgs3); err != nil {
+		return nil, fmt.Errorf("failed to link service2 to sg2: %w", err)
+	}
+
+	ci1 := NewFakeComponentInstance()
+	ci1.ServiceId = service1.Id
+	ci1.ComponentVersionId = componentVersions[0].Id
+
+	ci1Id, err := s.InsertFakeComponentInstance(ci1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to seed ci1: %w", err)
+	}
+
+	ci1.Id = sql.NullInt64{Int64: ci1Id, Valid: true}
+
+	ci2 := NewFakeComponentInstance()
+	ci2.ServiceId = service2.Id
+	ci2.ComponentVersionId = componentVersions[0].Id
+
+	ci2Id, err := s.InsertFakeComponentInstance(ci2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to seed ci2: %w", err)
+	}
+
+	ci2.Id = sql.NullInt64{Int64: ci2Id, Valid: true}
+
+	bucketDate := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+
+	type matchSpec struct {
+		ci          mariadb.ComponentInstanceRow
+		serviceCCRN string
+		issue       mariadb.IssueRow
+		rating      string
+		remediated  bool
+	}
+
+	specs := []matchSpec{
+		{ci1, service1.CCRN.String, issues[0], "Critical", true},
+		{ci1, service1.CCRN.String, issues[1], "Critical", true},
+		{ci1, service1.CCRN.String, issues[2], "High", false},
+		{ci2, service2.CCRN.String, issues[3], "Critical", true},
+		{ci2, service2.CCRN.String, issues[4], "Medium", true},
+		{ci2, service2.CCRN.String, issues[5], "Low", false},
+	}
+
+	var issueMatches []mariadb.IssueMatchRow
+
+	for _, spec := range specs {
+		im := NewFakeIssueMatch()
+		im.ComponentInstanceId = spec.ci.Id
+		im.IssueId = spec.issue.Id
+		im.UserId = users[0].Id
+		im.Rating = sql.NullString{String: spec.rating, Valid: true}
+		im.Status = sql.NullString{String: entity.IssueMatchStatusValuesNew.String(), Valid: true}
+
+		imId, err := s.InsertFakeIssueMatchAt(im, bucketDate)
+		if err != nil {
+			return nil, fmt.Errorf("failed to seed issue match: %w", err)
+		}
+
+		im.Id = sql.NullInt64{Int64: imId, Valid: true}
+		issueMatches = append(issueMatches, im)
+
+		if spec.remediated {
+			r := NewFakeRemediation()
+			r.ServiceId = spec.ci.ServiceId
+			r.Service = sql.NullString{String: spec.serviceCCRN, Valid: true}
+			r.IssueId = spec.issue.Id
+			r.Issue = spec.issue.PrimaryName
+			r.ExpirationDate = sql.NullTime{Valid: false}
+			r.Type = sql.NullString{String: "mitigation", Valid: true}
+
+			if _, err := s.InsertFakeRemediation(r); err != nil {
+				return nil, fmt.Errorf("failed to seed remediation: %w", err)
+			}
+		}
+	}
+
+	return &IssueTrendSeedData{
+		Service1:      service1,
+		Service2:      service2,
+		SupportGroup1: sg1,
+		SupportGroup2: sg2,
+		IssueMatches:  issueMatches,
+		BucketDate:    bucketDate,
+	}, nil
+}
+
 func (s *DatabaseSeeder) RefreshMVComponentService() error {
 	// 11
 	return mariadb.TxCall(mariadb.RefreshMVComponentService, context.Background(), s.db)
