@@ -263,6 +263,10 @@ func (h *HeurekaApp) SubscribeAuthzHandlers() {
 			issue_variant.CreateIssueVariantEventName,
 			event.EventHandlerFunc(issue_variant.OnIssueVariantCreateAuthz),
 		},
+		{
+			issue.CreateIssueEventName,
+			event.EventHandlerFunc(issue.OnIssueCreateAuthz),
+		},
 		// Delete events
 		{
 			user.DeleteUserEventName,
@@ -299,6 +303,10 @@ func (h *HeurekaApp) SubscribeAuthzHandlers() {
 		{
 			issue_variant.DeleteIssueVariantEventName,
 			event.EventHandlerFunc(issue_variant.OnIssueVariantDeleteAuthz),
+		},
+		{
+			issue.DeleteIssueEventName,
+			event.EventHandlerFunc(issue.OnIssueDeleteAuthz),
 		},
 		// Update events
 		{

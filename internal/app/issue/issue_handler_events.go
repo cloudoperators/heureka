@@ -5,6 +5,7 @@ package issue
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -12,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -243,5 +245,70 @@ func createIssueMatches(
 
 			continue
 		}
+	}
+}
+
+// OnIssueCreateAuthz is a handler for the CreateIssueEvent
+// It creates an OpenFGA relation tuple for the issue and the current user
+func OnIssueCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.CallerOp()
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueCreateAuthz",
+		"payload": e,
+	})
+
+	if createEvent, ok := e.(*CreateIssueEvent); ok {
+		userId := openfga.UserIdFromInt(createEvent.Issue.CreatedBy)
+
+		relations := []openfga.RelationInput{
+			{
+				UserType:   openfga.TypeRole,
+				UserId:     userId,
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeIssue,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.Issue.Id),
+			},
+		}
+
+		err := authz.AddRelationBulk(relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+			l.Error(wrappedErr)
+		}
+	} else {
+		err := fmt.Errorf("OnIssueCreateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		l.Error(wrappedErr)
+	}
+}
+
+// OnIssueDeleteAuthz is a handler for the DeleteIssueEvent
+func OnIssueDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.CallerOp()
+
+	deleteInput := []openfga.RelationInput{}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueDeleteAuthz",
+		"payload": e,
+	})
+
+	if deleteEvent, ok := e.(*DeleteIssueEvent); ok {
+		deleteElement := openfga.RelationInput{
+			ObjectType: openfga.TypeIssue,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.IssueID),
+		}
+		deleteInput = append(deleteInput, deleteElement)
+
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+			l.Error(wrappedErr)
+		}
+	} else {
+		err := fmt.Errorf("OnIssueDeleteAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		l.Error(wrappedErr)
 	}
 }

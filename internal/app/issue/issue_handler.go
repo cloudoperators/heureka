@@ -15,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,10 +26,18 @@ type issueHandler struct {
 func NewIssueHandler(handlerContext common.HandlerContext) IssueHandler {
 	return &issueHandler{
 		BaseHandler: common.NewBaseHandler(handlerContext, common.BaseConfig[entity.IssueResult, *entity.IssueFilter]{
-			Op:        appErrors.Op("issueHandler"),
-			Entity:    "Issues",
-			GetFn:     handlerContext.DB.GetIssues,
-			CursorsFn: handlerContext.DB.GetAllIssueCursors,
+			Op:              appErrors.Op("issueHandler"),
+			Entity:          "Issues",
+			GetFn:           handlerContext.DB.GetIssues,
+			CursorsFn:       handlerContext.DB.GetAllIssueCursors,
+			Authz:           handlerContext.Authz,
+			AuthzObjectType: openfga.TypeIssue,
+			AuthzApplyFn: func(f *entity.IssueFilter, ids []*int64) {
+				f.Id = common.CombineFilterWithAccessibleIds(f.Id, ids)
+			},
+			DeleteFn:             handlerContext.DB.DeleteIssue,
+			DeleteEventFn:        func(id int64) any { return &DeleteIssueEvent{IssueID: id} },
+			AuthzWriteObjectType: openfga.TypeIssue,
 		}),
 	}
 }
@@ -157,6 +166,10 @@ func (is *issueHandler) ListIssues(
 func (is *issueHandler) CreateIssue(ctx context.Context, issue *entity.Issue) (*entity.Issue, error) {
 	op := appErrors.CallerOp()
 
+	if err := is.CheckSystemAdminPermission(ctx, op); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	issue.CreatedBy, err = common.GetCurrentUserId(ctx, is.DB())
@@ -191,6 +204,10 @@ func (is *issueHandler) UpdateIssue(ctx context.Context, issue *entity.Issue) (*
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issue.Id, 10)
 
+	if _, err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issue.Id); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	issue.UpdatedBy, err = common.GetCurrentUserId(ctx, is.DB())
@@ -221,21 +238,7 @@ func (is *issueHandler) UpdateIssue(ctx context.Context, issue *entity.Issue) (*
 }
 
 func (is *issueHandler) DeleteIssue(ctx context.Context, id int64) error {
-	op := appErrors.CallerOp()
-	idStr := strconv.FormatInt(id, 10)
-
-	userId, err := common.GetCurrentUserId(ctx, is.DB())
-	if err != nil {
-		return appErrors.InternalError(string(op), "Issue", idStr, err)
-	}
-
-	if err = is.DB().DeleteIssue(id, userId); err != nil {
-		return appErrors.InternalError(string(op), "Issue", idStr, err)
-	}
-
-	is.PushEvent(&DeleteIssueEvent{IssueID: id})
-
-	return nil
+	return is.Delete(ctx, id)
 }
 
 func (is *issueHandler) AddComponentVersionToIssue(
@@ -243,6 +246,10 @@ func (is *issueHandler) AddComponentVersionToIssue(
 	issueId, componentVersionId int64,
 ) (*entity.Issue, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issueId); err != nil {
+		return nil, err
+	}
 
 	if err := is.DB().AddComponentVersionToIssue(issueId, componentVersionId); err != nil {
 		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
@@ -268,6 +275,10 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(
 	issueId, componentVersionId int64,
 ) (*entity.Issue, error) {
 	op := appErrors.CallerOp()
+
+	if _, err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issueId); err != nil {
+		return nil, err
+	}
 
 	if err := is.DB().RemoveComponentVersionFromIssue(issueId, componentVersionId); err != nil {
 		return nil, appErrors.InternalError(string(op), "ComponentVersionIssue",

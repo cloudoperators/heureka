@@ -50,8 +50,7 @@ type BaseConfig[R entity.HasCursor, F entity.Filter] struct {
 	AuthzApplyFn          func(filter F, accessibleIds []*int64)
 	GetWithAggregationsFn func(context.Context, F, []entity.Order) ([]R, error)
 
-	// AuthzWriteObjectType, when set, gates Delete() behind a can_write check on the object's own id.
-	// Entities with no corresponding OpenFGA type leave this unset and skip the check.
+	// AuthzWriteObjectType gates Delete() behind a can_write check on the object's own id.
 	AuthzWriteObjectType openfga.ObjectType
 }
 
@@ -129,8 +128,6 @@ func (b *BaseHandler[R, F]) CheckWritePermission(
 }
 
 // CheckSystemAdminPermission verifies the current user is admin on the system role.
-// It authorizes can_write against creation of root-level entities (Service, SupportGroup, Component)
-// or admin-only User management because there is no parent permission to reference.
 func (b *BaseHandler[R, F]) CheckSystemAdminPermission(ctx context.Context, op appErrors.Op) error {
 	currentUserId, err := GetCurrentUserId(ctx, b.db)
 	if err != nil {

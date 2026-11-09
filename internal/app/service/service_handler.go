@@ -195,10 +195,6 @@ func (s *serviceHandler) AddIssueRepositoryToService(
 		return nil, err
 	}
 
-	if _, err := s.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueRepositoryId); err != nil {
-		return nil, err
-	}
-
 	if err := s.DB().AddIssueRepositoryToService(serviceId, issueRepositoryId, priority); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
@@ -215,10 +211,6 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(
 	op := appErrors.CallerOp()
 
 	if _, err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
-		return nil, err
-	}
-
-	if _, err := s.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueRepositoryId); err != nil {
 		return nil, err
 	}
 

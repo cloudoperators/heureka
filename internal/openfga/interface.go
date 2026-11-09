@@ -44,6 +44,7 @@ const (
 	TypeIssueMatch        = "issue_match"
 	TypeIssueRepository   = "issue_repository"
 	TypeIssueVariant      = "issue_variant"
+	TypeIssue             = "issue"
 )
 
 // Relations (shared across relations tuple definitions)

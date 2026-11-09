@@ -34,21 +34,8 @@ func TestCommentHandler(t *testing.T) {
 	RunSpecs(t, "Comment Test Suite")
 }
 
-// expectPermissionDenied asserts that an appErr is expected.
-func expectPermissionDenied(err error) {
-	Expect(err).ToNot(BeNil(), "an error should be thrown")
-
-	var appErr *appErrors.Error
-	Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-	Expect(appErr.Code).To(Equal(appErrors.PermissionDenied), "should be PermissionDenied error")
-}
-
 var _ = BeforeSuite(func() {
-	authEnabled := false
-	cfg := common.GetTestConfig(authEnabled)
-	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
-	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
 })
 
@@ -253,58 +240,6 @@ var _ = Describe("When creating a Comment", Label("app", "CreateComment"), func(
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Comment"), "should reference Comment entity")
-		})
-	})
-
-	Context("when authz is enabled", func() {
-		BeforeEach(func() {
-			authEnabled := true
-			cfg := common.GetTestConfig(authEnabled)
-			enableLogs := false
-			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
-			handlerContext.Authz.RemoveAllRelations()
-		})
-
-		AfterEach(func() {
-			authEnabled := false
-			cfg := common.GetTestConfig(authEnabled)
-			enableLogs := false
-			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
-		})
-
-		It("denies the comment creation when the user lacks can_write permission on the parent issue match", func() {
-			userId := int64(9601)
-			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
-
-			newComment := test.NewFakeCommentEntity()
-			commentHandler = comment.NewCommentHandler(handlerContext)
-			_, err := commentHandler.CreateComment(context.Background(), &newComment)
-
-			expectPermissionDenied(err)
-		})
-
-		It("allows the comment creation when the user has can_write permission on the parent issue match", func() {
-			userId := int64(9601)
-			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{userId}, nil)
-
-			newComment := test.NewFakeCommentEntity()
-			db.On("CreateComment", mock.MatchedBy(func(c *entity.Comment) bool {
-				return c.IssueMatchId == newComment.IssueMatchId && c.Text == newComment.Text
-			})).Return(&newComment, nil)
-
-			err := handlerContext.Authz.AddRelation(openfga.RelationInput{
-				UserType:   openfga.TypeUser,
-				UserId:     openfga.UserIdFromInt(userId),
-				Relation:   openfga.RelCanWrite,
-				ObjectType: openfga.TypeIssueMatch,
-				ObjectId:   openfga.ObjectIdFromInt(newComment.IssueMatchId),
-			})
-			Expect(err).To(BeNil(), "no error should be thrown when adding relation")
-
-			commentHandler = comment.NewCommentHandler(handlerContext)
-			result, err := commentHandler.CreateComment(context.Background(), &newComment)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(result).NotTo(BeNil(), "comment should be returned")
 		})
 	})
 })

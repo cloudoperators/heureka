@@ -77,13 +77,31 @@ Using the event handling system, openfga tuples are modified based on the event 
 | DeleteIssueRepository   | OnIssueRepositoryDeleteAuthz   | delete user - issue_repository<br>delete role - issue_repository                                   |
 | CreateIssueVariant      | OnIssueVariantCreateAuthz      | add role - issue_variant<br>add issue_repository - issue_variant                                   |
 | DeleteIssueVariant      | OnIssueVariantDeleteAuthz      | delete all tuples referencing that issue_variant                                                  |
+| CreateIssue             | OnIssueCreateAuthz             | add role - issue                                                                                   |
+| DeleteIssue             | OnIssueDeleteAuthz             | delete all tuples referencing that issue                                                           |
 
 ## Read Permissions
 
-For various entities, get & list operations are protected by permission checks using openFGA.
-For get operations, a call to CheckPermission with the ID of the exact object attempting to be accessed is made.
-For list operations, a call to GetListOfAccessibleObjectIds is made to obtain a list of IDs to be used as a filter when querying the DB.
-If no objects are accessible, -1 is returned and used as the filter.
+For list operations, the logic lives in `BaseHandler.List()` (internal/app/common/base_handler.go), driven by two config fields every entity handler sets:
+
+- `BaseConfig.AuthzObjectType` - the object type passed to `GetListOfAccessibleObjectIds`, i.e. which type of object OpenFGA is asked "which ids of this type can the user read?".
+- `BaseConfig.AuthzApplyFn` - takes the returned ids and applies them to the DB filter for the actual list query.
+
+`AuthzObjectType` is **not always the entity's own type** - it's whichever type governs read visibility for that entity:
+
+- For entities whose own OpenFGA tuples directly grant read access (no useful "parent" to scope by), `AuthzObjectType` is the entity's own type, and `AuthzApplyFn` filters by the entity's own `Id`: Component, Issue, IssueRepository, IssueVariant, SupportGroup.
+
+- For entities whose read visibility is instead derived from a parent/owning entity, `AuthzObjectType` is that parent's type, and `AuthzApplyFn` filters by the parent's id field instead of the entity's own id:
+
+| Entity            | AuthzObjectType (scoped by) | Filter field applied      |
+|-------------------|------------------------------|---------------------------|
+| ComponentInstance | Service                      | `ServiceId`                |
+| ComponentVersion  | Component                    | `ComponentId`               |
+| IssueMatch        | ComponentInstance             | `ComponentInstanceId`       |
+| Service           | SupportGroup                  | `SupportGroupId`            |
+| User              | SupportGroup                  | `SupportGroupId`            |
+
+So for example, listing ComponentInstances doesn't check per-component-instance tuples at all - it asks "which services can this user read?" and filters component instances down to those belonging to an accessible service.
 
 ## Write Permissions
 
@@ -106,7 +124,7 @@ The write mutation checks are implemented as follows here:
 | Service           | CreateService                                                  | CheckSystemAdminPermission (system role)                                   |
 | Service           | UpdateService, DeleteService                                    | CheckWritePermission on the service itself                             |
 | Service           | AddOwnerToService, RemoveOwnerFromService                        | CheckWritePermission on the service                                     |
-| Service           | AddIssueRepositoryToService, RemoveIssueRepositoryFromService    | CheckWritePermission on both the service and the issue repository       |
+| Service           | AddIssueRepositoryToService, RemoveIssueRepositoryFromService    | CheckWritePermission on the service (the "host" entity); the issue repository being attached/detached is not separately checked |
 | SupportGroup      | CreateSupportGroup                                               | CheckSystemAdminPermission (system role)                                   |
 | SupportGroup      | UpdateSupportGroup, DeleteSupportGroup                           | CheckWritePermission on the support group itself                       |
 | SupportGroup      | AddServiceToSupportGroup, RemoveServiceFromSupportGroup, AddUserToSupportGroup, RemoveUserFromSupportGroup | CheckWritePermission on the support group |
@@ -118,7 +136,9 @@ The write mutation checks are implemented as follows here:
 | ComponentInstance | UpdateComponentInstance, DeleteComponentInstance                 | CheckWritePermission on the component instance itself                  |
 | IssueMatch        | CreateIssueMatch                                                 | CheckWritePermission on the parent component instance                  |
 | IssueMatch        | UpdateIssueMatch, DeleteIssueMatch                                | CheckWritePermission on the issue match itself                         |
-| Comment           | CreateComment                                                    | CheckWritePermission on the parent issue match                         |
+| Issue             | CreateIssue                                                      | CheckSystemAdminPermission (system role)                                   |
+| Issue             | UpdateIssue, DeleteIssue                                          | CheckWritePermission on the issue itself                                |
+| Issue             | AddComponentVersionToIssue, RemoveComponentVersionFromIssue       | CheckWritePermission on the issue (the "host" entity); the component version being attached/detached is not separately checked |
 | IssueRepository   | CreateIssueRepository                                            | CheckSystemAdminPermission (system role)                                   |
 | IssueRepository   | UpdateIssueRepository, DeleteIssueRepository                      | CheckWritePermission on the issue repository itself                    |
 | IssueVariant      | CreateIssueVariant                                               | CheckWritePermission on the parent issue repository                    |
