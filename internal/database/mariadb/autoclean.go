@@ -8,6 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,15 +17,15 @@ func (s *SqlDatabase) Autoclean(ctx context.Context, keepNRuns uint64) error {
 		return nil
 	}
 
-	runs, err := s.fetchCompletedRunsWithNewestFirst(ctx)
+	runsWithStatus, err := s.fetchRunsWithNewestFirst(ctx)
 	if err != nil {
 		return err
 	}
 
-	return s.processAutocleanOnCompletedRuns(ctx, runs, keepNRuns)
+	return s.processAutocleanOnCompletedRuns(ctx, runsWithStatus, int(keepNRuns))
 }
 
-func (s *SqlDatabase) processAutocleanOnCompletedRuns(ctx context.Context, runs map[string][]int64, keepNRuns uint64) error {
+func (s *SqlDatabase) processAutocleanOnCompletedRuns(ctx context.Context, runs map[string][]scannerRunWithStatus, keepNRuns int) error {
 	runsToDelete := getOnlyRunsToDelete(runs, keepNRuns)
 	runIdsToDelete := getRunIds(runsToDelete)
 
@@ -43,18 +44,25 @@ func (s *SqlDatabase) processAutocleanOnCompletedRuns(ctx context.Context, runs 
 	return nil
 }
 
-func getOnlyRunsToDelete(runs map[string][]int64, keepNRuns uint64) map[string][]int64 {
-	result := map[string][]int64{}
+func getOnlyRunsToDelete(runsWithStatus map[string][]scannerRunWithStatus, keepNRuns int) map[string][]int64 {
+	return lo.MapValues(runsWithStatus, func(v []scannerRunWithStatus, tag string) []int64 {
+		completedCnt := 0
 
-	for tag, tagRuns := range runs {
-		if keepNRuns >= uint64(len(tagRuns)) {
-			continue
-		} else {
-			result[tag] = tagRuns[keepNRuns:]
-		}
-	}
+		return lo.FilterMap(v, func(v0 scannerRunWithStatus, n int) (int64, bool) {
+			if v0.completed {
+				if n < keepNRuns || completedCnt < 2 {
+					completedCnt += 1
+					return 0, false
+				}
+			} else {
+				if n < keepNRuns {
+					return 0, false
+				}
+			}
 
-	return result
+			return v0.id, true
+		})
+	})
 }
 
 func getRunIds(runs map[string][]int64) []int64 {

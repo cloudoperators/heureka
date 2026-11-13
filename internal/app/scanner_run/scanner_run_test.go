@@ -23,6 +23,8 @@ func TestServiceHandler(t *testing.T) {
 	RunSpecs(t, "Service Service Test Suite")
 }
 
+const skipAutoclean = 0
+
 var (
 	er    event.EventRegistry
 	authz openfga.Authorization
@@ -54,7 +56,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	It("creates a scannerrun", func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 
-		scannerRunHandler = NewScannerRunHandler(handlerContext, 0)
+		scannerRunHandler = NewScannerRunHandler(handlerContext, skipAutoclean)
 		_, err := scannerRunHandler.CreateScannerRun(sre)
 		Expect(err).To(BeNil())
 	})
@@ -65,7 +67,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("Autopatch", mock.Anything).Return(true, nil)
 		db.On("Autoclean", mock.Anything, mock.Anything).Return(nil)
 
-		scannerRunHandler = NewScannerRunHandler(handlerContext, 0)
+		scannerRunHandler = NewScannerRunHandler(handlerContext, skipAutoclean)
 		scannerRunHandler.CreateScannerRun(sre)
 		_, err := scannerRunHandler.CompleteScannerRun(sre.UUID)
 
@@ -76,7 +78,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 		db.On("FailScannerRun", sre.UUID, "Booom!").Return(true, nil)
 
-		scannerRunHandler = NewScannerRunHandler(handlerContext, 0)
+		scannerRunHandler = NewScannerRunHandler(handlerContext, skipAutoclean)
 		scannerRunHandler.CreateScannerRun(sre)
 		_, err := scannerRunHandler.FailScannerRun(sre.UUID, "Booom!")
 
@@ -86,7 +88,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	It("Retrieves list of scannerrun tags", func() {
 		db.On("GetScannerRunTags").Return([]string{"tag1", "tag2"}, nil)
 
-		scannerRunHandler = NewScannerRunHandler(handlerContext, 0)
+		scannerRunHandler = NewScannerRunHandler(handlerContext, skipAutoclean)
 		tags, err := scannerRunHandler.GetScannerRunTags()
 
 		Expect(err).To(BeNil())
@@ -97,7 +99,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	It("Retrieves list of scannerruns", func() {
 		db.On("GetScannerRuns", &entity.ScannerRunFilter{}).Return([]entity.ScannerRun{*sre}, nil)
 
-		scannerRunHandler = NewScannerRunHandler(handlerContext, 0)
+		scannerRunHandler = NewScannerRunHandler(handlerContext, skipAutoclean)
 		scannerRuns, err := scannerRunHandler.GetScannerRuns(&entity.ScannerRunFilter{}, nil)
 
 		Expect(err).To(BeNil())

@@ -24,21 +24,15 @@ func (s *SqlDatabase) Autopatch(ctx context.Context) (bool, error) {
 	return s.processAutopatchOnCompletedRuns(ctx, runs)
 }
 
-func (s *SqlDatabase) fetchRunsWithNewestFirst(ctx context.Context, onlyCompleted bool, deleted bool) (map[string][]int64, error) {
-	cond := make(map[string]interface{})
+type scannerRunWithStatus struct {
+	id        int64
+	completed bool
+}
 
-	if onlyCompleted {
-		cond["scannerrun_is_completed"] = true
-	}
-
-	if deleted {
-		cond["scannerrun_deleted_at"] = nil
-	}
-
-	query, args, err := sq.Select("scannerrun_tag", "scannerrun_run_id").
+func (s *SqlDatabase) fetchRunsWithNewestFirst(ctx context.Context) (map[string][]scannerRunWithStatus, error) {
+	query, args, err := sq.Select("scannerrun_tag", "scannerrun_run_id", "scannerrun_is_completed").
 		From("ScannerRun").
 		OrderBy("scannerrun_tag, scannerrun_run_id DESC").
-		Where(cond).
 		ToSql()
 	if err != nil {
 		return nil, err
@@ -50,19 +44,20 @@ func (s *SqlDatabase) fetchRunsWithNewestFirst(ctx context.Context, onlyComplete
 	}
 
 	// tag -> list of runs (newest first)
-	runs := map[string][]int64{}
+	runs := map[string][]scannerRunWithStatus{}
 
 	for rows.Next() {
 		var (
-			tag string
-			id  int64
+			tag       string
+			id        int64
+			completed bool
 		)
 
-		if err := rows.Scan(&tag, &id); err != nil {
+		if err := rows.Scan(&tag, &id, &completed); err != nil {
 			return nil, err
 		}
 
-		runs[tag] = append(runs[tag], id)
+		runs[tag] = append(runs[tag], scannerRunWithStatus{id: id, completed: completed})
 	}
 
 	if rows.Err() != nil {
@@ -73,7 +68,20 @@ func (s *SqlDatabase) fetchRunsWithNewestFirst(ctx context.Context, onlyComplete
 }
 
 func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (map[string][]int64, error) {
-	return s.fetchRunsWithNewestFirst(ctx, true, true)
+	runsWithStatus, err := s.fetchRunsWithNewestFirst(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return lo.MapValues(runsWithStatus, func(v []scannerRunWithStatus, tag string) []int64 {
+		return lo.FilterMap(v, func(v0 scannerRunWithStatus, _ int) (int64, bool) {
+			if !v0.completed {
+				return 0, false
+			}
+
+			return v0.id, true
+		})
+	}), nil
 }
 
 func (s *SqlDatabase) processAutopatchOnCompletedRuns(ctx context.Context, runs map[string][]int64) (bool, error) {

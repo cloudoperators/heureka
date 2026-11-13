@@ -2344,6 +2344,7 @@ type ScannerRunWithAssociatedData struct {
 	Timestamp   time.Time
 	ErrorMsgs   []string
 	TrackersCnt int
+	Completed   bool
 }
 
 func (s *DatabaseSeeder) SeedScannerRunWithAssociatedData(srwad map[string][]ScannerRunWithAssociatedData) error {
@@ -2354,7 +2355,7 @@ func (s *DatabaseSeeder) SeedScannerRunWithAssociatedData(srwad map[string][]Sca
 				tag,
 				sr.Timestamp,
 				sr.Timestamp,
-				true,
+				sr.Completed,
 			)
 			if err != nil {
 				return fmt.Errorf("could not seed scanner run: %w", err)

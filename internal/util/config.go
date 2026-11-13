@@ -52,7 +52,7 @@ type Config struct {
 	DefaultIssuePriority     int64  `envconfig:"DEFAULT_ISSUE_PRIORITY"      default:"100"           json:"defaultIssuePriority"`
 	DefaultRepositoryName    string `envconfig:"DEFAULT_REPOSITORY_NAME"     default:"nvd"           json:"defaultRepositoryName"`
 	CurrentUser              string `envconfig:"CURRENT_USER"                default:"heureka-admin" json:"currentUser"           required:"false"`
-	ScannerRunRetentionCount uint64 `envconfig:"SCANNER_RUN_RETENTION_COUNT" default:"0"             json:"-"                     required:"false" validate:"eq=0|gt=1"`
+	ScannerRunRetentionCount uint64 `envconfig:"SCANNER_RUN_RETENTION_COUNT" default:"0"             json:"-"                     required:"false"`
 	// CurrentUser is a placeholder variable to be implemented for future user context functionality
 	CacheEnable                   bool   `envconfig:"CACHE_ENABLE"                      default:"false" json:"-"`
 	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL"                  default:""      json:"-"`
