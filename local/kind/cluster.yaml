@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# kind cluster for local scanner development.
+# Create with: kind create cluster --config local/kind/cluster.yaml
+# A single control-plane node is enough: the k8s-assets scanner only lists
+# namespaces and pods, it does not schedule real workloads.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: heureka-local
+nodes:
+  - role: control-plane

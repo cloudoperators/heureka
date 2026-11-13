@@ -188,3 +188,74 @@ openfga-up:
 
 openfga-down:
 	$(DOCKER_COMPOSE) --profile openfga down
+
+# ---------------------------------------------------------------------------
+# Local scanner development environment (kind + keppel mock).
+# See docs/local-environment.md for the full workflow.
+# ---------------------------------------------------------------------------
+KIND_CLUSTER    := heureka-local
+KIND_CONTEXT    := kind-$(KIND_CLUSTER)
+KIND_CONFIG     := local/kind/cluster.yaml
+KIND_KUBECONFIG := $(CURDIR)/local/kind/kubeconfig
+PLAYGROUND_CHART := ./scanner/playground/k8s-playground
+
+.PHONY: kind-up kind-down playground-up playground-down scan-k8s-assets-local keppel-mock-up keppel-mock-record scan-keppel-local local-up local-down
+
+# Create the kind cluster and export its kubeconfig to a fixed, git-ignored path.
+kind-up:
+	kind create cluster --config $(KIND_CONFIG)
+	kind export kubeconfig --name $(KIND_CLUSTER) --kubeconfig $(KIND_KUBECONFIG)
+
+kind-down:
+	kind delete cluster --name $(KIND_CLUSTER)
+
+# Install the sample namespaces/pods the k8s-assets scanner scans.
+playground-up:
+	helm upgrade --install k8s-playground $(PLAYGROUND_CHART) --kube-context $(KIND_CONTEXT)
+
+playground-down:
+	helm uninstall k8s-playground --kube-context $(KIND_CONTEXT)
+
+# Run the k8s-assets scanner on the host against the kind cluster, reporting to
+# the docker-compose heureka backend. Requires: kind-up, playground-up, compose-up.
+scan-k8s-assets-local:
+	cd scanner/k8s-assets && \
+		KUBE_CONFIG_TYPE=default \
+		KUBE_CONFIG_PATH=$(KIND_KUBECONFIG) \
+		HEUREKA_URL=http://localhost/query \
+		HEUREKA_CLUSTER_NAME=local-kind \
+		HEUREKA_CLUSTER_REGION=local \
+		DEFAULT_KEPPEL_REGISTRY=keppel.example.com \
+		LOG_LEVEL=debug \
+		go run .
+
+# Start the keppel mock (Keystone on :8080 HTTP, Keppel on :8443 HTTPS).
+# Runs in the foreground; use a separate terminal.
+keppel-mock-up:
+	cd scanner/keppel/mock && go run .
+
+# Refresh the mock's fixtures from a real Keppel. Requires real KEPPEL_* creds
+# plus RECORD_IDENTITY_UPSTREAM and RECORD_KEPPEL_UPSTREAM in the environment.
+keppel-mock-record:
+	cd scanner/keppel/mock && KEPPEL_RECORD=1 go run .
+
+# Run the keppel scanner on the host against the local mock, reporting to the
+# docker-compose heureka backend. Requires: keppel-mock-up, compose-up, and
+# image-shaped components in heureka (run scan-k8s-assets-local first).
+scan-keppel-local:
+	cd scanner/keppel && \
+		KEPPEL_FQDN=localhost:8443 \
+		KEPPEL_FQDN_ALIASES=docker.io \
+		IDENTITY_ENDPOINT=http://localhost:8080/v3 \
+		KEPPEL_USERNAME=dummy KEPPEL_PASSWORD=dummy KEPPEL_USER_DOMAIN=dummy \
+		KEPPEL_DOMAIN=dummy KEPPEL_PROJECT=dummy \
+		HEUREKA_URL=http://localhost/query \
+		LOG_LEVEL=debug \
+		go run .
+
+# Bring the whole local environment up (backend + cluster + sample workloads).
+local-up: compose-prepare compose-up kind-up playground-up
+
+# Tear it down WITHOUT deleting the DB (deliberately not `make stop`/`clean`).
+local-down: playground-down kind-down compose-down
+
