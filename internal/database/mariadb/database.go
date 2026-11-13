@@ -51,6 +51,10 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 	}, nil
 }
 
+func (s *SqlDatabase) GetDb() Db {
+	return s.db
+}
+
 func (s *SqlDatabase) DropSchema(name string) error {
 	_, err := s.db.Exec(fmt.Sprintf("DROP SCHEMA IF EXISTS %s", name))
 	return err

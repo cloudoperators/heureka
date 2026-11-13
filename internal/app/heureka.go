@@ -116,7 +116,7 @@ func NewHeurekaApp(
 		IssueMatchHandler:        imh,
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
-		ScannerRunHandler:        scanner_run.NewScannerRunHandler(handlerContext),
+		ScannerRunHandler:        scanner_run.NewScannerRunHandler(handlerContext, cfg.ScannerRunRetentionCount),
 		ServiceHandler:           service.NewServiceHandler(handlerContext),
 		SeverityHandler:          sh,
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(handlerContext),

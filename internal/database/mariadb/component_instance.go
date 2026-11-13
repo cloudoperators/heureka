@@ -135,6 +135,7 @@ func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.Componen
 
 func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
 	return componentInstanceObject.Delete(s.db, id, userId)
+	// TODO: should we delete trackers if exists?
 }
 
 func (s *SqlDatabase) GetCcrn(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error) {
