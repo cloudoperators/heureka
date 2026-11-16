@@ -146,7 +146,7 @@ func (at *autocleanTest) teardown() {
 	dbm.TestTearDown(at.db)
 }
 
-func (at *autocleanTest) callAutocleanAndExpectNoErrors(keepNRuns uint64) {
+func (at *autocleanTest) callAutocleanAndExpectNoErrors(keepNRuns int) {
 	err := at.db.Autoclean(context.Background(), keepNRuns)
 	Expect(err).To(BeNil())
 }

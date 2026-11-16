@@ -16,14 +16,19 @@ import (
 type scannerRunHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
-	keepNRuns     uint64
+	keepNRuns     int
 }
 
 func NewScannerRunHandler(handlerContext common.HandlerContext, keepNRuns uint64) ScannerRunHandler {
+	maxInt := int(^uint(0) >> 1)
+	if keepNRuns > uint64(maxInt) {
+		keepNRuns = uint64(maxInt)
+	}
+
 	return &scannerRunHandler{
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
-		keepNRuns:     keepNRuns,
+		keepNRuns:     int(keepNRuns),
 	}
 }
 

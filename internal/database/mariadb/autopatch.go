@@ -16,6 +16,11 @@ import (
 )
 
 func (s *SqlDatabase) Autopatch(ctx context.Context) (bool, error) {
+	if err := s.acquireScannerRunAccess(defaultTimeoutForScannerRunLock); err != nil {
+		return false, err
+	}
+	defer s.releaseScannerRunAccess()
+
 	runs, err := s.fetchCompletedRunsWithNewestFirst(ctx)
 	if err != nil {
 		return false, err
@@ -24,14 +29,13 @@ func (s *SqlDatabase) Autopatch(ctx context.Context) (bool, error) {
 	return s.processAutopatchOnCompletedRuns(ctx, runs)
 }
 
-type scannerRunWithStatus struct {
-	id        int64
-	completed bool
-}
-
-func (s *SqlDatabase) fetchRunsWithNewestFirst(ctx context.Context) (map[string][]scannerRunWithStatus, error) {
-	query, args, err := sq.Select("scannerrun_tag", "scannerrun_run_id", "scannerrun_is_completed").
+func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (map[string][]int64, error) {
+	query, args, err := sq.Select("scannerrun_tag", "scannerrun_run_id").
 		From("ScannerRun").
+		Where(sq.Eq{
+			"scannerrun_is_completed": true,
+			"scannerrun_deleted_at":   nil,
+		}).
 		OrderBy("scannerrun_tag, scannerrun_run_id DESC").
 		ToSql()
 	if err != nil {
@@ -42,22 +46,26 @@ func (s *SqlDatabase) fetchRunsWithNewestFirst(ctx context.Context) (map[string]
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	// tag -> list of runs (newest first)
-	runs := map[string][]scannerRunWithStatus{}
+	runs := map[string][]int64{}
 
 	for rows.Next() {
 		var (
-			tag       string
-			id        int64
-			completed bool
+			tag string
+			id  int64
 		)
 
-		if err := rows.Scan(&tag, &id, &completed); err != nil {
+		if err := rows.Scan(&tag, &id); err != nil {
 			return nil, err
 		}
 
-		runs[tag] = append(runs[tag], scannerRunWithStatus{id: id, completed: completed})
+		runs[tag] = append(runs[tag], id)
 	}
 
 	if rows.Err() != nil {
@@ -65,23 +73,6 @@ func (s *SqlDatabase) fetchRunsWithNewestFirst(ctx context.Context) (map[string]
 	}
 
 	return runs, nil
-}
-
-func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (map[string][]int64, error) {
-	runsWithStatus, err := s.fetchRunsWithNewestFirst(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.MapValues(runsWithStatus, func(v []scannerRunWithStatus, tag string) []int64 {
-		return lo.FilterMap(v, func(v0 scannerRunWithStatus, _ int) (int64, bool) {
-			if !v0.completed {
-				return 0, false
-			}
-
-			return v0.id, true
-		})
-	}), nil
 }
 
 func (s *SqlDatabase) processAutopatchOnCompletedRuns(ctx context.Context, runs map[string][]int64) (bool, error) {
