@@ -11,6 +11,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/sirupsen/logrus"
 )
 
 type scannerRunHandler struct {
@@ -19,10 +20,12 @@ type scannerRunHandler struct {
 	keepNRuns     int
 }
 
+const maxRetentionValue = 2000
+
 func NewScannerRunHandler(handlerContext common.HandlerContext, keepNRuns uint64) ScannerRunHandler {
-	maxInt := int(^uint(0) >> 1)
-	if keepNRuns > uint64(maxInt) {
-		keepNRuns = uint64(maxInt)
+	if keepNRuns > maxRetentionValue {
+		logrus.Warningf("Limiting max number of retentions from %d to %d", keepNRuns, maxRetentionValue)
+		keepNRuns = uint64(maxRetentionValue)
 	}
 
 	return &scannerRunHandler{
