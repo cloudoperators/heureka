@@ -14,6 +14,11 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (bool, err
 		"event":      "database.CreateScannerRun",
 	})
 
+	if err := s.acquireScannerRunAccess(defaultTimeoutForScannerRunLock); err != nil {
+		return false, err
+	}
+	defer s.releaseScannerRunAccess()
+
 	query := `
 		INSERT INTO ScannerRun (
 			scannerrun_uuid,
@@ -48,6 +53,11 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (bool, err
 }
 
 func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
+	if err := s.acquireScannerRunAccess(defaultTimeoutForScannerRunLock); err != nil {
+		return false, err
+	}
+	defer s.releaseScannerRunAccess()
+
 	updateQuery := `UPDATE ScannerRun 
 					SET 
 						scannerrun_is_completed = TRUE,
@@ -65,6 +75,11 @@ func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
 }
 
 func (s *SqlDatabase) FailScannerRun(uuid string, message string) (bool, error) {
+	if err := s.acquireScannerRunAccess(defaultTimeoutForScannerRunLock); err != nil {
+		return false, err
+	}
+	defer s.releaseScannerRunAccess()
+
 	updateScannerRunQuery := `UPDATE ScannerRun 
 					SET 
 						scannerrun_is_completed = FALSE,

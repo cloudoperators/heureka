@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
@@ -15,6 +16,11 @@ import (
 )
 
 func (s *SqlDatabase) Autopatch(ctx context.Context) (bool, error) {
+	if err := s.acquireScannerRunAccess(defaultTimeoutForScannerRunLock); err != nil {
+		return false, err
+	}
+	defer s.releaseScannerRunAccess()
+
 	runs, err := s.fetchCompletedRunsWithNewestFirst(ctx)
 	if err != nil {
 		return false, err
@@ -23,17 +29,23 @@ func (s *SqlDatabase) Autopatch(ctx context.Context) (bool, error) {
 	return s.processAutopatchOnCompletedRuns(ctx, runs)
 }
 
-func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (map[string][]int, error) {
-	rows, err := s.db.QueryContext(ctx, `
-        SELECT scannerrun_tag, scannerrun_run_id
-        FROM ScannerRun
-        WHERE scannerrun_is_completed = TRUE AND scannerrun_deleted_at IS NULL
-        ORDER BY scannerrun_tag, scannerrun_run_id DESC
-    `)
+func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (map[string][]int64, error) {
+	query, args, err := sq.Select("scannerrun_tag", "scannerrun_run_id").
+		From("ScannerRun").
+		Where(sq.Eq{
+			"scannerrun_is_completed": true,
+			"scannerrun_deleted_at":   nil,
+		}).
+		OrderBy("scannerrun_tag, scannerrun_run_id DESC").
+		ToSql()
 	if err != nil {
 		return nil, err
 	}
 
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
 	defer func() {
 		if err := rows.Close(); err != nil {
 			logrus.Warnf("error during close rows: %s", err)
@@ -41,12 +53,12 @@ func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (ma
 	}()
 
 	// tag -> list of runs (newest first)
-	runs := map[string][]int{}
+	runs := map[string][]int64{}
 
 	for rows.Next() {
 		var (
 			tag string
-			id  int
+			id  int64
 		)
 
 		if err := rows.Scan(&tag, &id); err != nil {
@@ -63,7 +75,7 @@ func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (ma
 	return runs, nil
 }
 
-func (s *SqlDatabase) processAutopatchOnCompletedRuns(ctx context.Context, runs map[string][]int) (bool, error) {
+func (s *SqlDatabase) processAutopatchOnCompletedRuns(ctx context.Context, runs map[string][]int64) (bool, error) {
 	autopatched := false
 
 	for _, tagRuns := range runs {
@@ -85,7 +97,7 @@ func (s *SqlDatabase) processAutopatchOnCompletedRuns(ctx context.Context, runs 
 	return autopatched, nil
 }
 
-func (s *SqlDatabase) processAutopatchForSingleTag(ctx context.Context, tagRuns []int) (bool, error) {
+func (s *SqlDatabase) processAutopatchForSingleTag(ctx context.Context, tagRuns []int64) (bool, error) {
 	latest := tagRuns[0]
 	secondLatest := tagRuns[1]
 
@@ -155,11 +167,11 @@ func (s *SqlDatabase) processAutopatchForSingleTag(ctx context.Context, tagRuns 
 }
 
 func getDisappearedInstances(
-	latestInstances map[int]struct{},
-	secondLatestInstances map[int]struct{},
-) []int {
+	latestInstances map[int64]struct{},
+	secondLatestInstances map[int64]struct{},
+) []int64 {
 	// Compute disappeared instances
-	var disappeared []int
+	var disappeared []int64
 
 	for inst := range secondLatestInstances {
 		if _, stillThere := latestInstances[inst]; !stillThere {
@@ -170,7 +182,7 @@ func getDisappearedInstances(
 	return disappeared
 }
 
-func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]struct{}, error) {
+func (s *SqlDatabase) getPatches(disappearedInstances []int64) (map[patchInfo]struct{}, error) {
 	patches := make(map[patchInfo]struct{})
 
 	for _, inst := range disappearedInstances {
@@ -201,7 +213,7 @@ func (s *SqlDatabase) insertPatches(patches map[patchInfo]struct{}) error {
 	return nil
 }
 
-func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(ctx context.Context, disappearedInstances []int) error {
+func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(ctx context.Context, disappearedInstances []int64) error {
 	for _, di := range disappearedInstances {
 		issueMatchFilter := entity.IssueMatchFilter{ComponentInstanceId: []*int64{new(int64(di))}}
 
@@ -222,9 +234,9 @@ func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(ctx context.Conte
 
 func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(
 	ctx context.Context,
-	disappearedInstances []int,
+	disappearedInstances []int64,
 ) (map[int64]struct{}, error) {
-	idsDisappeared := lo.Map(disappearedInstances, func(v int, _ int) *int64 {
+	idsDisappeared := lo.Map(disappearedInstances, func(v int64, _ int) *int64 {
 		vv := int64(v)
 		return &vv
 	})
@@ -318,7 +330,7 @@ func (s *SqlDatabase) deleteComponentsOfDisappearedInstances(
 	return nil
 }
 
-func (s *SqlDatabase) deleteDisappearedInstances(disappearedInstances []int) error {
+func (s *SqlDatabase) deleteDisappearedInstances(disappearedInstances []int64) error {
 	for _, di := range disappearedInstances {
 		if err := s.DeleteComponentInstance(int64(di), util.SystemUserId); err != nil {
 			return err
@@ -329,13 +341,13 @@ func (s *SqlDatabase) deleteDisappearedInstances(disappearedInstances []int) err
 }
 
 type patchInfo struct {
-	serviceId            int
+	serviceId            int64
 	serviceName          string
-	componentVersionId   int
+	componentVersionId   int64
 	componentVersionName string
 }
 
-func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int) (map[int]struct{}, error) {
+func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int64) (map[int64]struct{}, error) {
 	rows, err := s.db.Query(`
         SELECT scannerruncomponentinstancetracker_component_instance_id
         FROM ScannerRunComponentInstanceTracker
@@ -351,10 +363,10 @@ func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int) (map[int]s
 		}
 	}()
 
-	instances := map[int]struct{}{}
+	instances := map[int64]struct{}{}
 
 	for rows.Next() {
-		var id int
+		var id int64
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -365,7 +377,7 @@ func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int) (map[int]s
 	return instances, rows.Err()
 }
 
-func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int) (patchInfo, error) {
+func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int64) (patchInfo, error) {
 	query := `
         SELECT
             ci.componentinstance_service_id,

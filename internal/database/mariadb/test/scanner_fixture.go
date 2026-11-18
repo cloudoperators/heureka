@@ -510,6 +510,24 @@ func (s *DatabaseSeeder) insertScannerRunComponentInstanceTracker(
 	return err
 }
 
+func (s *DatabaseSeeder) insertScannerRunError(
+	scannerRunId int64,
+	errorText string,
+) error {
+	insertScannerRunError := `
+		INSERT INTO ScannerRunError (
+			scannerrunerror_scannerrun_run_id,
+			error
+		) VALUES (
+			?,
+			?
+		)
+	`
+	_, err := s.db.Exec(insertScannerRunError, scannerRunId, errorText)
+
+	return err
+}
+
 func (s *DatabaseSeeder) insertService(ccrn string) (int64, error) {
 	insertService := `
 	INSERT INTO Service (

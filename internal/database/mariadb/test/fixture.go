@@ -2339,3 +2339,66 @@ func (s *DatabaseSeeder) RefreshAllComponentsByServiceVulnerabilityCounts() erro
 	// 12b
 	return mariadb.TxCall(mariadb.RefreshMVAllComponentsByServiceVulnerabilityCounts, context.Background(), s.db)
 }
+
+type ScannerRunWithAssociatedData struct {
+	Timestamp   time.Time
+	ErrorMsgs   []string
+	TrackersCnt int
+	Completed   bool
+}
+
+func (s *DatabaseSeeder) SeedScannerRunWithAssociatedData(srwad map[string][]ScannerRunWithAssociatedData) error {
+	for tag, srs := range srwad {
+		for _, sr := range srs {
+			res, err := s.insertScannerRunInstance(
+				gofakeit.UUID(),
+				tag,
+				sr.Timestamp,
+				sr.Timestamp,
+				sr.Completed,
+			)
+			if err != nil {
+				return fmt.Errorf("could not seed scanner run: %w", err)
+			}
+
+			runId, err := res.LastInsertId()
+			if err != nil {
+				return fmt.Errorf("could not read scanner run insert result: %w", err)
+			}
+
+			for _, er := range sr.ErrorMsgs {
+				err := s.insertScannerRunError(runId, er)
+				if err != nil {
+					return fmt.Errorf("could not seed scanner run error: %w", err)
+				}
+			}
+
+			for range sr.TrackersCnt {
+				ciid, err := s.seedComponentInstance()
+				if err != nil {
+					return fmt.Errorf("could not seed component instance needed for tracker: %w", err)
+				}
+
+				err = s.insertScannerRunComponentInstanceTracker(runId, ciid)
+				if err != nil {
+					return fmt.Errorf("could not seed scanner run tracker: %w", err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *DatabaseSeeder) seedComponentInstance() (int64, error) {
+	services := s.SeedServices(1)
+	components := s.SeedComponents(1)
+	componentVersions := s.SeedComponentVersions(1, components)
+	componentInstances := s.SeedComponentInstances(1, componentVersions, services)
+
+	if !componentInstances[0].Id.Valid {
+		return 0, fmt.Errorf("CI Id not valid")
+	}
+
+	return componentInstances[0].Id.Int64, nil
+}

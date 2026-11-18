@@ -106,6 +106,11 @@ func (tdb *TraceDb) Exec(query string, args ...any) (sql.Result, error) {
 	return tdb.db.Exec(query, args...)
 }
 
+func (tdb *TraceDb) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	defer NewTrace("ExecContext", query).exitTrace()
+	return tdb.db.ExecContext(ctx, query, args...)
+}
+
 func (tdb *TraceDb) Get(dest any, query string, args ...any) error {
 	defer NewTrace("Get", query).exitTrace()
 	return tdb.db.Get(dest, query, args...)

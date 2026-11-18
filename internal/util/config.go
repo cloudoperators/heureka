@@ -24,6 +24,7 @@ type Config struct {
 	DBName                string  `envconfig:"DB_NAME"                   json:"dbDbName"             required:"true"`
 	DBMaxIdleConnections  int     `envconfig:"DB_MAX_IDLE_CONNECTIONS"   json:"dBMaxIdleConnections"                 default:"10"`
 	DBMaxOpenConnections  int     `envconfig:"DB_MAX_OPEN_CONNECTIONS"   json:"dbMaxOpenConnections"                 default:"100"`
+	DBConnMaxLifetimeSec  int     `envconfig:"DB_CONN_MAX_LIFETIME_SEC"  json:"dbConnMaxLifetimeSec"                 default:"300"`
 	DBTrace               bool    `envconfig:"DB_TRACE"                  json:"-"                                    default:"false"`
 	DBMvCalcPeriodMinutes int     `envconfig:"DB_MV_CALC_PERIOD_MINUTES" json:"-"                                    default:"200"`
 	GQLDepthLimit         int     `envconfig:"GQL_DEPTH_LIMIT"           json:"-"                                    default:"100"`
@@ -41,17 +42,18 @@ type Config struct {
 	//// https://pkg.go.dev/github.com/robfig/cron#hdr-Predefined_schedules
 	// DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *"
 	// json:"discoverySchedule"`
-	SeedMode              bool   `envconfig:"SEED_MODE"               default:"false"         json:"seedMode"              required:"false"`
-	AuthTokenSecret       string `envconfig:"AUTH_TOKEN_SECRET"                               json:"-"                     required:"false"`
-	AuthOidcClientId      string `envconfig:"AUTH_OIDC_CLIENT_ID"                             json:"-"                     required:"false"`
-	AuthOidcUrl           string `envconfig:"AUTH_OIDC_URL"                                   json:"-"                     required:"false"`
-	AuthzOpenFgaApiUrl    string `envconfig:"AUTHZ_FGA_API_URL"                               json:"-"                     required:"false"`
-	AuthzOpenFgaApiToken  string `envconfig:"AUTHZ_FGA_API_TOKEN"                             json:"-"                     required:"false"`
-	AuthzOpenFgaStoreName string `envconfig:"AUTHZ_FGA_STORE_NAME"                            json:"-"                     required:"false"`
-	AuthzModelFilePath    string `envconfig:"AUTHZ_MODEL_FILE_PATH"                           json:"-"                     required:"false"`
-	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY"  default:"100"           json:"defaultIssuePriority"`
-	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd"           json:"defaultRepositoryName"`
-	CurrentUser           string `envconfig:"CURRENT_USER"            default:"heureka-admin" json:"currentUser"           required:"false"`
+	SeedMode                 bool   `envconfig:"SEED_MODE"                   default:"false"         json:"seedMode"              required:"false"`
+	AuthTokenSecret          string `envconfig:"AUTH_TOKEN_SECRET"                                   json:"-"                     required:"false"`
+	AuthOidcClientId         string `envconfig:"AUTH_OIDC_CLIENT_ID"                                 json:"-"                     required:"false"`
+	AuthOidcUrl              string `envconfig:"AUTH_OIDC_URL"                                       json:"-"                     required:"false"`
+	AuthzOpenFgaApiUrl       string `envconfig:"AUTHZ_FGA_API_URL"                                   json:"-"                     required:"false"`
+	AuthzOpenFgaApiToken     string `envconfig:"AUTHZ_FGA_API_TOKEN"                                 json:"-"                     required:"false"`
+	AuthzOpenFgaStoreName    string `envconfig:"AUTHZ_FGA_STORE_NAME"                                json:"-"                     required:"false"`
+	AuthzModelFilePath       string `envconfig:"AUTHZ_MODEL_FILE_PATH"                               json:"-"                     required:"false"`
+	DefaultIssuePriority     int64  `envconfig:"DEFAULT_ISSUE_PRIORITY"      default:"100"           json:"defaultIssuePriority"`
+	DefaultRepositoryName    string `envconfig:"DEFAULT_REPOSITORY_NAME"     default:"nvd"           json:"defaultRepositoryName"`
+	CurrentUser              string `envconfig:"CURRENT_USER"                default:"heureka-admin" json:"currentUser"           required:"false"`
+	ScannerRunRetentionCount uint64 `envconfig:"SCANNER_RUN_RETENTION_COUNT" default:"0"             json:"-"                     required:"false"`
 	// CurrentUser is a placeholder variable to be implemented for future user context functionality
 	CacheEnable                   bool   `envconfig:"CACHE_ENABLE"                      default:"false" json:"-"`
 	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL"                  default:""      json:"-"`

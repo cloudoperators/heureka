@@ -120,6 +120,17 @@ func OrderDirectionStr(dir entity.OrderDirection) string {
 type Order struct {
 	sequence      []entity.Order
 	counterPrefix string
+	// tiebreak is appended as the final ORDER BY term to guarantee a stable,
+	// deterministic row order. Sorting by a non-unique column (e.g. a rating or
+	// a repository name) otherwise leaves tied rows in an order that depends on
+	// the access path the optimizer happens to pick, so the same query can
+	// return tied rows in a different order once an index is added or the data
+	// changes. That non-determinism also breaks keyset/cursor pagination, which
+	// relies on a total order. The per-entity primary key (carried by the
+	// DefaultOrder) is unique, so using it as the final tiebreak makes every
+	// ordered query total and reproducible.
+	tiebreak    entity.Order
+	hasTiebreak bool
 }
 
 func NewOrder(seq []entity.Order, defaultOrder entity.Order) *Order {
@@ -127,7 +138,7 @@ func NewOrder(seq []entity.Order, defaultOrder entity.Order) *Order {
 }
 
 func NewOrderWithCounterPrefix(seq []entity.Order, defaultOrder entity.Order, prefix string) *Order {
-	o := Order{counterPrefix: prefix}
+	o := Order{counterPrefix: prefix, tiebreak: defaultOrder, hasTiebreak: true}
 	if len(seq) == 0 {
 		o.sequence = []entity.Order{defaultOrder}
 	} else {
@@ -137,8 +148,26 @@ func NewOrderWithCounterPrefix(seq []entity.Order, defaultOrder entity.Order, pr
 	return &o
 }
 
+// orderSequence returns the ordering terms with a stable primary-key tiebreak
+// appended, unless the caller already orders by that key (in which case the
+// order is already total).
+func (o Order) orderSequence() []entity.Order {
+	if !o.hasTiebreak {
+		return o.sequence
+	}
+
+	alreadyOrdersByTiebreak := lo.ContainsBy(o.sequence, func(eo entity.Order) bool {
+		return eo.By == o.tiebreak.By
+	})
+	if alreadyOrdersByTiebreak {
+		return o.sequence
+	}
+
+	return append(append([]entity.Order{}, o.sequence...), o.tiebreak)
+}
+
 func (o Order) ToSql() string {
-	orderElements := lo.Map(o.sequence, func(eo entity.Order, _ int) string {
+	orderElements := lo.Map(o.orderSequence(), func(eo entity.Order, _ int) string {
 		col := ColumnName(eo.By)
 		if o.counterPrefix != "" {
 			switch eo.By {
@@ -155,7 +184,7 @@ func (o Order) ToSql() string {
 
 // TODO: remove it when GetServicesWithAggregations will use DbObject
 func (o Order) ToSqlWithPrefixAll(prefix string) string {
-	orderElements := lo.Map(o.sequence, func(eo entity.Order, _ int) string {
+	orderElements := lo.Map(o.orderSequence(), func(eo entity.Order, _ int) string {
 		col := ColumnName(eo.By)
 		if prefix != "" {
 			col = fmt.Sprintf("%s.%s", prefix, col)

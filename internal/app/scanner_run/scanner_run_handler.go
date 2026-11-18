@@ -11,17 +11,27 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/sirupsen/logrus"
 )
 
 type scannerRunHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	keepNRuns     int
 }
 
-func NewScannerRunHandler(handlerContext common.HandlerContext) ScannerRunHandler {
+const maxRetentionValue = 2000
+
+func NewScannerRunHandler(handlerContext common.HandlerContext, keepNRuns uint64) ScannerRunHandler {
+	if keepNRuns > maxRetentionValue {
+		logrus.Warningf("Limiting max number of retentions from %d to %d", keepNRuns, maxRetentionValue)
+		keepNRuns = uint64(maxRetentionValue)
+	}
+
 	return &scannerRunHandler{
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
+		keepNRuns:     int(keepNRuns),
 	}
 }
 
@@ -50,6 +60,12 @@ func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {
 	if _, err := srh.database.Autopatch(context.Background()); err != nil {
 		return false, &ScannerRunHandlerError{
 			msg: "Error executing autopatch in CompleteScannerRun",
+		}
+	}
+
+	if err := srh.database.Autoclean(context.Background(), srh.keepNRuns); err != nil {
+		return false, &ScannerRunHandlerError{
+			msg: "Error executing autoclean in CompleteScannerRun",
 		}
 	}
 
