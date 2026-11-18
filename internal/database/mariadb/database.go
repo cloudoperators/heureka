@@ -29,6 +29,8 @@ type SqlDatabase struct {
 	defaultIssuePriority  int64
 	defaultRepositoryName string
 	dbName                string
+
+	scannerRunAcc *scannerRunAccess
 }
 
 func (s *SqlDatabase) CloseConnection() error {
@@ -48,7 +50,12 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 		defaultIssuePriority:  cfg.DefaultIssuePriority,
 		defaultRepositoryName: cfg.DefaultRepositoryName,
 		dbName:                cfg.DBName,
+		scannerRunAcc:         newScannerRunAccess(),
 	}, nil
+}
+
+func (s *SqlDatabase) GetDb() Db {
+	return s.db
 }
 
 func (s *SqlDatabase) DropSchema(name string) error {
