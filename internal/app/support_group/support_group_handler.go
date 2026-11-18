@@ -5,13 +5,17 @@ package support_group
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 type supportGroupHandler struct {
@@ -49,24 +53,8 @@ func (sg *supportGroupHandler) GetSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
-	currentUserId, err := common.GetCurrentUserId(ctx, sg.DB())
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "SupportGroup", fmt.Sprint(supportGroupId), err)
-	}
-
-	hasPermission, err := sg.Authz().CheckPermission(openfga.RelationInput{
-		UserType:   openfga.TypeUser,
-		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
-		Relation:   openfga.RelCanView,
-		ObjectType: openfga.TypeSupportGroup,
-		ObjectId:   openfga.ObjectId(fmt.Sprint(supportGroupId)),
-	})
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "SupportGroup", fmt.Sprint(supportGroupId), err)
-	}
-
-	if !hasPermission {
-		return nil, appErrors.PermissionDeniedError(string(op), "SupportGroup", fmt.Sprint(supportGroupId))
+	if err := sg.CheckPermission(ctx, op, "SupportGroup", openfga.RelCanView, openfga.TypeSupportGroup, supportGroupId); err != nil {
+		return nil, err
 	}
 
 	result, err := sg.ListSupportGroups(
@@ -117,22 +105,23 @@ func (sg *supportGroupHandler) CreateSupportGroup(
 
 	supportGroup.UpdatedBy = supportGroup.CreatedBy
 
-	existing, err := sg.ListSupportGroups(
-		ctx,
-		&entity.SupportGroupFilter{CCRN: []*string{&supportGroup.CCRN}},
-		entity.NewListOptions(),
-	)
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "SupportGroup", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "SupportGroup", supportGroup.CCRN)
-	}
-
 	newSupportGroup, err := sg.DB().CreateSupportGroup(supportGroup)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "SupportGroup", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "SupportGroup", supportGroup.CCRN)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"ccrn":                    supportGroup.CCRN,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{"ccrn": supportGroup.CCRN})
+
+		return nil, wrappedErr
 	}
 
 	sg.PushEvent(&CreateSupportGroupEvent{SupportGroup: newSupportGroup})
@@ -146,7 +135,7 @@ func (sg *supportGroupHandler) UpdateSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroup.Id); err != nil {
+	if err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroup.Id); err != nil {
 		return nil, err
 	}
 
@@ -177,7 +166,7 @@ func (sg *supportGroupHandler) AddServiceToSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+	if err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
 		return nil, err
 	}
 
@@ -197,7 +186,7 @@ func (sg *supportGroupHandler) RemoveServiceFromSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+	if err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
 		return nil, err
 	}
 
@@ -217,7 +206,7 @@ func (sg *supportGroupHandler) AddUserToSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+	if err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
 		return nil, err
 	}
 
@@ -237,7 +226,7 @@ func (sg *supportGroupHandler) RemoveUserFromSupportGroup(
 ) (*entity.SupportGroup, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
+	if err := sg.CheckWritePermission(ctx, op, "SupportGroup", openfga.TypeSupportGroup, supportGroupId); err != nil {
 		return nil, err
 	}
 

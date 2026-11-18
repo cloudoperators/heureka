@@ -429,7 +429,6 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateService", &service).Return(&service, nil)
-		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		newService, err := serviceHandler.CreateService(common.NewAdminContext(), &service)
@@ -549,7 +548,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 					r = openfga.RelationInput{
 						UserType:   openfga.TypeRole,
-						UserId:     "0",
+						UserId:     openfga.UserId(openfga.SystemRoleId),
 						ObjectId:   openfga.IDService,
 						ObjectType: openfga.TypeService,
 						Relation:   openfga.RelRole,
@@ -597,7 +596,6 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				srv := test.NewFakeServiceEntity()
 				filter.CCRN = []*string{&srv.CCRN}
 				db.On("CreateService", &srv).Return(&srv, nil)
-				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 
 				serviceHandler = s.NewServiceHandler(handlerContext)
 				newService, err := serviceHandler.CreateService(common.NewAdminContext(), &srv)

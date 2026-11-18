@@ -78,12 +78,10 @@ func OnIssueVariantCreateAuthz(db database.Database, e event.Event, authz openfg
 	})
 
 	if createEvent, ok := e.(*CreateIssueVariantEvent); ok {
-		userId := openfga.UserIdFromInt(createEvent.IssueVariant.CreatedBy)
-
 		relations := []openfga.RelationInput{
 			{
 				UserType:   openfga.TypeRole,
-				UserId:     userId,
+				UserId:     openfga.UserId(openfga.SystemRoleId),
 				Relation:   openfga.RelRole,
 				ObjectType: openfga.TypeIssueVariant,
 				ObjectId:   openfga.ObjectIdFromInt(createEvent.IssueVariant.Id),

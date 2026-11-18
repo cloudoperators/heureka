@@ -5,13 +5,17 @@ package issue_repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 type issueRepositoryHandler struct {
@@ -70,22 +74,23 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(
 
 	issueRepository.BaseIssueRepository.UpdatedBy = issueRepository.BaseIssueRepository.CreatedBy
 
-	existing, err := ir.ListIssueRepositories(
-		ctx,
-		&entity.IssueRepositoryFilter{Name: []*string{&issueRepository.Name}},
-		entity.NewListOptions(),
-	)
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueRepository", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "IssueRepository", issueRepository.Name)
-	}
-
 	newIssueRepository, err := ir.DB().CreateIssueRepository(issueRepository)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueRepository", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "IssueRepository", issueRepository.Name)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"name":                    issueRepository.Name,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{"name": issueRepository.Name})
+
+		return nil, wrappedErr
 	}
 
 	ir.PushEvent(&CreateIssueRepositoryEvent{IssueRepository: newIssueRepository})
@@ -100,7 +105,7 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issueRepository.Id, 10)
 
-	if _, err := ir.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueRepository.Id); err != nil {
+	if err := ir.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueRepository.Id); err != nil {
 		return nil, err
 	}
 

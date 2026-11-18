@@ -299,7 +299,6 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateUser", &user).Return(&user, nil)
-		db.On("GetUsers", mock.Anything, filter, mock.Anything).Return([]entity.UserResult{}, nil)
 
 		userHandler = u.NewUserHandler(handlerContext)
 		newUser, err := userHandler.CreateUser(common.NewAdminContext(), &user)

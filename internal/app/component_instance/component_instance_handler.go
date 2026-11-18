@@ -112,7 +112,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(
 		return nil, wrappedErr
 	}
 
-	if _, err := ci.CheckWritePermission(ctx, op, "Service", openfga.TypeService, componentInstance.ServiceId); err != nil {
+	if err := ci.CheckWritePermission(ctx, op, "Service", openfga.TypeService, componentInstance.ServiceId); err != nil {
 		return nil, err
 	}
 
@@ -188,7 +188,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(
 
 	id := strconv.FormatInt(componentInstance.Id, 10)
 
-	if _, err := ci.CheckWritePermission(ctx, op, "ComponentInstance", openfga.TypeComponentInstance, componentInstance.Id); err != nil {
+	if err := ci.CheckWritePermission(ctx, op, "ComponentInstance", openfga.TypeComponentInstance, componentInstance.Id); err != nil {
 		return nil, err
 	}
 

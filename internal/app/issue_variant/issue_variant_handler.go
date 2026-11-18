@@ -5,15 +5,19 @@ package issue_variant
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 )
 
 type issueVariantHandler struct {
@@ -123,7 +127,7 @@ func (iv *issueVariantHandler) CreateIssueVariant(
 ) (*entity.IssueVariant, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := iv.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueVariant.IssueRepositoryId); err != nil {
+	if err := iv.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueVariant.IssueRepositoryId); err != nil {
 		return nil, err
 	}
 
@@ -136,22 +140,29 @@ func (iv *issueVariantHandler) CreateIssueVariant(
 
 	issueVariant.UpdatedBy = issueVariant.CreatedBy
 
-	existing, err := iv.ListIssueVariants(
-		ctx,
-		&entity.IssueVariantFilter{SecondaryName: []*string{&issueVariant.SecondaryName}},
-		entity.NewListOptions(),
-	)
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueVariant", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "IssueVariant", issueVariant.SecondaryName)
-	}
-
 	newIv, err := iv.DB().CreateIssueVariant(issueVariant)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueVariant", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "IssueVariant", issueVariant.SecondaryName)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"secondary_name":          issueVariant.SecondaryName,
+				"issue_repository_id":     issueVariant.IssueRepositoryId,
+				"issue_id":                issueVariant.IssueId,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "IssueVariant", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+			"secondary_name":      issueVariant.SecondaryName,
+			"issue_repository_id": issueVariant.IssueRepositoryId,
+			"issue_id":            issueVariant.IssueId,
+		})
+
+		return nil, wrappedErr
 	}
 
 	iv.PushEvent(&CreateIssueVariantEvent{IssueVariant: newIv})
@@ -166,7 +177,7 @@ func (iv *issueVariantHandler) UpdateIssueVariant(
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issueVariant.Id, 10)
 
-	if _, err := iv.CheckWritePermission(ctx, op, "IssueVariant", openfga.TypeIssueVariant, issueVariant.Id); err != nil {
+	if err := iv.CheckWritePermission(ctx, op, "IssueVariant", openfga.TypeIssueVariant, issueVariant.Id); err != nil {
 		return nil, err
 	}
 

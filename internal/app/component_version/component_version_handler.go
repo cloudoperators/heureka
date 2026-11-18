@@ -58,7 +58,7 @@ func (cv *componentVersionHandler) CreateComponentVersion(
 ) (*entity.ComponentVersion, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := cv.CheckWritePermission(ctx, op, "Component", openfga.TypeComponent, componentVersion.ComponentId); err != nil {
+	if err := cv.CheckWritePermission(ctx, op, "Component", openfga.TypeComponent, componentVersion.ComponentId); err != nil {
 		return nil, err
 	}
 
@@ -92,7 +92,7 @@ func (cv *componentVersionHandler) UpdateComponentVersion(
 ) (*entity.ComponentVersion, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := cv.CheckWritePermission(ctx, op, "ComponentVersion", openfga.TypeComponentVersion, componentVersion.Id); err != nil {
+	if err := cv.CheckWritePermission(ctx, op, "ComponentVersion", openfga.TypeComponentVersion, componentVersion.Id); err != nil {
 		return nil, err
 	}
 

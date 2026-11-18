@@ -5,13 +5,17 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 type userHandler struct {
@@ -62,22 +66,23 @@ func (u *userHandler) CreateUser(ctx context.Context, user *entity.User) (*entit
 
 	user.UpdatedBy = user.CreatedBy
 
-	existing, err := u.ListUsers(
-		ctx,
-		&entity.UserFilter{UniqueUserID: []*string{&user.UniqueUserID}},
-		entity.NewListOptions(),
-	)
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "User", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "User", user.UniqueUserID)
-	}
-
 	newUser, err := u.DB().CreateUser(user)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "User", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "User", user.UniqueUserID)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"unique_user_id":          user.UniqueUserID,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "User", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{"unique_user_id": user.UniqueUserID})
+
+		return nil, wrappedErr
 	}
 
 	u.PushEvent(&CreateUserEvent{User: newUser})

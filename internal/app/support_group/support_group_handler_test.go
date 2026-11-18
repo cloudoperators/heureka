@@ -258,7 +258,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		supportGroupHandler sg.SupportGroupHandler
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
-		order               []entity.Order
 		r                   openfga.RelationInput
 	)
 
@@ -268,7 +267,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 		handlerContext.Authz.RemoveAllRelations()
 
-		order = []entity.Order{}
 		first := 10
 		after := ""
 		filter = &entity.SupportGroupFilter{
@@ -288,7 +286,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
-		db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
 
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(
@@ -328,7 +325,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 					r = openfga.RelationInput{
 						UserType:   "role",
-						UserId:     "0",
+						UserId:     openfga.UserId(openfga.SystemRoleId),
 						ObjectId:   "",
 						ObjectType: "support_group",
 						Relation:   "role",
@@ -377,7 +374,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 				newSg := test.NewFakeSupportGroupEntity()
 				filter.CCRN = []*string{&newSg.CCRN}
 				db.On("CreateSupportGroup", &newSg).Return(&newSg, nil)
-				db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
 
 				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 				newSupportGroup, err := supportGroupHandler.CreateSupportGroup(common.NewAdminContext(), &newSg)

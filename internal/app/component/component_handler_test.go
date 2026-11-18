@@ -345,7 +345,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 					r = openfga.RelationInput{
 						UserType:   openfga.TypeRole,
-						UserId:     "0",
+						UserId:     openfga.UserId(openfga.SystemRoleId),
 						ObjectType: openfga.TypeComponent,
 						Relation:   openfga.RelRole,
 					}

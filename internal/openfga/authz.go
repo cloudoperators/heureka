@@ -27,14 +27,19 @@ type Authz struct {
 
 // Creates new Authorization implement using OpenFGA
 func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
-	fgaClient, err := client.NewSdkClient(&client.ClientConfiguration{
-		ApiUrl: cfg.AuthzOpenFgaApiUrl,
-		Credentials: &credentials.Credentials{
+	creds := &credentials.Credentials{Method: credentials.CredentialsMethodNone}
+	if cfg.AuthzOpenFgaApiToken != "" {
+		creds = &credentials.Credentials{
 			Method: credentials.CredentialsMethodApiToken,
 			Config: &credentials.Config{
 				ApiToken: cfg.AuthzOpenFgaApiToken,
 			},
-		},
+		}
+	}
+
+	fgaClient, err := client.NewSdkClient(&client.ClientConfiguration{
+		ApiUrl:      cfg.AuthzOpenFgaApiUrl,
+		Credentials: creds,
 	})
 	if err != nil {
 		l.Error("Could not initialize OpenFGA client: ", err)

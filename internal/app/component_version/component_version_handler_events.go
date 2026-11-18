@@ -71,12 +71,10 @@ func OnComponentVersionCreateAuthz(
 	})
 
 	if createEvent, ok := e.(*CreateComponentVersionEvent); ok {
-		userId := openfga.UserIdFromInt(createEvent.ComponentVersion.CreatedBy)
-
 		relations := []openfga.RelationInput{
 			{
 				UserType:   openfga.TypeRole,
-				UserId:     userId,
+				UserId:     openfga.UserId(openfga.SystemRoleId),
 				Relation:   openfga.RelRole,
 				ObjectType: openfga.TypeComponentVersion,
 				ObjectId:   openfga.ObjectIdFromInt(createEvent.ComponentVersion.Id),

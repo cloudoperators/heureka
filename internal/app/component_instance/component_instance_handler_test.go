@@ -513,7 +513,7 @@ var _ = Describe(
 
 						r = openfga.RelationInput{
 							UserType:   openfga.TypeRole,
-							UserId:     "0",
+							UserId:     openfga.UserId(openfga.SystemRoleId),
 							ObjectType: openfga.TypeComponentInstance,
 							Relation:   openfga.RelRole,
 						}

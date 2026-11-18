@@ -127,12 +127,10 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 	})
 
 	if createEvent, ok := e.(*CreateSupportGroupEvent); ok {
-		userId := openfga.UserIdFromInt(createEvent.SupportGroup.CreatedBy)
-
 		relations := []openfga.RelationInput{
 			{
 				UserType:   openfga.TypeRole,
-				UserId:     userId,
+				UserId:     openfga.UserId(openfga.SystemRoleId),
 				Relation:   openfga.RelRole,
 				ObjectType: openfga.TypeSupportGroup,
 				ObjectId:   openfga.ObjectIdFromInt(createEvent.SupportGroup.Id),

@@ -179,20 +179,27 @@ func (is *issueHandler) CreateIssue(ctx context.Context, issue *entity.Issue) (*
 
 	issue.UpdatedBy = issue.CreatedBy
 
-	lo := entity.IssueListOptions{ListOptions: *entity.NewListOptions()}
-
-	existing, err := is.ListIssues(ctx, &entity.IssueFilter{PrimaryName: []*string{&issue.PrimaryName}}, &lo)
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "Issue", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "Issue", issue.PrimaryName)
-	}
-
 	newIssue, err := is.DB().CreateIssue(issue)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "Issue", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "Issue", issue.PrimaryName)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"primary_name":            issue.PrimaryName,
+				"type":                    issue.Type.String(),
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"type":         issue.Type.String(),
+		})
+
+		return nil, wrappedErr
 	}
 
 	is.PushEvent(&CreateIssueEvent{Issue: newIssue})
@@ -204,7 +211,7 @@ func (is *issueHandler) UpdateIssue(ctx context.Context, issue *entity.Issue) (*
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issue.Id, 10)
 
-	if _, err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issue.Id); err != nil {
+	if err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issue.Id); err != nil {
 		return nil, err
 	}
 
@@ -247,7 +254,7 @@ func (is *issueHandler) AddComponentVersionToIssue(
 ) (*entity.Issue, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issueId); err != nil {
+	if err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issueId); err != nil {
 		return nil, err
 	}
 
@@ -276,7 +283,7 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(
 ) (*entity.Issue, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issueId); err != nil {
+	if err := is.CheckWritePermission(ctx, op, "Issue", openfga.TypeIssue, issueId); err != nil {
 		return nil, err
 	}
 

@@ -207,8 +207,6 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
-		db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).
-			Return([]entity.IssueRepositoryResult{}, nil)
 
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(
@@ -301,7 +299,6 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 			newIr := test.NewFakeIssueRepositoryEntity()
 			filter.Name = []*string{&newIr.Name}
 			db.On("CreateIssueRepository", &newIr).Return(&newIr, nil)
-			db.On("GetIssueRepositories", mock.Anything, filter, mock.Anything).Return([]entity.IssueRepositoryResult{}, nil)
 
 			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 			newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(common.NewAdminContext(), &newIr)

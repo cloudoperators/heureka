@@ -257,12 +257,10 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 	})
 
 	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
-		userId := openfga.UserIdFromInt(createEvent.IssueMatch.CreatedBy)
-
 		relations := []openfga.RelationInput{
 			{
 				UserType:   openfga.TypeRole,
-				UserId:     userId,
+				UserId:     openfga.UserId(openfga.SystemRoleId),
 				Relation:   openfga.RelRole,
 				ObjectType: openfga.TypeIssueMatch,
 				ObjectId:   openfga.ObjectIdFromInt(createEvent.IssueMatch.Id),

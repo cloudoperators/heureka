@@ -511,7 +511,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 
 					r = openfga.RelationInput{
 						UserType:   openfga.TypeRole,
-						UserId:     "0",
+						UserId:     openfga.UserId(openfga.SystemRoleId),
 						ObjectId:   "test_issue_match",
 						ObjectType: openfga.TypeIssueMatch,
 						Relation:   openfga.TypeRole,

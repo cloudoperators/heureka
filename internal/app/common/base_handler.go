@@ -48,10 +48,9 @@ type BaseConfig[R entity.HasCursor, F entity.Filter] struct {
 	Authz                 openfga.Authorization
 	AuthzObjectType       openfga.ObjectType
 	AuthzApplyFn          func(filter F, accessibleIds []*int64)
+	AuthzWriteObjectType  openfga.ObjectType
+	AuthzSystemAdminRel   openfga.RelationType
 	GetWithAggregationsFn func(context.Context, F, []entity.Order) ([]R, error)
-
-	// AuthzWriteObjectType gates Delete() behind a can_write check on the object's own id.
-	AuthzWriteObjectType openfga.ObjectType
 }
 
 // BaseHandler provides the canonical List implementation shared by all entity handlers.
@@ -96,57 +95,139 @@ func (b *BaseHandler[R, F]) Cache() cache.Cache { return b.cache }
 // Authz exposes the configured authorization for entity-specific per-item permission checks.
 func (b *BaseHandler[R, F]) Authz() openfga.Authorization { return b.cfg.Authz }
 
-// CheckWritePermission verifies the current user has can_write on the given object,
-// returning the current user id on success. objectEntity is used for error context,
-// e.g. "Service" when writing to a service, or "Component" when writing to a parent component.
+// CheckWritePermission verifies the current user has can_write on the given object. objectEntity
+// is used for error context, e.g. "Service" when writing to a service, or "Component" when
+// writing to a parent component.
 func (b *BaseHandler[R, F]) CheckWritePermission(
 	ctx context.Context, op appErrors.Op, objectEntity string, objectType openfga.ObjectType, objectId int64,
-) (int64, error) {
+) error {
+	return b.CheckPermission(ctx, op, objectEntity, openfga.RelCanWrite, objectType, objectId)
+}
+
+// CheckPermission checks whether the current user has the given relation on (objectType, objectId).
+// Falls back from the numeric DB id to the unique user id the same way CheckWritePermission does,
+// so entity-specific handlers get the same scanner/service account support instead of
+// re-implementing the check ad hoc.
+func (b *BaseHandler[R, F]) CheckPermission(
+	ctx context.Context, op appErrors.Op, objectEntity string, relation openfga.RelationType, objectType openfga.ObjectType, objectId int64,
+) error {
 	idStr := strconv.FormatInt(objectId, 10)
 
-	currentUserId, err := GetCurrentUserId(ctx, b.db)
+	hasPermission, err := b.checkPermission(ctx, op, objectEntity, relation, objectType, openfga.ObjectId(idStr))
 	if err != nil {
-		return 0, appErrors.InternalError(string(op), objectEntity, idStr, err)
-	}
-
-	hasPermission, err := b.cfg.Authz.CheckPermission(openfga.RelationInput{
-		UserType:   openfga.TypeUser,
-		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
-		Relation:   openfga.RelCanWrite,
-		ObjectType: objectType,
-		ObjectId:   openfga.ObjectId(idStr),
-	})
-	if err != nil {
-		return 0, appErrors.InternalError(string(op), objectEntity, idStr, err)
+		return err
 	}
 
 	if !hasPermission {
-		return 0, appErrors.PermissionDeniedError(string(op), objectEntity, idStr)
+		return appErrors.PermissionDeniedError(string(op), objectEntity, idStr)
 	}
 
-	return currentUserId, nil
+	return nil
 }
 
-// CheckSystemAdminPermission verifies the current user is admin on the system role.
-func (b *BaseHandler[R, F]) CheckSystemAdminPermission(ctx context.Context, op appErrors.Op) error {
-	currentUserId, err := GetCurrentUserId(ctx, b.db)
-	if err != nil {
-		return appErrors.InternalError(string(op), b.cfg.Entity, "", err)
-	}
-
+// checkRelation performs a single OpenFGA check for a [user] subject, wrapping any transport
+// error consistently. This is the one place a RelationInput for a user subject is built.
+func (b *BaseHandler[R, F]) checkRelation(
+	op appErrors.Op, objectEntity string, userId openfga.UserId, relation openfga.RelationType, objectType openfga.ObjectType, objectId openfga.ObjectId,
+) (bool, error) {
 	hasPermission, err := b.cfg.Authz.CheckPermission(openfga.RelationInput{
 		UserType:   openfga.TypeUser,
-		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
-		Relation:   openfga.RelAdmin,
-		ObjectType: openfga.TypeRole,
-		ObjectId:   openfga.SystemRoleId,
+		UserId:     userId,
+		Relation:   relation,
+		ObjectType: objectType,
+		ObjectId:   objectId,
 	})
 	if err != nil {
-		return appErrors.InternalError(string(op), b.cfg.Entity, "", err)
+		return false, appErrors.InternalError(string(op), objectEntity, string(objectId), err)
+	}
+
+	return hasPermission, nil
+}
+
+// checkPermission checks relation on (objectType, objectId) using the current user's numeric DB
+// id first (users such as owners/members), but will fall back to their unique user id
+// for cases where permissions are granted via roles or service accounts.
+func (b *BaseHandler[R, F]) checkPermission(
+	ctx context.Context, op appErrors.Op, objectEntity string, relation openfga.RelationType, objectType openfga.ObjectType, objectId openfga.ObjectId,
+) (bool, error) {
+	currentUserId, err := GetCurrentUserId(ctx, b.db)
+	if err != nil {
+		return false, appErrors.InternalError(string(op), objectEntity, string(objectId), err)
+	}
+
+	hasPermission, err := b.checkRelation(op, objectEntity, openfga.UserId(fmt.Sprint(currentUserId)), relation, objectType, objectId)
+	if err != nil {
+		return false, err
+	}
+
+	if hasPermission {
+		return true, nil
+	}
+
+	uniqueUserId, err := GetCurrentUniqueUserId(ctx)
+	if err != nil {
+		return false, appErrors.InternalError(string(op), objectEntity, string(objectId), err)
+	}
+
+	return b.checkRelation(op, objectEntity, openfga.UserId(uniqueUserId), relation, objectType, objectId)
+}
+
+// CheckSystemPermission verifies the current user has the given relation on the system role,
+// e.g. RelAdmin for full system admins, or a model-defined relation covering additional
+// service accounts/roles permitted to perform the same root-level operation.
+func (b *BaseHandler[R, F]) CheckSystemPermission(ctx context.Context, op appErrors.Op, relation openfga.RelationType) error {
+	hasPermission, err := b.checkPermission(ctx, op, b.cfg.Entity, relation, openfga.TypeRole, openfga.SystemRoleId)
+	if err != nil {
+		return err
 	}
 
 	if !hasPermission {
 		return appErrors.PermissionDeniedError(string(op), b.cfg.Entity, "")
+	}
+
+	return nil
+}
+
+// checkSystemRolePermission verifies the given OpenFGA user id has the given relation on the
+// system role.
+func (b *BaseHandler[R, F]) checkSystemRolePermission(op appErrors.Op, userId openfga.UserId, relation openfga.RelationType) error {
+	hasPermission, err := b.checkRelation(op, b.cfg.Entity, userId, relation, openfga.TypeRole, openfga.SystemRoleId)
+	if err != nil {
+		return err
+	}
+
+	if !hasPermission {
+		return appErrors.PermissionDeniedError(string(op), b.cfg.Entity, "")
+	}
+
+	return nil
+}
+
+// CheckSystemAdminPermission checks if user is admin derived from the relation in the role tied to a tuple.
+// This is used for creating root-level entities.
+func (b *BaseHandler[R, F]) CheckSystemAdminPermission(ctx context.Context, op appErrors.Op) error {
+	relation := b.cfg.AuthzSystemAdminRel
+	if relation == "" {
+		relation = openfga.RelAdmin
+	}
+
+	// Check if the user has the system-admin relation on the system role first.
+	// Uses GetCurrentUserId to determine the current user
+	if err := b.CheckSystemPermission(ctx, op, relation); err == nil {
+		return nil
+	} else if !appErrors.Is(err, appErrors.PermissionDenied) {
+		return err
+	}
+
+	uniqueUserId, err := GetCurrentUniqueUserId(ctx)
+	if err != nil {
+		return appErrors.InternalError(string(op), b.cfg.Entity, "", err)
+	}
+
+	// Check if the user has the system-admin relation on the system role.
+	// Uses GetCurrentUniqueUserId from token context to determine the current user/scanner identity.
+	if err := b.checkSystemRolePermission(op, openfga.UserId(uniqueUserId), openfga.RelationType(relation)); err != nil {
+		return err
 	}
 
 	return nil
@@ -182,6 +263,33 @@ func (b *BaseHandler[R, F]) List(
 			applog.LogError(b.logger, wrappedErr, logrus.Fields{"filter": filter})
 
 			return nil, wrappedErr
+		}
+
+		// Role-based grants (admin/scanner/service accounts) are keyed on the unique user id
+		// rather than the numeric DB id, so a user can have access under either or both - union
+		// the two result sets rather than only falling back when the numeric id has none, since
+		// partial direct access under the numeric id would otherwise mask role-based access.
+		uniqueUserId, err := GetCurrentUniqueUserId(ctx)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), b.cfg.Entity, "", err)
+			applog.LogError(b.logger, wrappedErr, logrus.Fields{"filter": filter})
+
+			return nil, wrappedErr
+		}
+
+		if uniqueUserId != fmt.Sprint(currentUserId) {
+			uniqueAccessibleIds, err := b.cfg.Authz.GetListOfAccessibleObjectIds(
+				openfga.UserId(uniqueUserId),
+				b.cfg.AuthzObjectType,
+			)
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), b.cfg.Entity, "", err)
+				applog.LogError(b.logger, wrappedErr, logrus.Fields{"filter": filter})
+
+				return nil, wrappedErr
+			}
+
+			accessibleIds = unionAccessibleIds(accessibleIds, uniqueAccessibleIds)
 		}
 
 		b.cfg.AuthzApplyFn(filter, accessibleIds)
@@ -252,7 +360,7 @@ func (b *BaseHandler[R, F]) Delete(ctx context.Context, id int64) error {
 	idStr := strconv.FormatInt(id, 10)
 
 	if b.cfg.Authz != nil && b.cfg.AuthzWriteObjectType != "" {
-		if _, err := b.CheckWritePermission(ctx, op, b.cfg.Entity, b.cfg.AuthzWriteObjectType, id); err != nil {
+		if err := b.CheckWritePermission(ctx, op, b.cfg.Entity, b.cfg.AuthzWriteObjectType, id); err != nil {
 			return err
 		}
 	}

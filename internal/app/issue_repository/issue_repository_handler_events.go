@@ -120,12 +120,10 @@ func OnIssueRepositoryCreateAuthz(db database.Database, e event.Event, authz ope
 	})
 
 	if createEvent, ok := e.(*CreateIssueRepositoryEvent); ok {
-		userId := openfga.UserIdFromInt(createEvent.IssueRepository.BaseIssueRepository.CreatedBy)
-
 		relations := []openfga.RelationInput{
 			{
 				UserType:   openfga.TypeRole,
-				UserId:     userId,
+				UserId:     openfga.UserId(openfga.SystemRoleId),
 				Relation:   openfga.RelRole,
 				ObjectType: openfga.TypeIssueRepository,
 				ObjectId:   openfga.ObjectIdFromInt(createEvent.IssueRepository.Id),

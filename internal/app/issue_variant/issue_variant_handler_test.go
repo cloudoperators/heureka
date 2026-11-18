@@ -355,7 +355,6 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 
 		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
-		db.On("GetIssueVariants", mock.Anything, filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
 
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(

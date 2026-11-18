@@ -101,7 +101,7 @@ func (ch *componentHandler) UpdateComponent(
 ) (*entity.Component, error) {
 	op := appErrors.CallerOp()
 
-	if _, err := ch.CheckWritePermission(ctx, op, "Component", openfga.TypeComponent, component.Id); err != nil {
+	if err := ch.CheckWritePermission(ctx, op, "Component", openfga.TypeComponent, component.Id); err != nil {
 		return nil, err
 	}
 
