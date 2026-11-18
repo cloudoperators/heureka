@@ -1233,7 +1233,12 @@ var _ = Describe("Ordering IssueMatches", func() {
 				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
 				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
 
-				return r1 < r2
+				if r1 != r2 {
+					return r1 < r2
+				}
+				// rating is non-unique, so the query appends the primary key
+				// (id ASC) as a stable tiebreak; mirror that here.
+				return seedCollection.IssueMatchRows[i].Id.Int64 < seedCollection.IssueMatchRows[j].Id.Int64
 			})
 
 			order := []entity.Order{
@@ -1350,7 +1355,12 @@ var _ = Describe("Ordering IssueMatches", func() {
 				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
 				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
 
-				return r1 > r2
+				if r1 != r2 {
+					return r1 > r2
+				}
+				// rating is non-unique, so the query appends the primary key
+				// (id ASC) as a stable tiebreak; mirror that here.
+				return seedCollection.IssueMatchRows[i].Id.Int64 < seedCollection.IssueMatchRows[j].Id.Int64
 			})
 
 			order := []entity.Order{

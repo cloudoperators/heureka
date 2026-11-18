@@ -12,6 +12,12 @@ jobs:
       DB_ADDRESS: localhost
       DB_PORT: 3306
       DB_SCHEMA: internal/database/mariadb/init/schema.sql
+      # The MV engine fans out one transaction per procedure list concurrently
+      # and each test schema keeps its own pool, so long-lived connections pile
+      # up fast under the CI runner's limited MariaDB. Recycle them quickly here
+      # (prod keeps the 300s default) so the concurrent connection count stays
+      # well within bounds.
+      DB_CONN_MAX_LIFETIME_SEC: 5
       LOCAL_TEST_DB: true
       AUTHZ_FGA_API_URL: http://localhost:8080
       AUTHZ_FGA_API_TOKEN: test_token
@@ -50,5 +56,13 @@ jobs:
         run: make gqlgen
       - name: Start OpenFGA server
         run: docker compose -f docker-compose.yaml --profile openfga up -d
+      - name: Raise MariaDB max_connections
+        # The MV engine fans out one transaction per procedure list concurrently,
+        # and each test schema keeps its own pool; the stock default (151) is too
+        # low for that combined load. GitHub service containers don't support a
+        # command override, so set it at runtime once the DB is healthy.
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -pmy_password \
+            -e "SET GLOBAL max_connections = 512;"
       - name: Run Tests
         run: ginkgo --trace -r -randomize-all -randomize-suites

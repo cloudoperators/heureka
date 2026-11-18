@@ -37,6 +37,15 @@ type DbObject[ET entity.Entity, ETFilter entity.Filter, ETResult entity.HeurekaE
 	RowToAggregatedData  func(RowComposite, []entity.Order) (ET, ETAgg, string)
 	NewResult            func(ET, ETAgg, string) ETResult
 	ForceFrom            string
+
+	// Optional fast path for GetAllCursors (pageInfo.pages). When all three are
+	// set and FastCursorEligible returns true for the requested order, the cursor
+	// scan selects only FastCursorColumns instead of the full row + entity build,
+	// avoiding per-row reflection / CVSS decode on large tables. Must produce
+	// byte-identical cursors to RowToData for the eligible orders.
+	FastCursorColumns  []string
+	FastRowToCursor    func(RowComposite, []entity.Order) string
+	FastCursorEligible func([]entity.Order) bool
 }
 
 type Attr struct {
@@ -179,7 +188,7 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) Count(ctx context.Context, db
 	baseQuery := do.countSelectBuilder()
 	baseQuery = do.fromBuilder(baseQuery)
 
-	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false)
+	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false, false)
 	if err != nil {
 		return -1, fmt.Errorf("failed to build %s count query: %w", do.TableName, err)
 	}
@@ -218,7 +227,7 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) Get(ctx context.Context, db D
 	baseQuery = do.fromBuilder(baseQuery)
 	baseQuery = do.groupByBuilder(baseQuery)
 
-	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, true)
+	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, true, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build %s Get query: %w", do.TableName, err)
 	}
@@ -273,7 +282,7 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) GetWithAggregations(ctx conte
 
 	qbs, err := lo.MapErr(aggDef.Aggregations, func(agg Aggregation, _ int) (any, error) {
 		q := baseQuery.Columns(agg.Columns...)
-		return do.BuildQuery(q, filter, ord, true, agg.ForcedJoins)
+		return do.BuildQuery(q, filter, ord, true, true, agg.ForcedJoins)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query builder: %w", err)
@@ -332,11 +341,23 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) GetAllCursors(ctx context.Con
 
 	ord := NewOrderWithCounterPrefix(order, do.DefaultOrder, do.OrderPrefix)
 
-	baseQuery := do.getSelectBuilder(filter, ord)
+	// Fast path: for eligible orders, select only the cursor columns and skip the
+	// full-row scan + entity construction (the dominant cost of pageInfo.pages on
+	// large tables). Filter joins and ORDER BY are still applied below.
+	fast := do.FastRowToCursor != nil && len(do.FastCursorColumns) > 0 &&
+		do.FastCursorEligible != nil && do.FastCursorEligible(order)
+
+	var baseQuery sq.SelectBuilder
+	if fast {
+		baseQuery = sq.Select(do.FastCursorColumns...)
+	} else {
+		baseQuery = do.getSelectBuilder(filter, ord)
+	}
+
 	baseQuery = do.fromBuilder(baseQuery)
 	baseQuery = do.groupByBuilder(baseQuery)
 
-	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false)
+	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build %s GetAllCursors query: %w", do.TableName, err)
 	}
@@ -346,6 +367,18 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) GetAllCursors(ctx context.Con
 			l.Warnf("error during close stmt: %s", err)
 		}
 	}()
+
+	if fast {
+		return performListScan(
+			ctx,
+			stmt,
+			filterParameters,
+			l,
+			func(l []string, e RowComposite) []string {
+				return append(l, do.FastRowToCursor(e, order))
+			},
+		)
+	}
 
 	return performListScan(
 		ctx,
@@ -385,7 +418,7 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) queryAttr(ctx context.Context
 	baseQuery := sq.Select(do.getAttrStr(attr.Name))
 	baseQuery = do.fromBuilder(baseQuery)
 
-	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false)
+	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build %s queryAttr query: %w", do.TableName, err)
 	}
@@ -460,7 +493,7 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) GetAllIds(ctx context.Context
 	baseQuery = do.fromBuilder(baseQuery)
 	baseQuery = do.groupByBuilder(baseQuery)
 
-	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false)
+	stmt, filterParameters, err := do.BuildStatement(ctx, l, db, baseQuery, filter, ord, false, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build %s GetAllIds query: %w", do.TableName, err)
 	}
@@ -482,8 +515,9 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) BuildStatement(
 	filter ETFilter,
 	ord *Order,
 	withCursor bool,
+	withOrder bool,
 ) (Stmt, []any, error) {
-	qb, err := do.BuildQuery(baseQuery, filter, ord, withCursor, nil)
+	qb, err := do.BuildQuery(baseQuery, filter, ord, withCursor, withOrder, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -503,6 +537,7 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) BuildQuery(
 	filter ETFilter,
 	ord *Order,
 	withCursor bool,
+	withOrder bool,
 	forcedJoin []string,
 ) (sq.SelectBuilder, error) {
 	filter = EnsureFilter(filter)
@@ -518,7 +553,11 @@ func (do *DbObject[ET, ETFilter, ETResult, ETAgg]) BuildQuery(
 		qb = do.AddCursor(qb, filter, cursorFields)
 	}
 
-	qb = qb.OrderBy(ord.ToSql())
+	// A COUNT query gains nothing from ORDER BY and it can defeat index-only
+	// access; only order when the result set's order is actually consumed.
+	if withOrder {
+		qb = qb.OrderBy(ord.ToSql())
+	}
 
 	return qb, nil
 }

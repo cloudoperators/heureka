@@ -59,14 +59,23 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 		NewFilterProperty("MVL.max_severity = ?", func(filter *entity.IssueFilter) any { return filter.MvSeverity }),
 		NewFilterProperty("IM.issuematch_id = ?", func(filter *entity.IssueFilter) any { return filter.IssueMatchId }),
 		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", func(filter *entity.IssueFilter) any {
-			if filter.HasIssueMatches {
+			if filter.HasIssueMatches || filter.UseMvComponentVersionVuln {
 				return []int64{}
 			}
 
 			return filter.ComponentVersionId
 		}),
 		NewFilterProperty("CI.componentinstance_component_version_id = ?", func(filter *entity.IssueFilter) any {
-			if !filter.HasIssueMatches {
+			if !filter.HasIssueMatches || filter.UseMvComponentVersionVuln {
+				return []int64{}
+			}
+
+			return filter.ComponentVersionId
+		}),
+		// Component-version vulnerability MV path: scope issues to the component
+		// version via the precomputed junction instead of joining IssueMatch live.
+		NewFilterProperty("MVCV.component_version_id = ?", func(filter *entity.IssueFilter) any {
+			if !filter.UseMvComponentVersionVuln {
 				return []int64{}
 			}
 
@@ -312,6 +321,15 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 			},
 		},
 		{
+			Name:  "MVCV",
+			Type:  InnerJoin,
+			Table: "mvComponentVersionVulnerability MVCV",
+			On:    "I.issue_id = MVCV.issue_id",
+			Condition: func(f *entity.IssueFilter, _ *Order) bool {
+				return f.UseMvComponentVersionVuln
+			},
+		},
+		{
 			Name:      "MVS",
 			Type:      InnerJoin,
 			Table:     "(SELECT issue_id AS mvs_issue_id, service_id AS mvs_service_id FROM mvVulnerabilityService) MVS",
@@ -425,7 +443,7 @@ var issueObject = DbObject[*entity.Issue, *entity.IssueFilter, entity.IssueResul
 
 func (s *SqlDatabase) buildIssueStatement(ctx context.Context, baseQuery sq.SelectBuilder, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
 	ord := NewOrder(order, issueObject.DefaultOrder)
-	return issueObject.BuildStatement(ctx, l, s.db, baseQuery, filter, ord, withCursor)
+	return issueObject.BuildStatement(ctx, l, s.db, baseQuery, filter, ord, withCursor, withCursor)
 }
 
 func (s *SqlDatabase) GetIssuesWithAggregations(ctx context.Context, filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
