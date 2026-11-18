@@ -4,9 +4,9 @@
 package common
 
 // unionAccessibleIds merges two GetListOfAccessibleObjectIds results, treating the [-1]
-// "no access" sentinel as contributing no ids. Returns the [-1] sentinel only if both inputs
-// have no access.
+// "no access" sentinel as contributing no ids.
 func unionAccessibleIds(a []*int64, b []*int64) []*int64 {
+	// Check if either lists are empty or contain [-1]
 	noAccess := func(ids []*int64) bool {
 		return len(ids) == 0 || (len(ids) == 1 && ids[0] != nil && *ids[0] == -1)
 	}
@@ -19,6 +19,7 @@ func unionAccessibleIds(a []*int64, b []*int64) []*int64 {
 		return b
 	}
 
+	// merge otherwise
 	seen := make(map[int64]struct{})
 	var merged []*int64
 

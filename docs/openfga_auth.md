@@ -105,17 +105,15 @@ So for example, listing ComponentInstances doesn't check per-component-instance 
 
 ## Write Permissions
 
-Mutations (create, update, delete, and relationship operations) are protected by permission checks using openFGA too.
-The logic lives in `BaseHandler` (internal/app/common/base_handler.go) as two helpers that every entity handler calls from its mutation methods:
+OpenFGA write checks are applied by the handler methods listed below. Not every mutation currently has one.
+The shared permission helpers live in `BaseHandler` (internal/app/common/base_handler.go):
 
-- `CheckWritePermission(ctx, op, objectEntity, objectType, objectId)`
-    - Gets current user and calls CheckPermission for the `can_write` relation against an object (either the entity itself, or a parent entity it belongs to).
-- `CheckSystemAdminPermission(ctx, op)`
-    - Gets current user and calls CheckPermission for the `admin` relation against the system user object `role:system_role` (see `openfga.SystemRoleId`).
-    - Used authorize Create operations for "root-level" entities with no parent object (and hence no "membership") to check `can_write` against.
-    - Used to authorize managing other users as well.
+- `CheckPermission(ctx, op, objectEntity, relation, objectType, objectId)` checks any relation for a resource. It checks the current user's numeric database ID first and, if denied, retries with the unique user ID from the request context. It is also used for direct read checks such as `can_view`.
+- `CheckWritePermission(ctx, op, objectEntity, objectType, objectId)` is a `CheckPermission` wrapper for the `can_write` relation. The checked object can be the entity itself or a parent entity it belongs to.
+- `CheckSystemPermission(ctx, op, relation)` checks the given relation on `role:system_role` (see `openfga.SystemRoleId`) using the same numeric-ID/unique-ID fallback.
+- `CheckSystemAdminPermission(ctx, op)` checks the configured `BaseConfig.AuthzSystemAdminRel` on `role:system_role`, defaulting to `admin`. It is used for root-level entity creation and for operations that manage other users.
 
-`BaseConfig.AuthzWriteObjectType`, when set, makes the shared `Delete()` implementation call `CheckWritePermission` against the entity's own id before deleting; entities with no corresponding OpenFGA type leave it unset.
+Internally, `checkPermission` builds the user-subject `RelationInput`, wraps OpenFGA errors as application errors, and performs the (database)numeric-ID/(token)unique-ID fallback. `CheckSystemAdminPermission` uses to `CheckSystemPermission`, which applies the same fallback for the configured system-admin relation.
 
 The write mutation checks are implemented as follows here:
 
