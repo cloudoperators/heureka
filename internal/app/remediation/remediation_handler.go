@@ -117,19 +117,8 @@ func (rh *remediationHandler) CreateRemediation(
 		return nil, appErrors.InternalError(string(op), "Remediation", "", err)
 	}
 
-	hasPermission, err := rh.Authz().CheckPermission(openfga.RelationInput{
-		UserType:   openfga.TypeUser,
-		UserId:     openfga.UserId(fmt.Sprint(remediation.CreatedBy)),
-		Relation:   openfga.RelCanWrite,
-		ObjectType: openfga.TypeService,
-		ObjectId:   openfga.ObjectId(fmt.Sprint(remediation.ServiceId)),
-	})
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "Remediation", "", err)
-	}
-
-	if !hasPermission {
-		return nil, appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(remediation.ServiceId))
+	if err := rh.CheckWritePermission(ctx, op, "Service", openfga.TypeService, remediation.ServiceId); err != nil {
+		return nil, err
 	}
 
 	remediation.UpdatedBy = remediation.CreatedBy

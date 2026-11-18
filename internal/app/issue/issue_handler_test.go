@@ -13,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
@@ -539,8 +540,6 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			filter.PrimaryName = []*string{&issueEntity.PrimaryName}
 			// Mock successful user ID retrieval
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
-			// Mock no existing issues with same primary name
-			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			// Mock successful database creation
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return(&issueEntity, nil)
 
@@ -589,70 +588,10 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		})
 	})
 
-	Context("when checking for existing issues fails", func() {
-		It("should return Internal error", func() {
-			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
-			// Mock ListIssues failure
-			listError := errors.New("database query failed")
-			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).
-				Return([]entity.IssueResult{}, listError)
-
-			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
-
-			Expect(result).To(BeNil(), "no result should be returned")
-			Expect(err).ToNot(BeNil(), "error should be returned")
-
-			var appErr *appErrors.Error
-			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
-			Expect(
-				appErr.Message,
-			).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
-		})
-	})
-
-	Context("when issue with same primary name already exists", func() {
-		It("should return AlreadyExists error", func() {
-			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
-			// Mock existing issue with same primary name
-			existingIssue := test.NewFakeIssueEntity()
-			existingIssue.Id = 999
-			existingIssue.PrimaryName = issueEntity.PrimaryName
-			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).Return([]entity.IssueResult{{
-				Issue: &existingIssue,
-			}}, nil)
-
-			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
-
-			Expect(result).To(BeNil(), "no result should be returned")
-			Expect(err).ToNot(BeNil(), "error should be returned")
-
-			var appErr *appErrors.Error
-			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-			Expect(appErr.Code).To(Equal(appErrors.AlreadyExists), "should be AlreadyExists error")
-			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-			Expect(
-				appErr.ID,
-			).To(Equal(issueEntity.PrimaryName), "should include primary name as ID")
-			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
-			Expect(
-				appErr.Message,
-			).To(Equal("already exists"), "should have standard AlreadyExists message")
-		})
-	})
-
 	Context("when database creation fails", func() {
 		It("should return Internal error", func() {
 			// Mock successful user ID retrieval
 			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
-			// Mock no existing issues
-			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			// Mock database creation failure
 			dbError := errors.New("constraint violation")
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).
@@ -673,6 +612,35 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 				appErr.Message,
 			).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
 			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+		})
+	})
+
+	Context("when issue with same primary name already exists", func() {
+		It("should return AlreadyExists error", func() {
+			// Mock successful user ID retrieval
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			// Mock database rejecting the insert due to the unique constraint
+			dbError := database.NewDuplicateEntryDatabaseError("Issue element already exists")
+			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).
+				Return((*entity.Issue)(nil), dbError)
+
+			issueHandler = issue.NewIssueHandler(handlerContext)
+			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.AlreadyExists), "should be AlreadyExists error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(
+				appErr.ID,
+			).To(Equal(issueEntity.PrimaryName), "should include primary name as ID")
+			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
+			Expect(
+				appErr.Message,
+			).To(Equal("already exists"), "should have standard AlreadyExists message")
 		})
 	})
 })

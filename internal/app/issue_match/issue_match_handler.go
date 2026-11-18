@@ -41,8 +41,9 @@ func NewIssueMatchHandler(
 			ListEventFn: func(f *entity.IssueMatchFilter, o *entity.ListOptions, r *entity.List[entity.IssueMatchResult]) any {
 				return &ListIssueMatchesEvent{Filter: f, Options: o, Results: r}
 			},
-			DeleteFn:      handlerContext.DB.DeleteIssueMatch,
-			DeleteEventFn: func(id int64) any { return &DeleteIssueMatchEvent{IssueMatchID: id} },
+			DeleteFn:             handlerContext.DB.DeleteIssueMatch,
+			DeleteEventFn:        func(id int64) any { return &DeleteIssueMatchEvent{IssueMatchID: id} },
+			AuthzWriteObjectType: openfga.TypeIssueMatch,
 		}),
 		severityHandler: ss,
 	}
@@ -54,24 +55,8 @@ func (im *issueMatchHandler) GetIssueMatch(
 ) (*entity.IssueMatch, error) {
 	op := appErrors.CallerOp()
 
-	currentUserId, err := common.GetCurrentUserId(ctx, im.DB())
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueMatch", fmt.Sprint(issueMatchId), err)
-	}
-
-	hasPermission, err := im.Authz().CheckPermission(openfga.RelationInput{
-		UserType:   openfga.TypeUser,
-		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
-		Relation:   openfga.RelCanView,
-		ObjectType: openfga.TypeIssueMatch,
-		ObjectId:   openfga.ObjectId(fmt.Sprint(issueMatchId)),
-	})
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueMatch", fmt.Sprint(issueMatchId), err)
-	}
-
-	if !hasPermission {
-		return nil, appErrors.PermissionDeniedError(string(op), "IssueMatch", fmt.Sprint(issueMatchId))
+	if err := im.CheckPermission(ctx, op, "IssueMatch", openfga.RelCanView, openfga.TypeIssueMatch, issueMatchId); err != nil {
+		return nil, err
 	}
 
 	result, err := im.ListIssueMatches(
@@ -110,6 +95,10 @@ func (im *issueMatchHandler) CreateIssueMatch(
 ) (*entity.IssueMatch, error) {
 	op := appErrors.CallerOp()
 
+	if err := im.CheckWritePermission(ctx, op, "ComponentInstance", openfga.TypeComponentInstance, issueMatch.ComponentInstanceId); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	issueMatch.CreatedBy, err = common.GetCurrentUserId(ctx, im.DB())
@@ -145,6 +134,10 @@ func (im *issueMatchHandler) UpdateIssueMatch(
 ) (*entity.IssueMatch, error) {
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issueMatch.Id, 10)
+
+	if err := im.CheckWritePermission(ctx, op, "IssueMatch", openfga.TypeIssueMatch, issueMatch.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 

@@ -3,6 +3,44 @@
 
 package common
 
+// unionAccessibleIds merges two GetListOfAccessibleObjectIds results, treating the [-1]
+// "no access" sentinel as contributing no ids.
+func unionAccessibleIds(a []*int64, b []*int64) []*int64 {
+	// Check if either lists are empty or contain [-1]
+	noAccess := func(ids []*int64) bool {
+		return len(ids) == 0 || (len(ids) == 1 && ids[0] != nil && *ids[0] == -1)
+	}
+
+	aEmpty, bEmpty := noAccess(a), noAccess(b)
+	if aEmpty && bEmpty {
+		if len(a) > 0 {
+			return a
+		}
+		return b
+	}
+
+	// merge otherwise
+	seen := make(map[int64]struct{})
+	var merged []*int64
+
+	for _, ids := range [][]*int64{a, b} {
+		if noAccess(ids) {
+			continue
+		}
+		for _, id := range ids {
+			if id == nil {
+				continue
+			}
+			if _, ok := seen[*id]; !ok {
+				seen[*id] = struct{}{}
+				merged = append(merged, id)
+			}
+		}
+	}
+
+	return merged
+}
+
 // CombineFilterWithAccessibleIds combines filterIds and accessibleIds based on the following rules:
 // - If accessibleIds is empty, return filterIds (full access)
 // - If accessibleIds contains only -1, return [-1] (no access)

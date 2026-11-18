@@ -205,12 +205,10 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 	})
 
 	if createEvent, ok := e.(*CreateServiceEvent); ok {
-		userId := openfga.UserIdFromInt(createEvent.Service.BaseService.CreatedBy)
-
 		relations := []openfga.RelationInput{
 			{
 				UserType:   openfga.TypeRole,
-				UserId:     userId,
+				UserId:     openfga.UserId(openfga.SystemRoleId),
 				Relation:   openfga.RelRole,
 				ObjectType: openfga.TypeService,
 				ObjectId:   openfga.ObjectIdFromInt(createEvent.Service.Id),

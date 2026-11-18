@@ -5,14 +5,19 @@ package issue_variant
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 )
 
 type issueVariantHandler struct {
@@ -26,18 +31,24 @@ func NewIssueVariantHandler(
 ) IssueVariantHandler {
 	return &issueVariantHandler{
 		BaseHandler: common.NewBaseHandler(handlerContext, common.BaseConfig[entity.IssueVariantResult, *entity.IssueVariantFilter]{
-			Op:           appErrors.Op("issueVariantHandler"),
-			Entity:       "IssueVariants",
-			CursorEntity: "IssueVariantCursors",
-			CountEntity:  "IssueVariantCount",
-			GetFn:        handlerContext.DB.GetIssueVariants,
-			CursorsFn:    handlerContext.DB.GetAllIssueVariantCursors,
-			CountFn:      handlerContext.DB.CountIssueVariants,
+			Op:              appErrors.Op("issueVariantHandler"),
+			Entity:          "IssueVariants",
+			CursorEntity:    "IssueVariantCursors",
+			CountEntity:     "IssueVariantCount",
+			GetFn:           handlerContext.DB.GetIssueVariants,
+			CursorsFn:       handlerContext.DB.GetAllIssueVariantCursors,
+			CountFn:         handlerContext.DB.CountIssueVariants,
+			Authz:           handlerContext.Authz,
+			AuthzObjectType: openfga.TypeIssueVariant,
+			AuthzApplyFn: func(f *entity.IssueVariantFilter, ids []*int64) {
+				f.Id = common.CombineFilterWithAccessibleIds(f.Id, ids)
+			},
 			ListEventFn: func(f *entity.IssueVariantFilter, o *entity.ListOptions, r *entity.List[entity.IssueVariantResult]) any {
 				return &ListIssueVariantsEvent{Filter: f, Options: o, Results: r}
 			},
-			DeleteFn:      handlerContext.DB.DeleteIssueVariant,
-			DeleteEventFn: func(id int64) any { return &DeleteIssueVariantEvent{IssueVariantID: id} },
+			DeleteFn:             handlerContext.DB.DeleteIssueVariant,
+			DeleteEventFn:        func(id int64) any { return &DeleteIssueVariantEvent{IssueVariantID: id} },
+			AuthzWriteObjectType: openfga.TypeIssueVariant,
 		}),
 		repositoryService: rs,
 	}
@@ -116,6 +127,10 @@ func (iv *issueVariantHandler) CreateIssueVariant(
 ) (*entity.IssueVariant, error) {
 	op := appErrors.CallerOp()
 
+	if err := iv.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueVariant.IssueRepositoryId); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	issueVariant.CreatedBy, err = common.GetCurrentUserId(ctx, iv.DB())
@@ -125,22 +140,29 @@ func (iv *issueVariantHandler) CreateIssueVariant(
 
 	issueVariant.UpdatedBy = issueVariant.CreatedBy
 
-	existing, err := iv.ListIssueVariants(
-		ctx,
-		&entity.IssueVariantFilter{SecondaryName: []*string{&issueVariant.SecondaryName}},
-		entity.NewListOptions(),
-	)
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueVariant", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "IssueVariant", issueVariant.SecondaryName)
-	}
-
 	newIv, err := iv.DB().CreateIssueVariant(issueVariant)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueVariant", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "IssueVariant", issueVariant.SecondaryName)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"secondary_name":          issueVariant.SecondaryName,
+				"issue_repository_id":     issueVariant.IssueRepositoryId,
+				"issue_id":                issueVariant.IssueId,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "IssueVariant", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+			"secondary_name":      issueVariant.SecondaryName,
+			"issue_repository_id": issueVariant.IssueRepositoryId,
+			"issue_id":            issueVariant.IssueId,
+		})
+
+		return nil, wrappedErr
 	}
 
 	iv.PushEvent(&CreateIssueVariantEvent{IssueVariant: newIv})
@@ -154,6 +176,10 @@ func (iv *issueVariantHandler) UpdateIssueVariant(
 ) (*entity.IssueVariant, error) {
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issueVariant.Id, 10)
+
+	if err := iv.CheckWritePermission(ctx, op, "IssueVariant", openfga.TypeIssueVariant, issueVariant.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 

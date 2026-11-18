@@ -5,14 +5,18 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 type serviceHandler struct {
@@ -38,8 +42,9 @@ func NewServiceHandler(handlerContext common.HandlerContext) ServiceHandler {
 			ListEventFn: func(f *entity.ServiceFilter, o *entity.ListOptions, r *entity.List[entity.ServiceResult]) any {
 				return &ListServicesEvent{Filter: f, Options: o, Services: r}
 			},
-			DeleteFn:      handlerContext.DB.DeleteService,
-			DeleteEventFn: func(id int64) any { return &DeleteServiceEvent{ServiceID: id} },
+			DeleteFn:             handlerContext.DB.DeleteService,
+			DeleteEventFn:        func(id int64) any { return &DeleteServiceEvent{ServiceID: id} },
+			AuthzWriteObjectType: openfga.TypeService,
 		}),
 	}
 }
@@ -47,24 +52,8 @@ func NewServiceHandler(handlerContext common.HandlerContext) ServiceHandler {
 func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 
-	currentUserId, err := common.GetCurrentUserId(ctx, s.DB())
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
-	}
-
-	hasPermission, err := s.Authz().CheckPermission(openfga.RelationInput{
-		UserType:   openfga.TypeUser,
-		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
-		Relation:   openfga.RelCanView,
-		ObjectType: openfga.TypeService,
-		ObjectId:   openfga.ObjectId(fmt.Sprint(serviceId)),
-	})
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
-	}
-
-	if !hasPermission {
-		return nil, appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(serviceId))
+	if err := s.CheckPermission(ctx, op, "Service", openfga.RelCanView, openfga.TypeService, serviceId); err != nil {
+		return nil, err
 	}
 
 	result, err := s.ListServices(ctx, &entity.ServiceFilter{Id: []*int64{&serviceId}}, entity.NewListOptions())
@@ -92,6 +81,10 @@ func (s *serviceHandler) ListServices(
 func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Service) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 
+	if err := s.CheckSystemAdminPermission(ctx, op); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	service.BaseService.CreatedBy, err = common.GetCurrentUserId(ctx, s.DB())
@@ -101,18 +94,23 @@ func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Serv
 
 	service.BaseService.UpdatedBy = service.BaseService.CreatedBy
 
-	existing, err := s.ListServices(ctx, &entity.ServiceFilter{CCRN: []*string{&service.CCRN}}, entity.NewListOptions())
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "Service", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "Service", service.CCRN)
-	}
-
 	newService, err := s.DB().CreateService(service)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "Service", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "Service", service.CCRN)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"ccrn":                    service.CCRN,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{"ccrn": service.CCRN})
+
+		return nil, wrappedErr
 	}
 
 	s.PushEvent(&CreateServiceEvent{Service: newService})
@@ -123,6 +121,10 @@ func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Serv
 func (s *serviceHandler) UpdateService(ctx context.Context, service *entity.Service) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(service.Id, 10)
+
+	if err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, service.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 
@@ -147,6 +149,10 @@ func (s *serviceHandler) DeleteService(ctx context.Context, id int64) error {
 func (s *serviceHandler) AddOwnerToService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 
+	if err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
+
 	if err := s.DB().AddOwnerToService(serviceId, ownerId); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
@@ -158,6 +164,10 @@ func (s *serviceHandler) AddOwnerToService(ctx context.Context, serviceId, owner
 
 func (s *serviceHandler) RemoveOwnerFromService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
 	op := appErrors.CallerOp()
+
+	if err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
 
 	if err := s.DB().RemoveOwnerFromService(serviceId, ownerId); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
@@ -174,6 +184,10 @@ func (s *serviceHandler) AddIssueRepositoryToService(
 ) (*entity.Service, error) {
 	op := appErrors.CallerOp()
 
+	if err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
+
 	if err := s.DB().AddIssueRepositoryToService(serviceId, issueRepositoryId, priority); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
 	}
@@ -188,6 +202,10 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(
 	serviceId, issueRepositoryId int64,
 ) (*entity.Service, error) {
 	op := appErrors.CallerOp()
+
+	if err := s.CheckWritePermission(ctx, op, "Service", openfga.TypeService, serviceId); err != nil {
+		return nil, err
+	}
 
 	if err := s.DB().RemoveIssueRepositoryFromService(serviceId, issueRepositoryId); err != nil {
 		return nil, appErrors.InternalError(string(op), "Service", fmt.Sprint(serviceId), err)
