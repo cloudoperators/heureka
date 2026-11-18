@@ -5,6 +5,7 @@ go 1.26.3
 require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/aquasecurity/trivy v0.72.0
+	github.com/aquasecurity/trivy-db v0.0.0-20260629102122-a0049d7ad12f
 	github.com/cloudoperators/heureka v1.54.2
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud v1.14.1
@@ -20,7 +21,6 @@ require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/alexflint/go-arg v1.5.1 // indirect
 	github.com/alexflint/go-scalar v1.2.0 // indirect
-	github.com/aquasecurity/trivy-db v0.0.0-20260629102122-a0049d7ad12f // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
