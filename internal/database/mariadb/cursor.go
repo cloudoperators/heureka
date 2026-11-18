@@ -4,7 +4,6 @@
 package mariadb
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -34,20 +33,18 @@ func EncodeCursor(opts ...NewCursor) (string, error) {
 		}
 	}
 
-	var buf bytes.Buffer
-
-	encoder := base64.NewEncoder(base64.StdEncoding, &buf)
-
-	err := json.NewEncoder(encoder).Encode(cursors.fields)
+	// Single-pass encode: json.Marshal + EncodeToString allocates far less than a
+	// streaming base64 encoder over a bytes.Buffer, which matters because this is
+	// called once per row when building pageInfo.pages. The trailing newline keeps
+	// the output byte-identical to the previous streaming json.Encoder.
+	data, err := json.Marshal(cursors.fields)
 	if err != nil {
 		return "", err
 	}
 
-	if err := encoder.Close(); err != nil {
-		return "", err
-	}
+	data = append(data, '\n')
 
-	return buf.String(), nil
+	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 func DecodeCursor(cursor *string) ([]Field, error) {

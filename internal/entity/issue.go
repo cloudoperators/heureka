@@ -81,6 +81,7 @@ type IssueFilter struct {
 	IssueMatchTargetRemediationDate *TimeFilter       `json:"issue_match_target_remediation_date"`
 	Unique                          bool              `json:"unique"`
 	UseMvVulnerabilityList          bool              `json:"use_mv_vulnerability_list"`
+	UseMvComponentVersionVuln       bool              `json:"use_mv_component_version_vuln"`
 	Status                          IssueStatus       `json:"status"`
 	State                           []StateFilterType `json:"state"`
 }
