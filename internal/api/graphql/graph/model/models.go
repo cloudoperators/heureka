@@ -251,7 +251,7 @@ func NewPage(p *entity.Page) *Page {
 func NewSeverity(sev entity.Severity) *Severity {
 	severity, _ := SeverityValue(sev.Value)
 
-	if severity == "unknown" || sev.Cvss == (entity.Cvss{}) {
+	if sev.Cvss.Vector == "" {
 		return &Severity{
 			Value: &severity,
 			Score: &sev.Score,
@@ -259,74 +259,56 @@ func NewSeverity(sev entity.Severity) *Severity {
 		}
 	}
 
-	baseScore := sev.Cvss.Base.Score()
-	av := sev.Cvss.Base.AV.String()
-	attackComplexity := sev.Cvss.Base.AC.String()
-	privilegesRequired := sev.Cvss.Base.PR.String()
-	userInteraction := sev.Cvss.Base.UI.String()
-	scope := sev.Cvss.Base.S.String()
-	confidentialityImpact := sev.Cvss.Base.C.String()
-	integrityImpact := sev.Cvss.Base.I.String()
-	availabilityImpact := sev.Cvss.Base.A.String()
-
-	temporalScore := sev.Cvss.Temporal.Score()
-	exploitCodeMaturity := sev.Cvss.Temporal.E.String()
-	remediationLevel := sev.Cvss.Temporal.RL.String()
-	reportConfidence := sev.Cvss.Temporal.RC.String()
-
-	environmentalScore := sev.Cvss.Environmental.Score()
-	modifiedAttackVector := sev.Cvss.Environmental.MAV.String()
-	modifiedAttackComplexity := sev.Cvss.Environmental.MAC.String()
-	modifiedPrivilegesRequired := sev.Cvss.Environmental.MPR.String()
-	modifiedUserInteraction := sev.Cvss.Environmental.MUI.String()
-	modifiedScope := sev.Cvss.Environmental.MS.String()
-	modifiedConfidentialityImpact := sev.Cvss.Environmental.MC.String()
-	modifiedIntegrityImpact := sev.Cvss.Environmental.MI.String()
-	modifiedAvailabilityImpact := sev.Cvss.Environmental.MA.String()
-	availabilityRequirement := sev.Cvss.Environmental.AR.String()
-	integrityRequirement := sev.Cvss.Environmental.IR.String()
-	confidentialityRequirement := sev.Cvss.Environmental.CR.String()
-	s := &Severity{
-		Value: &severity,
-		Score: &sev.Score,
-		Cvss: &Cvss{
-			Vector:      &sev.Cvss.Vector,
-			ExternalURL: &sev.Cvss.ExternalUrl,
-			Base: &CVSSBase{
-				Score:                 &baseScore,
-				AttackVector:          &av,
-				AttackComplexity:      &attackComplexity,
-				PrivilegesRequired:    &privilegesRequired,
-				UserInteraction:       &userInteraction,
-				Scope:                 &scope,
-				ConfidentialityImpact: &confidentialityImpact,
-				IntegrityImpact:       &integrityImpact,
-				AvailabilityImpact:    &availabilityImpact,
-			},
-			Temporal: &CVSSTemporal{
-				Score:               &temporalScore,
-				ExploitCodeMaturity: &exploitCodeMaturity,
-				RemediationLevel:    &remediationLevel,
-				ReportConfidence:    &reportConfidence,
-			},
-			Environmental: &CVSSEnvironmental{
-				Score:                         &environmentalScore,
-				ModifiedAttackVector:          &modifiedAttackVector,
-				ModifiedAttackComplexity:      &modifiedAttackComplexity,
-				ModifiedPrivilegesRequired:    &modifiedPrivilegesRequired,
-				ModifiedUserInteraction:       &modifiedUserInteraction,
-				ModifiedScope:                 &modifiedScope,
-				ModifiedConfidentialityImpact: &modifiedConfidentialityImpact,
-				ModifiedIntegrityImpact:       &modifiedIntegrityImpact,
-				ModifiedAvailabilityImpact:    &modifiedAvailabilityImpact,
-				ConfidentialityRequirement:    &confidentialityRequirement,
-				AvailabilityRequirement:       &availabilityRequirement,
-				IntegrityRequirement:          &integrityRequirement,
-			},
-		},
+	cvss := &Cvss{
+		Vector:      &sev.Cvss.Vector,
+		ExternalURL: &sev.Cvss.ExternalUrl,
 	}
 
-	return s
+	if sev.Cvss.Base != nil {
+		base := sev.Cvss.Base
+		temporal := sev.Cvss.Temporal
+		environmental := sev.Cvss.Environmental
+
+		cvss.Base = &CVSSBase{
+			Score:                 lo.ToPtr(base.Score()),
+			AttackVector:          lo.ToPtr(base.AV.String()),
+			AttackComplexity:      lo.ToPtr(base.AC.String()),
+			PrivilegesRequired:    lo.ToPtr(base.PR.String()),
+			UserInteraction:       lo.ToPtr(base.UI.String()),
+			Scope:                 lo.ToPtr(base.S.String()),
+			ConfidentialityImpact: lo.ToPtr(base.C.String()),
+			IntegrityImpact:       lo.ToPtr(base.I.String()),
+			AvailabilityImpact:    lo.ToPtr(base.A.String()),
+		}
+
+		cvss.Temporal = &CVSSTemporal{
+			Score:               lo.ToPtr(temporal.Score()),
+			ExploitCodeMaturity: lo.ToPtr(temporal.E.String()),
+			RemediationLevel:    lo.ToPtr(temporal.RL.String()),
+			ReportConfidence:    lo.ToPtr(temporal.RC.String()),
+		}
+
+		cvss.Environmental = &CVSSEnvironmental{
+			Score:                         lo.ToPtr(environmental.Score()),
+			ModifiedAttackVector:          lo.ToPtr(environmental.MAV.String()),
+			ModifiedAttackComplexity:      lo.ToPtr(environmental.MAC.String()),
+			ModifiedPrivilegesRequired:    lo.ToPtr(environmental.MPR.String()),
+			ModifiedUserInteraction:       lo.ToPtr(environmental.MUI.String()),
+			ModifiedScope:                 lo.ToPtr(environmental.MS.String()),
+			ModifiedConfidentialityImpact: lo.ToPtr(environmental.MC.String()),
+			ModifiedIntegrityImpact:       lo.ToPtr(environmental.MI.String()),
+			ModifiedAvailabilityImpact:    lo.ToPtr(environmental.MA.String()),
+			ConfidentialityRequirement:    lo.ToPtr(environmental.CR.String()),
+			AvailabilityRequirement:       lo.ToPtr(environmental.AR.String()),
+			IntegrityRequirement:          lo.ToPtr(environmental.IR.String()),
+		}
+	}
+
+	return &Severity{
+		Value: &severity,
+		Score: &sev.Score,
+		Cvss:  cvss,
+	}
 }
 
 func NewSeverityEntity(severity *SeverityInput) entity.Severity {
