@@ -7,11 +7,14 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	interutil "github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/goark/go-cvss/v3/metric"
+	gocvss20 "github.com/pandatix/go-cvss/20"
+	gocvss40 "github.com/pandatix/go-cvss/40"
 	"github.com/sirupsen/logrus"
 )
 
@@ -203,6 +206,17 @@ func NewSeverityFromRating(rating SeverityValues) Severity {
 }
 
 func NewSeverity(url string) Severity {
+	switch {
+	case strings.HasPrefix(url, "CVSS:4.0"):
+		return newSeverityV4(url)
+	case strings.HasPrefix(url, "CVSS:2.0"), url != "" && !strings.HasPrefix(url, "CVSS:"):
+		return newSeverityV2(url)
+	default:
+		return newSeverityV3(url)
+	}
+}
+
+func newSeverityV3(url string) Severity {
 	ev, err := metric.NewEnvironmental().Decode(url)
 	if err != nil {
 		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
@@ -246,6 +260,60 @@ func NewSeverity(url string) Severity {
 		Value: severity,
 		Score: score,
 		Cvss:  cvss,
+	}
+}
+
+func newSeverityV4(url string) Severity {
+	c, err := gocvss40.ParseVector(url)
+	if err != nil {
+		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
+		return Severity{Value: "unknown", Score: 0.0, Cvss: Cvss{}}
+	}
+
+	score := c.Score()
+
+	return Severity{
+		Value: ratingFromScore(score),
+		Score: score,
+		Cvss: Cvss{
+			Vector:      url,
+			ExternalUrl: fmt.Sprintf("https://www.first.org/cvss/calculator/4.0#%s", url),
+		},
+	}
+}
+
+func newSeverityV2(url string) Severity {
+	vector := strings.TrimPrefix(url, "CVSS:2.0/")
+
+	c, err := gocvss20.ParseVector(vector)
+	if err != nil {
+		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
+		return Severity{Value: "unknown", Score: 0.0, Cvss: Cvss{}}
+	}
+
+	score := c.BaseScore()
+
+	return Severity{
+		Value: ratingFromScore(score),
+		Score: score,
+		Cvss: Cvss{
+			Vector: url,
+		},
+	}
+}
+
+func ratingFromScore(score float64) string {
+	switch {
+	case score >= 9.0:
+		return string(SeverityValuesCritical)
+	case score >= 7.0:
+		return string(SeverityValuesHigh)
+	case score >= 4.0:
+		return string(SeverityValuesMedium)
+	case score >= 0.1:
+		return string(SeverityValuesLow)
+	default:
+		return string(SeverityValuesNone)
 	}
 }
 
