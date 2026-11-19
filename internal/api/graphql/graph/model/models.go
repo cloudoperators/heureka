@@ -251,7 +251,7 @@ func NewPage(p *entity.Page) *Page {
 func NewSeverity(sev entity.Severity) *Severity {
 	severity, _ := SeverityValue(sev.Value)
 
-	if severity == "unknown" || sev.Cvss == (entity.Cvss{}) {
+	if severity == "unknown" || sev.Cvss.Base == nil {
 		return &Severity{
 			Value: &severity,
 			Score: &sev.Score,

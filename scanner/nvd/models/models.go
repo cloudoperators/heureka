@@ -69,25 +69,29 @@ func (cve Cve) GetDescription(language string) string {
 	return ""
 }
 
-// GetSeverityVector tries to fetch a CvssV31 vector string from the CVE
 func (cve Cve) SeverityVector() string {
-	var vector string
-	// Try to first fetch Cvssv31 score
 	for _, metric := range cve.Metrics.CvssMetricV31 {
 		if len(metric.CvsssData.VectorString) > 0 {
-			vector = metric.CvsssData.VectorString
-			break
-		} else {
-			continue
+			return metric.CvsssData.VectorString
+		}
+	}
+	for _, metric := range cve.Metrics.CvssMetricV30 {
+		if len(metric.CvssData.VectorString) > 0 {
+			return metric.CvssData.VectorString
+		}
+	}
+	for _, metric := range cve.Metrics.CvssMetricV40 {
+		if len(metric.CvssData.VectorString) > 0 {
+			return metric.CvssData.VectorString
+		}
+	}
+	for _, metric := range cve.Metrics.CvssMetricV2 {
+		if len(metric.CvssData.VectorString) > 0 {
+			return metric.CvssData.VectorString
 		}
 	}
 
-	// If no vector has been found, set each base metric to "least impactful"
-	// or "neutral" value. Therefore we CVSS score cannot be really calculated
-	if len(vector) == 0 {
-		vector = emptyCVSS
-	}
-	return vector
+	return emptyCVSS
 }
 
 // IsKnownExploited reports whether this CVE is listed in the CISA KEV catalog.

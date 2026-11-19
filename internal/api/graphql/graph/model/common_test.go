@@ -96,6 +96,38 @@ var _ = Describe("NewVulnerability", func() {
 	})
 })
 
+var _ = Describe("NewSeverity", func() {
+	Context("with a CVSS v4.0 severity (no goark breakdown)", func() {
+		sev := entity.NewSeverity("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N")
+
+		It("does not panic and returns value and score", func() {
+			var s *model.Severity
+
+			Expect(func() { s = model.NewSeverity(sev) }).NotTo(Panic())
+			Expect(s).NotTo(BeNil())
+			Expect(s.Value).NotTo(BeNil())
+			Expect(string(*s.Value)).To(Equal("Critical"))
+			Expect(s.Score).NotTo(BeNil())
+			Expect(*s.Score).To(BeNumerically("~", 9.3, 1e-9))
+		})
+
+		It("omits the CVSS breakdown when Base is nil", func() {
+			s := model.NewSeverity(sev)
+			Expect(s.Cvss).To(BeNil())
+		})
+	})
+
+	Context("with a CVSS v3.1 severity (full goark breakdown)", func() {
+		sev := entity.NewSeverity("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
+
+		It("populates the CVSS breakdown", func() {
+			s := model.NewSeverity(sev)
+			Expect(s.Cvss).NotTo(BeNil())
+			Expect(s.Cvss.Base).NotTo(BeNil())
+		})
+	})
+})
+
 var _ = Describe("NewVulnerability EPSS", func() {
 	Context("when EPSS score is present", func() {
 		epss := 0.042
