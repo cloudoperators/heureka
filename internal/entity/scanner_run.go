@@ -13,6 +13,7 @@ type ScannerRun struct {
 	StartRun  time.Time `json:"start_run"`
 	EndRun    time.Time `json:"end_run"`
 	Completed bool      `json:"is_completed"`
+	Error     string    `json:"error"`
 }
 
 func (sc ScannerRun) IsCompleted() bool {

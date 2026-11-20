@@ -464,6 +464,7 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 		Completed: sr.Completed,
 		StartRun:  startRun,
 		EndRun:    endRun,
+		Error:     sr.Error,
 	}
 }
 
