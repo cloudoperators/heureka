@@ -97,7 +97,7 @@ func (c *Config) ConfigToConsole() {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.Header([]string{"Variable", "Value"})
 	table.Configure(func(config *tablewriter.Config) {
-		config.Row.Formatting.Alignment = tw.AlignLeft
+		config.Row.Alignment.PerColumn = []tw.Align{tw.AlignLeft, tw.AlignLeft}
 	})
 	_ = table.Bulk(data)
 	_ = table.Render()

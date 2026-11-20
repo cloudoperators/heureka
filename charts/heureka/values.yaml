@@ -50,6 +50,18 @@ environment: staging
 
 seedMode: true
 
+# API authentication (HS256 token for service-to-service, e.g., scanners).
+# When empty, token auth is disabled and the API accepts unauthenticated requests
+# unless OIDC is configured.
+api:
+  authToken: ""
+
+# OIDC authentication (for user-facing).
+# When url is empty, OIDC is disabled. url should be the IdP's discovery URL.
+oidc:
+  url: ""
+  clientId: ""
+
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
