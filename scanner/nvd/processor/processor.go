@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/cloudoperators/heureka/pkg/jwt"
 	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/cloudoperators/heureka/scanner/nvd/client"
 	"github.com/cloudoperators/heureka/scanner/nvd/models"
@@ -19,6 +20,8 @@ import (
 const (
 	issueInputTypeVulnerability = "Vulnerability"
 	issueVariantInputRatingNone = "None"
+	authTokenTTL                = 10 * time.Minute
+	clientName                  = "scanner-nvd"
 )
 
 type Processor struct {
@@ -37,6 +40,12 @@ func NewProcessor(cfg Config) *Processor {
 		nil,
 	)
 	httpClient.Timeout = time.Duration(10) * time.Second
+
+	if cfg.AuthTokenSecret != "" {
+		signer := jwt.NewSigner(cfg.AuthTokenSecret, authTokenTTL, clientName)
+		httpClient = util.WithAuth(httpClient, signer)
+	}
+
 	return &Processor{
 		GraphqlClient:       graphql.NewClient(cfg.HeurekaUrl, httpClient),
 		IssueRepositoryName: cfg.IssueRepositoryName,
