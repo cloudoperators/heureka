@@ -7,8 +7,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/cloudoperators/heureka/pkg/jwt"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/pkg/util"
@@ -17,6 +19,11 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
+)
+
+const (
+	authTokenTTL = 10 * time.Minute
+	clientName   = "scanner-k8s-assets"
 )
 
 type Processor struct {
@@ -101,11 +108,18 @@ func NewProcessor(cfg Config, tag string) *Processor {
 		cfg.HeurekaRateBurst,
 		nil,
 	)
+	
+	if cfg.AuthTokenSecret != "" {
+		signer := jwt.NewSigner(cfg.AuthTokenSecret, authTokenTTL, clientName)
+		httpClient = util.WithAuth(httpClient, signer)
+	}
+
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	advCfg, err := cfg.LoadAdvancedConfig()
 	if err != nil {
 		log.WithError(err).Error("failed to load advanced config")
 	}
+
 	return &Processor{
 		config:    cfg,
 		Client:    &gClient,
