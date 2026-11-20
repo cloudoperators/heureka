@@ -84,14 +84,19 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 	When("Creating a new ScannerRun", Label("ByUUID"), func() {
 		Context("and the database is empty", func() {
 			It("should be marked as failed correctly", func() {
+				testUuid := "6809de35-9716-4914-b090-15273f82e8ab"
 				sr := &entity.ScannerRun{
-					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+					UUID: testUuid,
 					Tag:  "tag",
 				}
 				res, err := db.CreateScannerRun(sr)
 
 				Expect(err).To(BeNil())
 				Expect(res).To(BeTrue())
+
+				completeSuccess, err := db.CompleteScannerRun(testUuid)
+				Expect(err).To(BeNil())
+				Expect(completeSuccess).To(BeTrue())
 
 				success, err := db.FailScannerRun(sr.UUID, "All your base are belong to us")
 

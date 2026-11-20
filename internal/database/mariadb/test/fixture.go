@@ -2342,7 +2342,6 @@ func (s *DatabaseSeeder) RefreshAllComponentsByServiceVulnerabilityCounts() erro
 
 type ScannerRunWithAssociatedData struct {
 	Timestamp   time.Time
-	ErrorMsgs   []string
 	TrackersCnt int
 	Completed   bool
 }
@@ -2364,13 +2363,6 @@ func (s *DatabaseSeeder) SeedScannerRunWithAssociatedData(srwad map[string][]Sca
 			runId, err := res.LastInsertId()
 			if err != nil {
 				return fmt.Errorf("could not read scanner run insert result: %w", err)
-			}
-
-			for _, er := range sr.ErrorMsgs {
-				err := s.insertScannerRunError(runId, er)
-				if err != nil {
-					return fmt.Errorf("could not seed scanner run error: %w", err)
-				}
 			}
 
 			for range sr.TrackersCnt {

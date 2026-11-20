@@ -38,17 +38,14 @@ var scannerruns = map[string][]test.ScannerRunWithAssociatedData{
 	"ScannerRunTag2": {
 		{
 			Timestamp: time.Now().Add(time.Duration(0) * time.Minute).Truncate(time.Second).UTC(),
-			ErrorMsgs: []string{"dummy error message1 for ScannerRunTag2"},
 			Completed: false,
 		},
 		{
 			Timestamp: time.Now().Add(time.Duration(1) * time.Minute).Truncate(time.Second).UTC(),
-			ErrorMsgs: []string{"dummy error message2 for ScannerRunTag2"},
 			Completed: false,
 		},
 		{
 			Timestamp: time.Now().Add(time.Duration(2) * time.Minute).Truncate(time.Second).UTC(),
-			ErrorMsgs: []string{"dummy error message3 for ScannerRunTag2"},
 			Completed: false,
 		},
 	},
@@ -57,7 +54,6 @@ var scannerruns = map[string][]test.ScannerRunWithAssociatedData{
 		{
 			Timestamp: time.Now().Add(time.Duration(0) * time.Minute).Truncate(time.Second).UTC(),
 			Completed: false,
-			ErrorMsgs: []string{"dummy error message1 for ScannerRunTag3"},
 		},
 		{
 			Timestamp: time.Now().Add(time.Duration(1) * time.Minute).Truncate(time.Second).UTC(),
@@ -65,7 +61,6 @@ var scannerruns = map[string][]test.ScannerRunWithAssociatedData{
 		},
 		{
 			Timestamp: time.Now().Add(time.Duration(2) * time.Minute).Truncate(time.Second).UTC(),
-			ErrorMsgs: []string{"dummy error message3 for ScannerRunTag3"},
 			Completed: false,
 		},
 	},
@@ -89,7 +84,6 @@ var scannerruns = map[string][]test.ScannerRunWithAssociatedData{
 		{
 			Timestamp: time.Now().Add(time.Duration(2) * time.Minute).Truncate(time.Second).UTC(),
 			Completed: false,
-			ErrorMsgs: []string{"dummy error message3 for ScannerRunTag5"},
 		},
 		{
 			Timestamp: time.Now().Add(time.Duration(3) * time.Minute).Truncate(time.Second).UTC(),
@@ -113,17 +107,14 @@ var scannerruns = map[string][]test.ScannerRunWithAssociatedData{
 		{
 			Timestamp: time.Now().Add(time.Duration(2) * time.Minute).Truncate(time.Second).UTC(),
 			Completed: false,
-			ErrorMsgs: []string{"dummy error message3 for ScannerRunTag6"},
 		},
 		{
 			Timestamp: time.Now().Add(time.Duration(3) * time.Minute).Truncate(time.Second).UTC(),
 			Completed: false,
-			ErrorMsgs: []string{"dummy error message4 for ScannerRunTag6"},
 		},
 		{
 			Timestamp: time.Now().Add(time.Duration(4) * time.Minute).Truncate(time.Second).UTC(),
 			Completed: false,
-			ErrorMsgs: []string{"dummy error message5 for ScannerRunTag6"},
 		},
 	},
 }
@@ -270,31 +261,6 @@ func (at *autocleanTest) getScannerRunIdsForAllTrackers() []int64 {
 	return ids
 }
 
-func (at *autocleanTest) getAllScannerRunErrors() []string {
-	query, args, err := sq.Select("error").From("ScannerRunError").ToSql()
-	Expect(err).To(BeNil())
-
-	rows, err := at.db.GetDb().Query(query, args...)
-	Expect(err).To(BeNil())
-
-	defer rows.Close()
-
-	var errorTexts []string
-
-	for rows.Next() {
-		var errMsg string
-
-		err := rows.Scan(&errMsg)
-		Expect(err).To(BeNil())
-
-		errorTexts = append(errorTexts, errMsg)
-	}
-
-	Expect(rows.Err()).To(BeNil())
-
-	return errorTexts
-}
-
 var _ = Describe("Autoclean", Label("database", "Autoclean"), func() {
 	var at *autocleanTest
 
@@ -350,20 +316,12 @@ var _ = Describe("Autoclean", Label("database", "Autoclean"), func() {
 		})
 	})
 	When("Runing autoclean for tracker and errors", func() {
-		It("Should remove associated scannerrun trackers and errors of removed run from database", func() {
+		It("Should remove associated scannerrun trackers of removed run from database", func() {
 			at.callAutocleanAndExpectNoErrors(2)
 			activeScannerRuns := at.fetchNotDeletedScannerRuns()
 
 			at.expectTagScannerRuns(activeScannerRuns, "ScannerRunTag1", -2, -1)
 			at.expectTagScannerRunsTrackers(activeScannerRuns, "ScannerRunTag1", -2, -1)
-
-			errs := at.getAllScannerRunErrors()
-			Expect(errs).To(HaveLen(5))
-			Expect(errs).To(ContainElement(scannerruns["ScannerRunTag2"][len(scannerruns["ScannerRunTag2"])-1].ErrorMsgs[0]))
-			Expect(errs).To(ContainElement(scannerruns["ScannerRunTag2"][len(scannerruns["ScannerRunTag2"])-2].ErrorMsgs[0]))
-			Expect(errs).To(ContainElement(scannerruns["ScannerRunTag3"][len(scannerruns["ScannerRunTag3"])-1].ErrorMsgs[0]))
-			Expect(errs).To(ContainElement(scannerruns["ScannerRunTag6"][len(scannerruns["ScannerRunTag6"])-1].ErrorMsgs[0]))
-			Expect(errs).To(ContainElement(scannerruns["ScannerRunTag6"][len(scannerruns["ScannerRunTag6"])-2].ErrorMsgs[0]))
 		})
 	})
 })

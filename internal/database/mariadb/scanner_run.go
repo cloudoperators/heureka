@@ -4,6 +4,8 @@
 package mariadb
 
 import (
+	"fmt"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
@@ -26,6 +28,7 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (bool, err
 			scannerrun_start_run,
 			scannerrun_end_run,
 			scannerrun_is_completed,
+			scannerrun_error,
 			scannerrun_created_by,
 			scannerrun_updated_by
 		) VALUES (
@@ -34,6 +37,7 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (bool, err
 			:scannerrun_start_run,
 			:scannerrun_end_run,
 			:scannerrun_is_completed,
+			:scannerrun_error,
 			:scannerrun_created_by,
 			:scannerrun_updated_by
 		)
@@ -66,9 +70,18 @@ func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
 						scannerrun_uuid = ? AND
 						scannerrun_is_completed = FALSE`
 
-	_, err := s.db.Exec(updateQuery, uuid)
+	result, err := s.db.Exec(updateQuery, uuid)
 	if err != nil {
 		return false, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rowsAffected == 0 {
+		return false, fmt.Errorf("scanner run %s not found or already completed", uuid)
 	}
 
 	return true, nil
@@ -83,25 +96,24 @@ func (s *SqlDatabase) FailScannerRun(uuid string, message string) (bool, error) 
 	updateScannerRunQuery := `UPDATE ScannerRun 
 					SET 
 						scannerrun_is_completed = FALSE,
-						scannerrun_end_run = current_timestamp()
+						scannerrun_end_run = current_timestamp(),
+						scannerrun_error = ?
 					WHERE 
 						scannerrun_uuid = ? AND
 						scannerrun_is_completed = TRUE`
 
-	insertScannerRunErrorQuery := `INSERT INTO ScannerRunError 
-										(scannerrunerror_scannerrun_run_id, error) 
-								   VALUES (
-								   		(SELECT scannerrun_run_id FROM ScannerRun WHERE scannerrun_uuid = ?),
-										?)`
-
-	_, err := s.db.Exec(updateScannerRunQuery, uuid)
+	result, err := s.db.Exec(updateScannerRunQuery, message, uuid)
 	if err != nil {
 		return false, err
 	}
 
-	_, err = s.db.Exec(insertScannerRunErrorQuery, uuid, message)
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return false, err
+	}
+
+	if rowsAffected == 0 {
+		return false, fmt.Errorf("scanner run %s not found or not completed", uuid)
 	}
 
 	return true, nil
@@ -127,7 +139,6 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 
 func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
 	filter = EnsureFilter(filter)
-
 	baseQuery := `
 		SELECT * FROM ScannerRun
     `
@@ -156,6 +167,7 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 			&srr.StartRun,
 			&srr.EndRun,
 			&srr.IsCompleted,
+			&srr.Error,
 			&srr.CreatedAt,
 			&srr.CreatedBy,
 			&srr.DeletedAt,
