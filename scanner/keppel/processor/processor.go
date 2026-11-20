@@ -6,7 +6,9 @@ package processor
 import (
 	"context"
 	"fmt"
+	"github.com/cloudoperators/heureka/pkg/jwt"
 	"strings"
+	"time"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/pkg/util"
@@ -18,7 +20,9 @@ import (
 )
 
 const (
-	RottenVulnerabilityStatus = "Rotten"
+	rottenVulnerabilityStatus = "Rotten"
+	authTokenTTL              = 10 * time.Minute
+	clientName                = "scanner-keppel"
 )
 
 type Processor struct {
@@ -37,6 +41,12 @@ func NewProcessor(cfg Config, tag string) *Processor {
 		cfg.HeurekaRateBurst,
 		nil,
 	)
+
+	if cfg.AuthTokenSecret != "" {
+		signer := jwt.NewSigner(cfg.AuthTokenSecret, authTokenTTL, clientName)
+		httpClient = util.WithAuth(httpClient, signer)
+	}
+
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	return &Processor{
 		Client:              &gClient,
@@ -147,7 +157,7 @@ func (p *Processor) ProcessManifest(
 		&client.ComponentVersionInput{
 			Version:     manifest.Digest,
 			ComponentId: componentId,
-			EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
+			EndOfLife:   manifest.VulnerabilityStatus == rottenVulnerabilityStatus,
 		},
 	)
 	if err != nil {
