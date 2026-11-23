@@ -25,6 +25,7 @@ func okResponse() *http.Response {
 
 func TestWithAuth_SetsServiceAuthorizationHeader(t *testing.T) {
 	var seenHeader string
+
 	base := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		seenHeader = r.Header.Get("X-Service-Authorization")
 		return okResponse(), nil
@@ -53,6 +54,7 @@ func TestWithAuth_DoesNotMutateOriginalRequest(t *testing.T) {
 	if _, err := client.Do(req); err != nil {
 		t.Fatalf("Do: %v", err)
 	}
+
 	if got := req.Header.Get("X-Service-Authorization"); got != "" {
 		t.Errorf("original request mutated: X-Service-Authorization = %q", got)
 	}
@@ -67,6 +69,7 @@ func TestWithAuth_PropagatesTransportErrors(t *testing.T) {
 	client := util.WithAuth(&http.Client{Transport: base}, signer)
 
 	req, _ := http.NewRequest(http.MethodPost, "http://example.test/q", nil)
+
 	_, err := client.Do(req)
 	if err == nil || !strings.Contains(err.Error(), "error") {
 		t.Errorf("err = %v, want containing %q", err, "error")
@@ -87,9 +90,11 @@ func TestWithAuth_PreservesExistingClientFields(t *testing.T) {
 	if wrapped.Timeout != original.Timeout {
 		t.Errorf("Timeout lost: got %v, want %v", wrapped.Timeout, original.Timeout)
 	}
+
 	if wrapped == original {
 		t.Error("WithAuth returned the same pointer; should be a copy to avoid caller mutation")
 	}
+
 	if wrapped.Transport == original.Transport {
 		t.Error("Transport not wrapped; got original back")
 	}

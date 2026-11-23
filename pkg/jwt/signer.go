@@ -31,6 +31,7 @@ func GenerateJWT(secret []byte, expireIn time.Duration, subject string) (string,
 		},
 	}
 	token := gojwt.NewWithClaims(gojwt.SigningMethodHS256, claims)
+
 	return token.SignedString(secret)
 }
 
@@ -52,14 +53,18 @@ func NewSigner(secret string, ttl time.Duration, subject string) *Signer {
 func (s *Signer) Token() (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	if time.Now().Before(s.expires.Add(skewBuffer * time.Second)) {
 		return s.token, nil
 	}
+
 	tok, err := GenerateJWT(s.secret, s.ttl, s.subject)
 	if err != nil {
 		return "", err
 	}
+
 	s.token = tok
 	s.expires = time.Now().Add(s.ttl)
+
 	return tok, nil
 }

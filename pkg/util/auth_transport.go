@@ -19,8 +19,10 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	req = req.Clone(req.Context())
 	req.Header.Set("X-Service-Authorization", "Bearer "+token)
+
 	return t.base.RoundTrip(req)
 }
 
@@ -29,7 +31,9 @@ func WithAuth(client *http.Client, signer *jwt.Signer) *http.Client {
 	if base == nil {
 		base = http.DefaultTransport
 	}
+
 	wrapped := *client
 	wrapped.Transport = &authTransport{base: base, signer: signer}
+
 	return &wrapped
 }
