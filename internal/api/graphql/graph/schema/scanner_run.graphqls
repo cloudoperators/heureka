@@ -8,6 +8,7 @@ type ScannerRun implements Node {
     start_run:  DateTime!
     end_run:    DateTime!
     completed:  Boolean!
+    error:      String!
     metadata:   Metadata
 }
 
