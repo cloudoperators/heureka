@@ -5,12 +5,17 @@ package issue_repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 type issueRepositoryHandler struct {
@@ -20,18 +25,24 @@ type issueRepositoryHandler struct {
 func NewIssueRepositoryHandler(handlerContext common.HandlerContext) IssueRepositoryHandler {
 	return &issueRepositoryHandler{
 		BaseHandler: common.NewBaseHandler(handlerContext, common.BaseConfig[entity.IssueRepositoryResult, *entity.IssueRepositoryFilter]{
-			Op:           appErrors.Op("issueRepositoryHandler"),
-			Entity:       "IssueRepositories",
-			CursorEntity: "IssueRepositoryCursors",
-			CountEntity:  "IssueRepositoryCount",
-			GetFn:        handlerContext.DB.GetIssueRepositories,
-			CursorsFn:    handlerContext.DB.GetAllIssueRepositoryCursors,
-			CountFn:      handlerContext.DB.CountIssueRepositories,
+			Op:              appErrors.Op("issueRepositoryHandler"),
+			Entity:          "IssueRepositories",
+			CursorEntity:    "IssueRepositoryCursors",
+			CountEntity:     "IssueRepositoryCount",
+			GetFn:           handlerContext.DB.GetIssueRepositories,
+			CursorsFn:       handlerContext.DB.GetAllIssueRepositoryCursors,
+			CountFn:         handlerContext.DB.CountIssueRepositories,
+			Authz:           handlerContext.Authz,
+			AuthzObjectType: openfga.TypeIssueRepository,
+			AuthzApplyFn: func(f *entity.IssueRepositoryFilter, ids []*int64) {
+				f.Id = common.CombineFilterWithAccessibleIds(f.Id, ids)
+			},
 			ListEventFn: func(f *entity.IssueRepositoryFilter, o *entity.ListOptions, r *entity.List[entity.IssueRepositoryResult]) any {
 				return &ListIssueRepositoriesEvent{Filter: f, Options: o, Results: r}
 			},
-			DeleteFn:      handlerContext.DB.DeleteIssueRepository,
-			DeleteEventFn: func(id int64) any { return &DeleteIssueRepositoryEvent{IssueRepositoryID: id} },
+			DeleteFn:             handlerContext.DB.DeleteIssueRepository,
+			DeleteEventFn:        func(id int64) any { return &DeleteIssueRepositoryEvent{IssueRepositoryID: id} },
+			AuthzWriteObjectType: openfga.TypeIssueRepository,
 		}),
 	}
 }
@@ -50,6 +61,10 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(
 ) (*entity.IssueRepository, error) {
 	op := appErrors.CallerOp()
 
+	if err := ir.CheckSystemAdminPermission(ctx, op); err != nil {
+		return nil, err
+	}
+
 	var err error
 
 	issueRepository.BaseIssueRepository.CreatedBy, err = common.GetCurrentUserId(ctx, ir.DB())
@@ -59,22 +74,23 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(
 
 	issueRepository.BaseIssueRepository.UpdatedBy = issueRepository.BaseIssueRepository.CreatedBy
 
-	existing, err := ir.ListIssueRepositories(
-		ctx,
-		&entity.IssueRepositoryFilter{Name: []*string{&issueRepository.Name}},
-		entity.NewListOptions(),
-	)
-	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueRepository", "", err)
-	}
-
-	if len(existing.Elements) > 0 {
-		return nil, appErrors.AlreadyExistsError(string(op), "IssueRepository", issueRepository.Name)
-	}
-
 	newIssueRepository, err := ir.DB().CreateIssueRepository(issueRepository)
 	if err != nil {
-		return nil, appErrors.InternalError(string(op), "IssueRepository", "", err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "IssueRepository", issueRepository.Name)
+			applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{
+				"name":                    issueRepository.Name,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+
+			return nil, wrappedErr
+		}
+
+		wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
+		applog.LogError(logrus.StandardLogger(), wrappedErr, logrus.Fields{"name": issueRepository.Name})
+
+		return nil, wrappedErr
 	}
 
 	ir.PushEvent(&CreateIssueRepositoryEvent{IssueRepository: newIssueRepository})
@@ -88,6 +104,10 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(
 ) (*entity.IssueRepository, error) {
 	op := appErrors.CallerOp()
 	id := strconv.FormatInt(issueRepository.Id, 10)
+
+	if err := ir.CheckWritePermission(ctx, op, "IssueRepository", openfga.TypeIssueRepository, issueRepository.Id); err != nil {
+		return nil, err
+	}
 
 	var err error
 

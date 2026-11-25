@@ -73,13 +73,76 @@ Using the event handling system, openfga tuples are modified based on the event 
 | DeleteUser         | OnUserDeleteAuthz         | delete user - role<br>delete user - service<br>delete user - component_instance<br>delete user - support_group<br>delete user - issue_match<br>delete user - component_version<br>delete user - component         |
 | CreateComponent         | OnComponentCreateAuthz         | add role - component                                                                             |
 | DeleteComponent         | OnComponentDeleteAuthz         | delete user - component<br>delete component_version - component<br>delete role - component        |
+| CreateIssueRepository   | OnIssueRepositoryCreateAuthz   | add role - issue_repository                                                                       |
+| DeleteIssueRepository   | OnIssueRepositoryDeleteAuthz   | delete user - issue_repository<br>delete role - issue_repository                                   |
+| CreateIssueVariant      | OnIssueVariantCreateAuthz      | add role - issue_variant<br>add issue_repository - issue_variant                                   |
+| DeleteIssueVariant      | OnIssueVariantDeleteAuthz      | delete all tuples referencing that issue_variant                                                  |
+| CreateIssue             | OnIssueCreateAuthz             | add role - issue                                                                                   |
+| DeleteIssue             | OnIssueDeleteAuthz             | delete all tuples referencing that issue                                                           |
 
 ## Read Permissions
 
-For various entities, get & list operations are protected by permission checks using openFGA.
-For get operations, a call to CheckPermission with the ID of the exact object attempting to be accessed is made.
-For list operations, a call to GetListOfAccessibleObjectIds is made to obtain a list of IDs to be used as a filter when querying the DB.
-If no objects are accessible, -1 is returned and used as the filter.
+For list operations, the logic lives in `BaseHandler.List()` (internal/app/common/base_handler.go), driven by two config fields every entity handler sets:
+
+- `BaseConfig.AuthzObjectType` - the object type passed to `GetListOfAccessibleObjectIds`, i.e. which type of object OpenFGA is asked "which ids of this type can the user read?".
+- `BaseConfig.AuthzApplyFn` - takes the returned ids and applies them to the DB filter for the actual list query.
+
+`AuthzObjectType` is **not always the entity's own type** - it's whichever type governs read visibility for that entity:
+
+- For entities whose own OpenFGA tuples directly grant read access (no useful "parent" to scope by), `AuthzObjectType` is the entity's own type, and `AuthzApplyFn` filters by the entity's own `Id`: Component, Issue, IssueRepository, IssueVariant, SupportGroup.
+
+- For entities whose read visibility is instead derived from a parent/owning entity, `AuthzObjectType` is that parent's type, and `AuthzApplyFn` filters by the parent's id field instead of the entity's own id:
+
+| Entity            | AuthzObjectType (scoped by) | Filter field applied      |
+|-------------------|------------------------------|---------------------------|
+| ComponentInstance | Service                      | `ServiceId`                |
+| ComponentVersion  | Component                    | `ComponentId`               |
+| IssueMatch        | ComponentInstance             | `ComponentInstanceId`       |
+| Service           | SupportGroup                  | `SupportGroupId`            |
+| User              | SupportGroup                  | `SupportGroupId`            |
+
+So for example, listing ComponentInstances doesn't check per-component-instance tuples at all - it asks "which services can this user read?" and filters component instances down to those belonging to an accessible service.
+
+## Write Permissions
+
+OpenFGA write checks are applied by the handler methods listed below. Not every mutation currently has one.
+The shared permission helpers live in `BaseHandler` (internal/app/common/base_handler.go):
+
+- `CheckPermission(ctx, op, objectEntity, relation, objectType, objectId)` checks any relation for a resource. It checks the current user's numeric database ID first and, if denied, retries with the unique user ID from the request context. It is also used for direct read checks such as `can_view`.
+- `CheckWritePermission(ctx, op, objectEntity, objectType, objectId)` is a `CheckPermission` wrapper for the `can_write` relation. The checked object can be the entity itself or a parent entity it belongs to.
+- `CheckSystemPermission(ctx, op, relation)` checks the given relation on `role:system_role` (see `openfga.SystemRoleId`) using the same numeric-ID/unique-ID fallback.
+- `CheckSystemAdminPermission(ctx, op)` checks the configured `BaseConfig.AuthzSystemAdminRel` on `role:system_role`, defaulting to `admin`. It is used for root-level entity creation and for operations that manage other users.
+
+Internally, `checkPermission` builds the user-subject `RelationInput`, wraps OpenFGA errors as application errors, and performs the (database)numeric-ID/(token)unique-ID fallback. `CheckSystemAdminPermission` uses to `CheckSystemPermission`, which applies the same fallback for the configured system-admin relation.
+
+The write mutation checks are implemented as follows here:
+
+| Entity            | Mutation                                                     | Check                                                                 |
+|-------------------|---------------------------------------------------------------|------------------------------------------------------------------------|
+| Service           | CreateService                                                  | CheckSystemAdminPermission (system role)                                   |
+| Service           | UpdateService, DeleteService                                    | CheckWritePermission on the service itself                             |
+| Service           | AddOwnerToService, RemoveOwnerFromService                        | CheckWritePermission on the service                                     |
+| Service           | AddIssueRepositoryToService, RemoveIssueRepositoryFromService    | CheckWritePermission on the service (the "host" entity); the issue repository being attached/detached is not separately checked |
+| SupportGroup      | CreateSupportGroup                                               | CheckSystemAdminPermission (system role)                                   |
+| SupportGroup      | UpdateSupportGroup, DeleteSupportGroup                           | CheckWritePermission on the support group itself                       |
+| SupportGroup      | AddServiceToSupportGroup, RemoveServiceFromSupportGroup, AddUserToSupportGroup, RemoveUserFromSupportGroup | CheckWritePermission on the support group |
+| Component         | CreateComponent                                                  | CheckSystemAdminPermission (system role)                                   |
+| Component         | UpdateComponent, DeleteComponent                                 | CheckWritePermission on the component itself                           |
+| ComponentVersion  | CreateComponentVersion                                           | CheckWritePermission on the parent component                           |
+| ComponentVersion  | UpdateComponentVersion, DeleteComponentVersion                   | CheckWritePermission on the component version itself                   |
+| ComponentInstance | CreateComponentInstance                                          | CheckWritePermission on the parent service                             |
+| ComponentInstance | UpdateComponentInstance, DeleteComponentInstance                 | CheckWritePermission on the component instance itself                  |
+| IssueMatch        | CreateIssueMatch                                                 | CheckWritePermission on the parent component instance                  |
+| IssueMatch        | UpdateIssueMatch, DeleteIssueMatch                                | CheckWritePermission on the issue match itself                         |
+| Issue             | CreateIssue                                                      | CheckSystemAdminPermission (system role)                                   |
+| Issue             | UpdateIssue, DeleteIssue                                          | CheckWritePermission on the issue itself                                |
+| Issue             | AddComponentVersionToIssue, RemoveComponentVersionFromIssue       | CheckWritePermission on the issue (the "host" entity); the component version being attached/detached is not separately checked |
+| IssueRepository   | CreateIssueRepository                                            | CheckSystemAdminPermission (system role)                                   |
+| IssueRepository   | UpdateIssueRepository, DeleteIssueRepository                      | CheckWritePermission on the issue repository itself                    |
+| IssueVariant      | CreateIssueVariant                                               | CheckWritePermission on the parent issue repository                    |
+| IssueVariant      | UpdateIssueVariant, DeleteIssueVariant                            | CheckWritePermission on the issue variant itself (derived from its issue repository via `can_write_from_repository`) |
+| User              | UpdateUser                                                       | Self-edits are always allowed; editing another user requires CheckSystemAdminPermission |
+| User              | DeleteUser                                                       | CheckSystemAdminPermission (always required)                            |
 
 ## Usage
 

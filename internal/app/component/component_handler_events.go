@@ -87,12 +87,10 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 	})
 
 	if createEvent, ok := e.(*CreateComponentEvent); ok {
-		userId := openfga.UserIdFromInt(createEvent.Component.CreatedBy)
-
 		relations := []openfga.RelationInput{
 			{
 				UserType:   openfga.TypeRole,
-				UserId:     userId,
+				UserId:     openfga.UserId(openfga.SystemRoleId),
 				Relation:   openfga.RelRole,
 				ObjectType: openfga.TypeComponent,
 				ObjectId:   openfga.ObjectIdFromInt(createEvent.Component.Id),
