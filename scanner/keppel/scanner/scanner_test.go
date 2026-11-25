@@ -139,4 +139,42 @@ var _ = Describe("Scanner", func() {
 			})
 		})
 	})
+
+	Describe("OwnsRegistry", func() {
+		Context("with no aliases configured", func() {
+			It("returns true for the primary FQDN", func() {
+				s := scanner.NewScanner(scanner.Config{KeppelFQDN: "keppel.example.com"})
+				Expect(s.OwnsRegistry("keppel.example.com")).To(BeTrue())
+			})
+
+			It("returns false for a different hostname", func() {
+				s := scanner.NewScanner(scanner.Config{KeppelFQDN: "keppel.example.com"})
+				Expect(s.OwnsRegistry("other.registry.io")).To(BeFalse())
+			})
+
+			It("returns false for an empty registry", func() {
+				s := scanner.NewScanner(scanner.Config{KeppelFQDN: "keppel.example.com"})
+				Expect(s.OwnsRegistry("")).To(BeFalse())
+			})
+		})
+
+		Context("with aliases configured", func() {
+			It("returns true for an alias", func() {
+				s := scanner.NewScanner(scanner.Config{
+					KeppelFQDN:        "keppel.example.com",
+					KeppelFQDNAliases: []string{"keppel-alias.example.com", "keppel2.example.com"},
+				})
+				Expect(s.OwnsRegistry("keppel-alias.example.com")).To(BeTrue())
+				Expect(s.OwnsRegistry("keppel2.example.com")).To(BeTrue())
+			})
+
+			It("still returns false for an unrelated hostname", func() {
+				s := scanner.NewScanner(scanner.Config{
+					KeppelFQDN:        "keppel.example.com",
+					KeppelFQDNAliases: []string{"keppel-alias.example.com"},
+				})
+				Expect(s.OwnsRegistry("foreign.registry.io")).To(BeFalse())
+			})
+		})
+	})
 })

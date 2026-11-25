@@ -42,6 +42,7 @@ func (s *SqlDatabase) GetVersionsByComponentIDs(ctx context.Context, componentID
 		"CV.componentversion_updated_at",
 		"CV.componentversion_updated_by",
 		"CV.componentversion_end_of_life",
+		"CV.componentversion_latest_version",
 	).
 		From("ComponentVersion CV").
 		Where(sq.Eq{"CV.componentversion_component_id": componentIDs}).
@@ -108,6 +109,7 @@ func (s *SqlDatabase) GetVersionsByComponentIDs(ctx context.Context, componentID
 			&row.UpdatedAt,
 			&row.UpdatedBy,
 			&row.EndOfLife,
+			&row.LatestVersion,
 		); err != nil {
 			l.WithError(err).Error("Error scanning GetVersionsByComponentIDs row")
 			return nil, fmt.Errorf("GetVersionsByComponentIDs: error scanning row: %w", err)
@@ -220,24 +222,32 @@ func (s *SqlDatabase) GetIssueCountsByComponentIDs(ctx context.Context, componen
 
 // componentVersionWithComponentRow is a scan target for the batch versions query.
 type componentVersionWithComponentRow struct {
-	ID           sql.NullInt64  `db:"componentversion_id"`
-	ComponentID  sql.NullInt64  `db:"componentversion_component_id"`
-	Version      sql.NullString `db:"componentversion_version"`
-	Tag          sql.NullString `db:"componentversion_tag"`
-	Repository   sql.NullString `db:"componentversion_repository"`
-	Organization sql.NullString `db:"componentversion_organization"`
-	CreatedAt    sql.NullTime   `db:"componentversion_created_at"`
-	CreatedBy    sql.NullInt64  `db:"componentversion_created_by"`
-	DeletedAt    sql.NullTime   `db:"componentversion_deleted_at"`
-	UpdatedAt    sql.NullTime   `db:"componentversion_updated_at"`
-	UpdatedBy    sql.NullInt64  `db:"componentversion_updated_by"`
-	EndOfLife    sql.NullBool   `db:"componentversion_end_of_life"`
+	ID            sql.NullInt64  `db:"componentversion_id"`
+	ComponentID   sql.NullInt64  `db:"componentversion_component_id"`
+	Version       sql.NullString `db:"componentversion_version"`
+	Tag           sql.NullString `db:"componentversion_tag"`
+	Repository    sql.NullString `db:"componentversion_repository"`
+	Organization  sql.NullString `db:"componentversion_organization"`
+	CreatedAt     sql.NullTime   `db:"componentversion_created_at"`
+	CreatedBy     sql.NullInt64  `db:"componentversion_created_by"`
+	DeletedAt     sql.NullTime   `db:"componentversion_deleted_at"`
+	UpdatedAt     sql.NullTime   `db:"componentversion_updated_at"`
+	UpdatedBy     sql.NullInt64  `db:"componentversion_updated_by"`
+	EndOfLife     sql.NullBool   `db:"componentversion_end_of_life"`
+	LatestVersion sql.NullString `db:"componentversion_latest_version"`
 }
 
 func (r *componentVersionWithComponentRow) asComponentVersion() entity.ComponentVersion {
 	var eol *bool
 	if r.EndOfLife.Valid {
 		eol = &r.EndOfLife.Bool
+	}
+
+	var latestVersion *string
+
+	if r.LatestVersion.Valid {
+		v := r.LatestVersion.String
+		latestVersion = &v
 	}
 
 	return entity.ComponentVersion{
@@ -248,13 +258,14 @@ func (r *componentVersionWithComponentRow) asComponentVersion() entity.Component
 			UpdatedAt: GetTimeValue(r.UpdatedAt),
 			UpdatedBy: GetInt64Value(r.UpdatedBy),
 		},
-		Id:           GetInt64Value(r.ID),
-		ComponentId:  GetInt64Value(r.ComponentID),
-		Version:      GetStringValue(r.Version),
-		Tag:          GetStringValue(r.Tag),
-		Repository:   GetStringValue(r.Repository),
-		Organization: GetStringValue(r.Organization),
-		EndOfLife:    eol,
+		Id:            GetInt64Value(r.ID),
+		ComponentId:   GetInt64Value(r.ComponentID),
+		Version:       GetStringValue(r.Version),
+		Tag:           GetStringValue(r.Tag),
+		Repository:    GetStringValue(r.Repository),
+		Organization:  GetStringValue(r.Organization),
+		EndOfLife:     eol,
+		LatestVersion: latestVersion,
 	}
 }
 

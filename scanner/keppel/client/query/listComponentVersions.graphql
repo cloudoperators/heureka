@@ -12,6 +12,7 @@ query ListComponentVersions($filter: ComponentVersionFilter) {
                 id
                 version
                 componentId
+                endOfLife
             }
         }
     }

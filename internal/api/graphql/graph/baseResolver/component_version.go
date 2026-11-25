@@ -128,6 +128,7 @@ func ComponentVersionBaseResolver(
 		Version:           filter.Version,
 		State:             model.GetStateFilterType(filter.State),
 		EndOfLife:         filter.EndOfLife,
+		IsOutdated:        filter.IsOutdated,
 	}
 
 	opt := GetListOptions(requestedFields)

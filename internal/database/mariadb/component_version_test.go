@@ -408,6 +408,48 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					})
 				})
+
+				It("can filter by is outdated as true value", func() {
+					isOutdatedAsTrue := true
+
+					filter := &entity.ComponentVersionFilter{
+						IsOutdated: []*bool{&isOutdatedAsTrue},
+					}
+
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning only outdated entries", func() {
+						for _, entry := range entries {
+							Expect(entry.IsOutdated).ToNot(BeNil())
+							Expect(*entry.IsOutdated).To(BeTrue())
+						}
+					})
+				})
+
+				It("can filter by is outdated as false value", func() {
+					isOutdatedAsFalse := false
+
+					filter := &entity.ComponentVersionFilter{
+						IsOutdated: []*bool{&isOutdatedAsFalse},
+					}
+
+					entries, err := db.GetComponentVersions(context.Background(), filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning only not-outdated entries", func() {
+						for _, entry := range entries {
+							Expect(entry.IsOutdated).ToNot(BeNil())
+							Expect(*entry.IsOutdated).To(BeFalse())
+						}
+					})
+				})
 			})
 
 			Context("and using pagination", func() {

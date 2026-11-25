@@ -24,6 +24,7 @@ query ListComponents($filter: ComponentFilter, $first: Int, $after: String) {
               id
               version
               componentId
+              endOfLife
             }
           }
         }
