@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package processor
@@ -6,6 +6,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/Khan/genqlient/graphql"
@@ -25,6 +26,9 @@ type Processor struct {
 	uuid                string
 	tag                 string
 	Client              *graphql.Client
+	httpClient          *http.Client
+	heurekaURL          string
+	BatchSize           int
 	CveDetailsUrl       string
 	IssueRepositoryUrl  string
 	IssueRepositoryName string
@@ -32,6 +36,12 @@ type Processor struct {
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
+	if cfg.BatchSize <= 0 {
+		log.WithField("batchSize", cfg.BatchSize).
+			Warn("HEUREKA_BATCH_SIZE must be > 0; clamping to 1")
+		cfg.BatchSize = 1
+	}
+
 	httpClient := util.NewRateLimitedHTTPClient(
 		rate.Limit(cfg.HeurekaRateLimit),
 		cfg.HeurekaRateBurst,
@@ -40,6 +50,9 @@ func NewProcessor(cfg Config, tag string) *Processor {
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	return &Processor{
 		Client:              &gClient,
+		httpClient:          httpClient,
+		heurekaURL:          cfg.HeurekaUrl,
+		BatchSize:           cfg.BatchSize,
 		uuid:                uuid.New().String(),
 		tag:                 tag,
 		IssueRepositoryName: cfg.IssueRepositoryName,
@@ -166,8 +179,22 @@ func (p *Processor) ProcessManifest(
 }
 
 func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId string) {
+	ctx := context.Background()
+
+	// Phase 0: classify vulnerabilities into known (already in Heureka) vs new.
+	// seenCVE deduplicates across Results entries: a CVE seen more than once in
+	// the same report is only created/linked once per componentVersion.
+	seenCVE := make(map[string]struct{})
+	var toCreate []newVuln
+	var toLink []linkPair
+
 	for _, result := range report.Results {
 		for _, vulnerability := range result.Vulnerabilities {
+			if _, seen := seenCVE[vulnerability.VulnerabilityID]; seen {
+				continue
+			}
+			seenCVE[vulnerability.VulnerabilityID] = struct{}{}
+
 			issue, err := p.GetIssue(vulnerability.VulnerabilityID)
 			if err != nil {
 				fields := log.Fields{
@@ -177,7 +204,6 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 					"issueID":            "",
 					"issuePrimaryName":   "",
 				}
-
 				if issue != nil {
 					fields["issueID"] = issue.Id
 					fields["issuePrimaryName"] = issue.PrimaryName
@@ -185,63 +211,67 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 				log.WithFields(fields).WithError(err).Error("Error while getting issue")
 				continue
 			}
+
 			if issue == nil {
-				// create only cve issues
 				if !strings.HasPrefix(strings.ToLower(vulnerability.VulnerabilityID), "cve") {
 					log.WithFields(log.Fields{
 						"vulnerabilityID": vulnerability.VulnerabilityID,
 					}).Warning("VulnerabilityID does not start with 'CVE'")
 					continue
 				}
-				i, err := p.CreateIssue(vulnerability.VulnerabilityID, vulnerability.Description)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-				issue = i
 				cvssVector := ""
-				// check if nvd CVSS vector is available
 				if vulnerability.CVSS != nil {
-					if _, ok := vulnerability.CVSS["nvd"]; ok {
-						cvssVector = vulnerability.CVSS["nvd"].V3Vector
+					if nvd, ok := vulnerability.CVSS["nvd"]; ok {
+						cvssVector = nvd.V3Vector
 					}
 				}
-				_, err = p.CreateIssueVariant(
-					vulnerability.VulnerabilityID,
-					vulnerability.Description,
-					issue.Id,
-					cvssVector,
-					vulnerability.Severity,
-				)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-			}
-			_, err = client.AddComponentVersionToIssue(
-				context.Background(),
-				*p.Client,
-				issue.Id,
-				componentVersionId,
-			)
-
-			if err != nil {
-				log.WithFields(log.Fields{
-					"issueId":            issue.Id,
-					"componentVersionId": componentVersionId,
-				}).WithError(err).Error("Could not add component version to issue")
+				toCreate = append(toCreate, newVuln{
+					primaryName: vulnerability.VulnerabilityID,
+					description: vulnerability.Description,
+					cvssVector:  cvssVector,
+					severity:    vulnerability.Severity,
+				})
 			} else {
-				log.WithFields(log.Fields{
-					"issueId":            issue.Id,
-					"componentVersionId": componentVersionId,
-				}).Info("Added issue to componentVersion")
+				toLink = append(toLink, linkPair{
+					primaryName:        vulnerability.VulnerabilityID,
+					issueId:            issue.Id,
+					componentVersionId: componentVersionId,
+				})
 			}
 		}
 	}
 
+	// Phase 1: batch-create Issues for new CVEs.
+	createdIssues := p.batchCreateIssues(ctx, toCreate)
+
+	// Phase 2: batch-create IssueVariants for the successfully created Issues.
+	issueIDByName := make(map[string]string, len(createdIssues))
+	var vulnsWithIssue []newVuln
+	for _, v := range toCreate {
+		if issue, ok := createdIssues[v.primaryName]; ok {
+			issueIDByName[v.primaryName] = issue.Id
+			vulnsWithIssue = append(vulnsWithIssue, v)
+		}
+	}
+	variantFailed := p.batchCreateIssueVariants(ctx, vulnsWithIssue, issueIDByName)
+
+	// Phase 3: batch-link all CVEs that have a resolved issue ID.
+	// Mirrors the serial behaviour: skip linking if IssueVariant creation failed.
+	for _, v := range vulnsWithIssue {
+		if _, failed := variantFailed[v.primaryName]; failed {
+			continue
+		}
+		toLink = append(toLink, linkPair{
+			primaryName:        v.primaryName,
+			issueId:            issueIDByName[v.primaryName],
+			componentVersionId: componentVersionId,
+		})
+	}
+	p.batchAddComponentVersionToIssue(ctx, toLink)
+
 	if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
 		_, err := client.UpdateComponentVersion(
-			context.Background(),
+			ctx,
 			*p.Client,
 			componentVersionId,
 			&client.ComponentVersionInput{
