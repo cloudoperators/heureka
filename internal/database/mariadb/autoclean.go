@@ -83,10 +83,6 @@ func (s *SqlDatabase) processAutocleanScannerRuns(ctx context.Context, runs map[
 	runsToKeep := getOnlyRunsToKeep(runs, keepNRuns)
 	runIdsToKeep := getRunIds(runsToKeep)
 
-	if err := s.deleteErrorsFromNotListedRuns(ctx, runIdsToKeep); err != nil {
-		return err
-	}
-
 	if err := s.deleteTrackersFromNotListedRuns(ctx, runIdsToKeep); err != nil {
 		return err
 	}
@@ -127,25 +123,6 @@ func getRunIds(runs map[string][]int64) []int64 {
 	}
 
 	return result
-}
-
-func (s *SqlDatabase) deleteErrorsFromNotListedRuns(ctx context.Context, runIds []int64) error {
-	query, args, err := sq.Delete("ScannerRunError").
-		Where(sq.NotEq{"scannerrunerror_scannerrun_run_id": runIds}).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
-	result, err := s.db.ExecContext(ctx, query, args...)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	logrus.Infof("Deleted %d Scanner Run Errors", rowsAffected)
-
-	return nil
 }
 
 func (s *SqlDatabase) deleteTrackersFromNotListedRuns(ctx context.Context, runIds []int64) error {

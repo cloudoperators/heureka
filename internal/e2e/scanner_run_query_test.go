@@ -5,6 +5,7 @@ package e2e_test
 
 import (
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -15,25 +16,131 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-	var (
-		s   *server.Server
-		cfg util.Config
-		db  *mariadb.SqlDatabase
+type scannerRunTest struct {
+	s   *server.Server
+	cfg util.Config
+	db  *mariadb.SqlDatabase
+}
+
+func newScannerRunTest() *scannerRunTest {
+	db := dbm.NewTestSchemaWithoutMigration()
+	cfg := dbm.DbConfig()
+	cfg.Port = e2e_common.GetRandomFreePort()
+	cfg.AuthzOpenFgaApiUrl = ""
+	s := e2e_common.NewRunningServer(cfg)
+
+	return &scannerRunTest{s: s, cfg: cfg, db: db}
+}
+
+func (srt *scannerRunTest) tearDown() {
+	e2e_common.ServerTeardown(srt.s)
+	dbm.TestTearDown(srt.db)
+}
+
+func (srt *scannerRunTest) requestCreateAndExpectSuccess(uuid string, tag string) {
+	resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Result bool `json:"createScannerRun"`
+	}](
+		srt.cfg.Port,
+		"../api/graphql/graph/queryCollection/scannerRun/create.graphql",
+		map[string]any{
+			"input": map[string]string{
+				"tag":  tag,
+				"uuid": uuid,
+			},
+		},
+		nil,
 	)
 
-	BeforeEach(func() {
-		db = dbm.NewTestSchemaWithoutMigration()
+	Expect(err).ToNot(HaveOccurred())
+	Expect(resp.Result).To(BeTrue())
+}
 
-		cfg = dbm.DbConfig()
-		cfg.Port = e2e_common.GetRandomFreePort()
-		cfg.AuthzOpenFgaApiUrl = ""
-		s = e2e_common.NewRunningServer(cfg)
+func (srt *scannerRunTest) requestGetCountAndExpectSuccess(tag string, completed bool) model.ScannerRunConnection {
+	resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Result model.ScannerRunConnection `json:"ScannerRuns"`
+	}](
+		srt.cfg.Port,
+		"../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql",
+		map[string]any{
+			"filter": map[string]any{
+				"tag":       []string{tag},
+				"completed": completed,
+			},
+			"first": 10,
+			"after": 0,
+		},
+		nil,
+	)
+
+	Expect(err).ToNot(HaveOccurred())
+
+	return resp.Result
+}
+
+func (srt *scannerRunTest) requestCompleteAndExpectSuccess(uuid string) {
+	newRespData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Result bool `json:"completeScannerRun"`
+	}](
+		srt.cfg.Port,
+		"../api/graphql/graph/queryCollection/scannerRun/complete.graphql",
+		map[string]any{
+			"uuid": uuid,
+		},
+		nil,
+	)
+
+	Expect(err).ToNot(HaveOccurred())
+	Expect(newRespData.Result).To(BeTrue())
+}
+
+func (srt *scannerRunTest) requestFailAndExpectSuccess(uuid string, errMsg string) {
+	respDataFail, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Result bool `json:"failScannerRun"`
+	}](
+		srt.cfg.Port,
+		"../api/graphql/graph/queryCollection/scannerRun/fail.graphql",
+		map[string]any{
+			"message": errMsg,
+			"uuid":    uuid,
+		},
+		nil,
+	)
+
+	Expect(err).ToNot(HaveOccurred())
+	Expect(respDataFail.Result).To(BeTrue())
+}
+
+func (srt *scannerRunTest) requestGetAndExpectSuccess(tag string, completed bool) model.ScannerRunConnection {
+	resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Result model.ScannerRunConnection `json:"ScannerRuns"`
+	}](
+		srt.cfg.Port,
+		"../api/graphql/graph/queryCollection/scannerRun/state.graphql",
+		map[string]any{
+			"filter": map[string]any{
+				"tag":       []string{tag},
+				"completed": completed,
+			},
+			"first": 10,
+			"after": 0,
+		},
+		nil,
+	)
+	Expect(err).ToNot(HaveOccurred())
+
+	return resp.Result
+}
+
+var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func() {
+	var srt *scannerRunTest
+
+	BeforeEach(func() {
+		srt = newScannerRunTest()
 	})
 
 	AfterEach(func() {
-		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		srt.tearDown()
 	})
 
 	When("the database is empty", func() {
@@ -42,22 +149,19 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				sampleTag := gofakeit.Word()
 				sampleUUID := gofakeit.UUID()
 
-				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					Result bool `json:"createScannerRun"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/scannerRun/create.graphql",
-					map[string]any{
-						"input": map[string]string{
-							"tag":  sampleTag,
-							"uuid": sampleUUID,
-						},
-					},
-					nil,
-				)
+				srt.requestCreateAndExpectSuccess(sampleUUID, sampleTag)
+			})
+		})
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(respData.Result).To(BeTrue())
+		Context("and a get query is performed", Label("create.graphql"), func() {
+			It("responds with ScannerRun data", func() {
+				sampleTag := gofakeit.Word()
+				sampleUUID := gofakeit.UUID()
+
+				srt.requestCreateAndExpectSuccess(sampleUUID, sampleTag)
+				result := srt.requestGetCountAndExpectSuccess(sampleTag, false)
+
+				Expect(result.TotalCount).To(Equal(1))
 			})
 		})
 
@@ -66,36 +170,14 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				sampleTag := gofakeit.Word()
 				sampleUUID := gofakeit.UUID()
 
-				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					Result bool `json:"createScannerRun"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/scannerRun/create.graphql",
-					map[string]any{
-						"input": map[string]string{
-							"tag":  sampleTag,
-							"uuid": sampleUUID,
-						},
-					},
-					nil,
-				)
+				srt.requestCreateAndExpectSuccess(sampleUUID, sampleTag)
+				srt.requestCompleteAndExpectSuccess(sampleUUID)
+				result := srt.requestGetAndExpectSuccess(sampleTag, false)
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(respData.Result).To(BeTrue())
-
-				newRespData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					Result bool `json:"completeScannerRun"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/scannerRun/complete.graphql",
-					map[string]any{
-						"uuid": sampleUUID,
-					},
-					nil,
-				)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(newRespData.Result).To(BeTrue())
+				Expect(result.TotalCount).To(Equal(1))
+				Expect(result.Edges).To(HaveLen(1))
+				Expect(result.Edges[0].Node.Completed).To(Equal(true))
+				Expect(result.Edges[0].Node.Error).To(BeEmpty())
 			})
 		})
 
@@ -103,86 +185,17 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 			It("creates new ScannerRun and fails the scanner run", func() {
 				sampleTag := gofakeit.Word()
 				sampleUUID := gofakeit.UUID()
-				sampleMessage := gofakeit.Sentence()
+				sampleErrorMessage := gofakeit.Sentence()
 
-				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					Result bool `json:"createScannerRun"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/scannerRun/create.graphql",
-					map[string]any{
-						"input": map[string]string{
-							"tag":  sampleTag,
-							"uuid": sampleUUID,
-						},
-					},
-					nil,
-				)
+				srt.requestCreateAndExpectSuccess(sampleUUID, sampleTag)
+				srt.requestCompleteAndExpectSuccess(sampleUUID)
+				srt.requestFailAndExpectSuccess(sampleUUID, sampleErrorMessage)
+				result := srt.requestGetAndExpectSuccess(sampleTag, false)
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(respData.Result).To(BeTrue())
-
-				newRespData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					Result bool `json:"failScannerRun"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/scannerRun/fail.graphql",
-					map[string]any{
-						"message": sampleMessage,
-						"uuid":    sampleUUID,
-					},
-					nil,
-				)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(newRespData.Result).To(BeTrue())
-			})
-		})
-	})
-})
-
-var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-	var (
-		s   *server.Server
-		cfg util.Config
-		db  *mariadb.SqlDatabase
-	)
-
-	BeforeEach(func() {
-		db = dbm.NewTestSchemaWithoutMigration()
-
-		cfg = dbm.DbConfig()
-		cfg.Port = e2e_common.GetRandomFreePort()
-		cfg.AuthzOpenFgaApiUrl = ""
-		s = e2e_common.NewRunningServer(cfg)
-	})
-
-	AfterEach(func() {
-		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
-	})
-
-	When("the database is empty", func() {
-		Context("and a query for scannerruns is performed", Label("create.graphql"), func() {
-			It("returns an empty list", func() {
-				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					Result int `json:"totalCount"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql",
-					map[string]any{
-						"filter": map[string]any{
-							"tag":       []string{},
-							"completed": false,
-						},
-						"first": 10,
-						"after": 0,
-					},
-					nil,
-				)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(respData.Result).To(Equal(0))
+				Expect(result.TotalCount).To(Equal(1))
+				Expect(result.Edges).To(HaveLen(1))
+				Expect(result.Edges[0].Node.Completed).To(Equal(false))
+				Expect(result.Edges[0].Node.Error).To(Equal(sampleErrorMessage))
 			})
 		})
 	})
