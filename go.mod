@@ -25,6 +25,7 @@ require (
 	github.com/openfga/go-sdk v0.8.1
 	github.com/openfga/language/pkg/go v0.2.1
 	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
+	github.com/pandatix/go-cvss v0.6.4
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/lo v1.53.0
