@@ -11,9 +11,10 @@ import (
 	"testing"
 	"time"
 
-	heurekajwt "github.com/cloudoperators/heureka/pkg/jwt"
 	"github.com/cloudoperators/heureka/pkg/util"
 )
+
+const testToken = "test-token"
 
 func okResponse() *http.Response {
 	return &http.Response{
@@ -30,16 +31,15 @@ func TestWithAuth_SetsServiceAuthorizationHeader(t *testing.T) {
 		seenHeader = r.Header.Get("X-Service-Authorization")
 		return okResponse(), nil
 	})
-	signer := heurekajwt.NewSigner("secret", time.Minute, "test-caller")
-	client := util.WithAuth(&http.Client{Transport: base}, signer)
+	client := util.WithAuth(&http.Client{Transport: base}, testToken)
 
 	req, _ := http.NewRequest(http.MethodPost, "http://example.test/q", nil)
 	if _, err := client.Do(req); err != nil {
 		t.Fatalf("Do: %v", err)
 	}
 
-	if !strings.HasPrefix(seenHeader, "Bearer ey") {
-		t.Errorf("X-Service-Authorization = %q, want prefix %q", seenHeader, "Bearer ey")
+	if want := "Bearer " + testToken; seenHeader != want {
+		t.Errorf("X-Service-Authorization = %q, want %q", seenHeader, want)
 	}
 }
 
@@ -47,8 +47,7 @@ func TestWithAuth_DoesNotMutateOriginalRequest(t *testing.T) {
 	base := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return okResponse(), nil
 	})
-	signer := heurekajwt.NewSigner("secret", time.Minute, "test-caller")
-	client := util.WithAuth(&http.Client{Transport: base}, signer)
+	client := util.WithAuth(&http.Client{Transport: base}, testToken)
 
 	req, _ := http.NewRequest(http.MethodPost, "http://example.test/q", nil)
 	if _, err := client.Do(req); err != nil {
@@ -65,8 +64,7 @@ func TestWithAuth_PropagatesTransportErrors(t *testing.T) {
 	base := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return nil, wantErr
 	})
-	signer := heurekajwt.NewSigner("secret", time.Minute, "test-caller")
-	client := util.WithAuth(&http.Client{Transport: base}, signer)
+	client := util.WithAuth(&http.Client{Transport: base}, testToken)
 
 	req, _ := http.NewRequest(http.MethodPost, "http://example.test/q", nil)
 
@@ -84,8 +82,7 @@ func TestWithAuth_PreservesExistingClientFields(t *testing.T) {
 		Transport: base,
 		Timeout:   7 * time.Second,
 	}
-	signer := heurekajwt.NewSigner("secret", time.Minute, "test-caller")
-	wrapped := util.WithAuth(original, signer)
+	wrapped := util.WithAuth(original, testToken)
 
 	if wrapped.Timeout != original.Timeout {
 		t.Errorf("Timeout lost: got %v, want %v", wrapped.Timeout, original.Timeout)
@@ -101,9 +98,8 @@ func TestWithAuth_PreservesExistingClientFields(t *testing.T) {
 }
 
 func TestWithAuth_UsesDefaultTransportWhenNil(t *testing.T) {
-	signer := heurekajwt.NewSigner("secret", time.Minute, "test-caller")
 	// Client with no explicit Transport — WithAuth should fall back to http.DefaultTransport.
-	client := util.WithAuth(&http.Client{}, signer)
+	client := util.WithAuth(&http.Client{}, testToken)
 
 	if client.Transport == nil {
 		t.Fatal("wrapped client has nil Transport")

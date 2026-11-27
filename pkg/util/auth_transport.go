@@ -3,37 +3,28 @@
 
 package util
 
-import (
-	"net/http"
-
-	"github.com/cloudoperators/heureka/pkg/jwt"
-)
+import "net/http"
 
 type authTransport struct {
-	base   http.RoundTripper
-	signer *jwt.Signer
+	base  http.RoundTripper
+	token string
 }
 
 func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	token, err := t.signer.Token()
-	if err != nil {
-		return nil, err
-	}
-
 	req = req.Clone(req.Context())
-	req.Header.Set("X-Service-Authorization", "Bearer "+token)
+	req.Header.Set("X-Service-Authorization", "Bearer "+t.token)
 
 	return t.base.RoundTrip(req)
 }
 
-func WithAuth(client *http.Client, signer *jwt.Signer) *http.Client {
+func WithAuth(client *http.Client, token string) *http.Client {
 	base := client.Transport
 	if base == nil {
 		base = http.DefaultTransport
 	}
 
 	wrapped := *client
-	wrapped.Transport = &authTransport{base: base, signer: signer}
+	wrapped.Transport = &authTransport{base: base, token: token}
 
 	return &wrapped
 }
