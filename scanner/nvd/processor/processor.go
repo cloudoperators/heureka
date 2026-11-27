@@ -37,6 +37,9 @@ func NewProcessor(cfg Config) *Processor {
 		nil,
 	)
 	httpClient.Timeout = time.Duration(10) * time.Second
+
+	httpClient = util.WithAuth(httpClient, cfg.AuthToken)
+
 	return &Processor{
 		GraphqlClient:       graphql.NewClient(cfg.HeurekaUrl, httpClient),
 		IssueRepositoryName: cfg.IssueRepositoryName,

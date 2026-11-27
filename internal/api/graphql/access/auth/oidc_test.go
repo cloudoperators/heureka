@@ -4,6 +4,7 @@
 package auth_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -12,9 +13,11 @@ import (
 
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
-	"github.com/cloudoperators/heureka/internal/api/graphql/access/context"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/auth"
+	authcontext "github.com/cloudoperators/heureka/internal/api/graphql/access/context"
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/test"
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/oidc"
 )
@@ -22,10 +25,20 @@ import (
 const (
 	clientId                = "mock-client-id"
 	testOidcUserName        = "dummyOidcUserName"
+	testOidcUserId          = int64(7)
 	enableOidcProviderLog   = false
 	enableOidcMiddlewareLog = false
 	enableOidcServerLog     = false
 )
+
+func humanUserResolver(expectedSubject string) auth.UserResolver {
+	return func(_ context.Context, uniqueUserId string) (int64, entity.UserType, error) {
+		if uniqueUserId != expectedSubject {
+			return 0, entity.InvalidUserType, fmt.Errorf("user not found")
+		}
+		return testOidcUserId, entity.HumanUserType, nil
+	}
+}
 
 var _ = Describe(
 	"Pass OIDC token data via context when using OIDC auth middleware",
@@ -44,6 +57,7 @@ var _ = Describe(
 
 			a := middleware.NewAuth(
 				&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId},
+				humanUserResolver(testOidcUserName),
 				enableOidcMiddlewareLog,
 			)
 			testServer = test.NewTestServer(a, enableOidcServerLog)
@@ -75,9 +89,14 @@ var _ = Describe(
 				Expect(resp.StatusCode).To(Equal(200))
 			})
 			It("Should be able to access user name from request context", func() {
-				name, err := context.UserNameFromContext(testServer.Context())
+				name, err := authcontext.UserNameFromContext(testServer.Context())
 				Expect(err).To(BeNil())
 				Expect(name).To(BeEquivalentTo(testOidcUserName))
+			})
+			It("Should be able to access user id from request context", func() {
+				id, err := authcontext.UserIdFromContext(testServer.Context())
+				Expect(err).To(BeNil())
+				Expect(id).To(Equal(testOidcUserId))
 			})
 		})
 
@@ -95,7 +114,7 @@ var _ = Describe(
 				Expect(resp.StatusCode).To(Equal(401))
 			})
 			It("Should not store gin context in request context", func() {
-				_, err := context.UserNameFromContext(testServer.Context())
+				_, err := authcontext.UserNameFromContext(testServer.Context())
 				Expect(err).ShouldNot(BeNil())
 			})
 		})

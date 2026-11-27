@@ -10,4 +10,5 @@ type Config struct {
 	CveDetailsUrl       string  `envconfig:"CVE_DETAILS_URL"       required:"true" json:"-" default:"https://nvd.nist.gov/vuln/detail/"`
 	HeurekaRateLimit    float64 `envconfig:"HEUREKA_RATE_LIMIT"                    json:"-" default:"10000.0"`
 	HeurekaRateBurst    int     `envconfig:"HEUREKA_RATE_BURST"                    json:"-" default:"10000"`
+	AuthToken           string  `envconfig:"API_TOKEN"             required:"true" json:"-"`
 }

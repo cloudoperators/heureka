@@ -37,12 +37,12 @@ type Repository struct {
 }
 
 type Manifest struct {
-	Digest              string     `json:"digest"`
-	MediaType           string     `json:"media_type"`
-	SizeBytes           uint64     `json:"size_bytes"`
-	PushedAt            uint64     `json:"pushed_at"`
-	LastPulledAt        uint64     `json:"last_pulled_at"`
-	VulnerabilityStatus string     `json:"vulnerability_status"`
+	Digest              string `json:"digest"`
+	MediaType           string `json:"media_type"`
+	SizeBytes           uint64 `json:"size_bytes"`
+	PushedAt            uint64 `json:"pushed_at"`
+	LastPulledAt        uint64 `json:"last_pulled_at"`
+	VulnerabilityStatus string `json:"vulnerability_status"`
 	Labels              Labels
 	Tags                []Tag      `json:"tags"`
 	Children            []Manifest `json:"manifests"`

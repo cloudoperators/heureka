@@ -12,54 +12,51 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const defaultExpiresInHours = 30 * 24
+const (
+	defaultExpiresInHours = 30 * 24
+	jwtIssuer             = "heureka"
+)
 
-type TokenClaims struct {
+type tokenClaims struct {
 	Version string `json:"version"`
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(jwtSecret []byte, expireIn time.Duration) (string, error) {
-	claims := TokenClaims{
+func generateJWT(secret []byte, expireIn time.Duration, subject string) (string, error) {
+	claims := tokenClaims{
 		Version: "0.3.1",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expireIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "heureka",
-			Subject:   "testclient",
+			Issuer:    jwtIssuer,
+			Subject:   subject,
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString(jwtSecret)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
+	return token.SignedString(secret)
 }
 
 func main() {
-	var jwtSecret []byte
-	jwtSecretVar := os.Getenv("JWT_SECRET")
-	if jwtSecretVar == "" {
+	if len(os.Args) != 2 {
+		fmt.Fprintf(os.Stderr, "usage: %s <subject>\n", os.Args[0])
+		os.Exit(2)
+	}
+	subject := os.Args[1]
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
 		panic("JWT_SECRET environment variable not set")
-	} else {
-		jwtSecret = []byte(jwtSecretVar)
 	}
 
-	var expiration time.Duration
-	expiresInHours, err := strconv.Atoi(os.Getenv("EXPIRES_IN_HOURS"))
-	if err != nil {
-		expiration = time.Hour * defaultExpiresInHours
-	} else {
-		expiration = time.Hour * time.Duration(expiresInHours)
+	expiration := time.Hour * defaultExpiresInHours
+	if hours, err := strconv.Atoi(os.Getenv("EXPIRES_IN_HOURS")); err == nil {
+		expiration = time.Hour * time.Duration(hours)
 	}
 
-	token, err := GenerateJWT(jwtSecret, expiration)
+	token, err := generateJWT([]byte(secret), expiration, subject)
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Println(token)
 }

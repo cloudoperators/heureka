@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	RottenVulnerabilityStatus = "Rotten"
+	rottenVulnerabilityStatus = "Rotten"
 )
 
 type Processor struct {
@@ -47,6 +47,9 @@ func NewProcessor(cfg Config, tag string) *Processor {
 		cfg.HeurekaRateBurst,
 		nil,
 	)
+
+	httpClient = util.WithAuth(httpClient, cfg.AuthToken)
+
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	return &Processor{
 		Client:              &gClient,
@@ -160,7 +163,7 @@ func (p *Processor) ProcessManifest(
 		&client.ComponentVersionInput{
 			Version:     manifest.Digest,
 			ComponentId: componentId,
-			EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
+			EndOfLife:   manifest.VulnerabilityStatus == rottenVulnerabilityStatus,
 		},
 	)
 	if err != nil {

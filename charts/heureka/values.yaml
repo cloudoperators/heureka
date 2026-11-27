@@ -50,6 +50,22 @@ environment: staging
 
 seedMode: true
 
+# Authentication. At least one of `api.authToken` or `oidc.url` MUST be set;
+# the chart refuses to install otherwise (see templates/deployment.yaml).
+#
+# api.authToken: HS256 secret for service-to-service auth (scanners).
+# Tokens are minted out of band with tools/token_generator and injected into
+# each scanner as HEUREKA_API_TOKEN.
+api:
+  authToken: ""
+
+# oidc: OIDC auth for human users.
+# url: IdP discovery URL. When empty, OIDC auth is disabled.
+# clientId: OAuth client id this API verifies tokens against.
+oidc:
+  url: ""
+  clientId: ""
+
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little

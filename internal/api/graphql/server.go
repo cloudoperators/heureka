@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
 	gqlmiddleware "github.com/cloudoperators/heureka/internal/api/graphql/middleware"
 	"github.com/cloudoperators/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/oyyblin/gqlgen-depth-limit-extension/depth"
@@ -27,7 +28,7 @@ type GraphQLAPI struct {
 	rateLimiter  *gqlmiddleware.IPRateLimiter
 }
 
-func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
+func NewGraphQLAPI(a app.Heureka, db database.Database, cfg util.Config) *GraphQLAPI {
 	gqlCfg := resolver.NewResolver(a)
 	gqlCfg.Directives.Constraint = directive.Constraint
 	server := handler.NewDefaultServer(graph.NewExecutableSchema(gqlCfg))
@@ -36,7 +37,7 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 	graphQLAPI := GraphQLAPI{
 		Server:       server,
 		App:          a,
-		auth:         middleware.NewAuth(&cfg, true),
+		auth:         middleware.NewAuth(&cfg, middleware.NewDbUserResolver(db), true),
 		batchLimiter: gqlmiddleware.NewBatchLimiter(cfg.GQLBatchLimit),
 		rateLimiter: gqlmiddleware.NewIPRateLimiter(
 			rate.Limit(cfg.GQLHttpRateLimit),

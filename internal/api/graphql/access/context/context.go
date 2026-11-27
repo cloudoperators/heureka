@@ -15,6 +15,7 @@ type ginContextKeyType string
 const (
 	ginContextKey             ginContextKeyType = "GinContextKey"
 	UserNameKey               string            = "username"
+	UserIdKey                 string            = "userId"
 	authenticationRequiredKey string            = "authenticationRequired"
 )
 
@@ -68,12 +69,39 @@ func ginContextGetBool(ctx context.Context, key string) bool {
 	return gc.GetBool(key)
 }
 
+func ginContextGetInt64(ctx context.Context, key string) (int64, error) {
+	gc, err := ginContextFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	v, ok := gc.Get(key)
+	if !ok {
+		return 0, fmt.Errorf("could not find key: '%s' in gin.Context", key)
+	}
+
+	id, ok := v.(int64)
+	if !ok {
+		return 0, fmt.Errorf("invalid key type: '%T', should be int64", v)
+	}
+
+	return id, nil
+}
+
 func UserNameToContext(c *gin.Context, username string) {
 	ginContextSet(c, UserNameKey, username)
 }
 
 func UserNameFromContext(ctx context.Context) (string, error) {
 	return ginContextGet(ctx, UserNameKey)
+}
+
+func UserIdToContext(c *gin.Context, id int64) {
+	ginContextSet(c, UserIdKey, id)
+}
+
+func UserIdFromContext(ctx context.Context) (int64, error) {
+	return ginContextGetInt64(ctx, UserIdKey)
 }
 
 func SetAuthenticationRequired(c *gin.Context) {

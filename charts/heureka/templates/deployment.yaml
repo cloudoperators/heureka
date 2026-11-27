@@ -1,3 +1,8 @@
+{{- $hasToken := and .Values.api .Values.api.authToken -}}
+{{- $hasOidc  := and .Values.oidc .Values.oidc.url -}}
+{{- if not (or $hasToken $hasOidc) -}}
+{{- fail "At least one of api.authToken or oidc.url must be set. Running without either would leave the API unauthenticated." -}}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,6 +13,7 @@ metadata:
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/targets: "kubernetes"
+    secret.reloader.stakater.com/reload: {{ include "heureka.fullname" . }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -64,6 +70,19 @@ spec:
                   key: mariadb-root-password
             - name: DB_ADDRESS
               value: "heureka-mariadb.heureka.svc.cluster.local"
+            {{- if and .Values.api .Values.api.authToken }}
+            - name: AUTH_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "heureka.fullname" . }}
+                  key: auth-token-secret
+            {{- end }}
+            {{- if and .Values.oidc .Values.oidc.url }}
+            - name: AUTH_OIDC_URL
+              value: {{ .Values.oidc.url | quote }}
+            - name: AUTH_OIDC_CLIENT_ID
+              value: {{ .Values.oidc.clientId | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

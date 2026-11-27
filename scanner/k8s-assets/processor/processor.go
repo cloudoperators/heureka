@@ -101,11 +101,15 @@ func NewProcessor(cfg Config, tag string) *Processor {
 		cfg.HeurekaRateBurst,
 		nil,
 	)
+
+	httpClient = util.WithAuth(httpClient, cfg.AuthToken)
+
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	advCfg, err := cfg.LoadAdvancedConfig()
 	if err != nil {
 		log.WithError(err).Error("failed to load advanced config")
 	}
+
 	return &Processor{
 		config:    cfg,
 		Client:    &gClient,
