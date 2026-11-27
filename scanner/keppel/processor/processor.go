@@ -6,10 +6,8 @@ package processor
 import (
 	"context"
 	"fmt"
-	"github.com/cloudoperators/heureka/pkg/jwt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/pkg/util"
@@ -22,8 +20,6 @@ import (
 
 const (
 	rottenVulnerabilityStatus = "Rotten"
-	authTokenTTL              = 10 * time.Minute
-	clientName                = "scanner-keppel"
 )
 
 type Processor struct {
@@ -52,10 +48,7 @@ func NewProcessor(cfg Config, tag string) *Processor {
 		nil,
 	)
 
-	if cfg.AuthTokenSecret != "" {
-		signer := jwt.NewSigner(cfg.AuthTokenSecret, authTokenTTL, clientName)
-		httpClient = util.WithAuth(httpClient, signer)
-	}
+	httpClient = util.WithAuth(httpClient, cfg.AuthToken)
 
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	return &Processor{

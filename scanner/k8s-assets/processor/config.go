@@ -19,7 +19,7 @@ type Config struct {
 	DefaultKeppelRegistry string  `envconfig:"DEFAULT_KEPPEL_REGISTRY" required:"true"`
 	HeurekaRateLimit      float64 `envconfig:"HEUREKA_RATE_LIMIT"                      json:"-" default:"100.0"`
 	HeurekaRateBurst      int     `envconfig:"HEUREKA_RATE_BURST"                      json:"-" default:"100"`
-	AuthTokenSecret       string  `envconfig:"AUTH_TOKEN_SECRET" json:"-"`
+	AuthToken             string  `envconfig:"API_TOKEN"               required:"true" json:"-"`
 }
 
 func (c *Config) LoadAdvancedConfig() (*AdvancedConfig, error) {
