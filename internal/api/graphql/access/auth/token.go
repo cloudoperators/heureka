@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	authctx "github.com/cloudoperators/heureka/internal/api/graphql/access/context"
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -20,21 +21,25 @@ const (
 	tokenAuthMethodName string = "TokenAuthMethod"
 )
 
-func NewTokenAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
+func NewTokenAuthMethod(l *logrus.Logger, cfg *util.Config, resolve UserResolver) authMethod {
 	if cfg.AuthTokenSecret != "" {
+		if resolve == nil {
+			l.Fatal("NewTokenAuthMethod: resolve is nil")
+		}
 		l.Info("Initializing Token auth")
-		return &TokenAuthMethod{logger: l, secret: []byte(cfg.AuthTokenSecret)}
+		return &TokenAuthMethod{logger: l, secret: []byte(cfg.AuthTokenSecret), resolve: resolve}
 	}
 
 	return nil
 }
 
 type TokenAuthMethod struct {
-	logger *logrus.Logger
-	secret []byte
+	logger  *logrus.Logger
+	secret  []byte
+	resolve UserResolver
 }
 
-func (tam TokenAuthMethod) Verify(c *gin.Context) error {
+func (tam *TokenAuthMethod) Verify(c *gin.Context) error {
 	tokenString, err := getAuthTokenFromHeader(tokenAuthHeader, c)
 	if err != nil {
 		return verifyError(tokenAuthMethodName, err)
@@ -50,20 +55,32 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 		return err
 	}
 
+	userId, userType, err := tam.resolve(c.Request.Context(), claims.Subject)
+	if err != nil {
+		tam.logger.WithError(err).WithField("subject", claims.Subject).Warn("user associated with token not found")
+		return verifyError(tokenAuthMethodName, fmt.Errorf("invalid token"))
+	}
+
+	if userType != entity.TechnicalUserType {
+		tam.logger.WithField("subject", claims.Subject).Warn("user associated with token is not a technical user")
+		return verifyError(tokenAuthMethodName, fmt.Errorf("invalid token"))
+	}
+
 	authctx.UserNameToContext(c, claims.Subject)
+	authctx.UserIdToContext(c, userId)
 
 	return nil
 }
 
-func (tam TokenAuthMethod) parseTokenWithClaims(tokenString string) (*TokenClaims, error) {
+func (tam *TokenAuthMethod) parseTokenWithClaims(tokenString string) (*TokenClaims, error) {
 	claims := &TokenClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, tam.parse)
 	if err != nil {
-		tam.logger.Error("JWT parsing error: ", err)
-		err = verifyError(tokenAuthMethodName, fmt.Errorf("token parsing error"))
+		tam.logger.WithError(err).Warn("JWT parsing error")
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("invalid token"))
 	} else if !token.Valid {
-		tam.logger.Error("Invalid token")
+		tam.logger.Warn("JWT signature invalid")
 
 		err = verifyError(tokenAuthMethodName, fmt.Errorf("invalid token"))
 	}
@@ -71,17 +88,17 @@ func (tam TokenAuthMethod) parseTokenWithClaims(tokenString string) (*TokenClaim
 	return claims, err
 }
 
-func (tam TokenAuthMethod) verifyTokenExpiration(tc *TokenClaims) error {
+func (tam *TokenAuthMethod) verifyTokenExpiration(tc *TokenClaims) error {
 	var err error
 
 	if tc.ExpiresAt == nil {
-		tam.logger.Error("Missing ExpiresAt in token claims")
+		tam.logger.Warn("missing ExpiresAt in token claims")
 
-		err = verifyError(tokenAuthMethodName, fmt.Errorf("missing ExpiresAt in token claims"))
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("invalid token"))
 	} else if tc.ExpiresAt.Before(time.Now()) {
-		tam.logger.Warn("Expired token")
+		tam.logger.Warn("expired token")
 
-		err = verifyError(tokenAuthMethodName, fmt.Errorf("expired token"))
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("invalid token"))
 	}
 
 	return err

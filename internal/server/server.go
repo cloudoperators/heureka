@@ -92,7 +92,7 @@ func NewServer(cfg util.Config) *Server {
 
 	s := Server{
 		router:       &gin.Engine{},
-		graphQLAPI:   graphqlapi.NewGraphQLAPI(application, cfg),
+		graphQLAPI:   graphqlapi.NewGraphQLAPI(application, db, cfg),
 		aiAPI:        ai,
 		config:       cfg,
 		app:          application,

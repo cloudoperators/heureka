@@ -20,15 +20,10 @@ const (
 
 func GetCurrentUserId(ctx context.Context, db database.Database) (int64, error) {
 	if authentication_context.IsAuthenticationRequired(ctx) {
-		uniqueUserId, err := authentication_context.UserNameFromContext(ctx)
-		if err != nil {
-			return 0, fmt.Errorf("could not get user name from context: %w", err)
-		}
-
-		return getUserIdFromDb(ctx, db, uniqueUserId)
-	} else {
-		return getUserIdFromDb(ctx, db, systemUserUniqueUserId)
+		return authentication_context.UserIdFromContext(ctx)
 	}
+
+	return getUserIdFromDb(ctx, db, systemUserUniqueUserId)
 }
 
 func GetCurrentUniqueUserId(ctx context.Context) (string, error) {

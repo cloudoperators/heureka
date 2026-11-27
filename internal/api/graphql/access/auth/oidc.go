@@ -42,10 +42,14 @@ type OidcAuthMethod struct {
 	provider *oidc.Provider
 	config   *oidc.Config
 	verifier *oidc.IDTokenVerifier
+	resolve  UserResolver
 }
 
-func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
+func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config, resolve UserResolver) authMethod {
 	if cfg.AuthOidcUrl != "" {
+		if resolve == nil {
+			l.Fatal("NewOidcAuthMethod: resolve is nil")
+		}
 		oidcProvider, err := oidc.NewProvider(context.TODO(), cfg.AuthOidcUrl)
 		if err != nil {
 			l.Error("Could not initialize OIDC provider: ", err, " (", cfg.AuthOidcUrl, ")")
@@ -70,13 +74,14 @@ func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 			provider: oidcProvider,
 			config:   oidcConfig,
 			verifier: oidcVerifier,
+			resolve:  resolve,
 		}
 	}
 
 	return nil
 }
 
-func (oam OidcAuthMethod) Verify(c *gin.Context) error {
+func (oam *OidcAuthMethod) Verify(c *gin.Context) error {
 	rawToken, err := getAuthTokenFromHeader(oidcAuthHeader, c)
 	if err != nil {
 		return verifyError(oidcAuthMethodName, err)
@@ -94,7 +99,14 @@ func (oam OidcAuthMethod) Verify(c *gin.Context) error {
 		return verifyError(oidcAuthMethodName, fmt.Errorf("failed to parse token claims: %w", err))
 	}
 
+	userId, _, err := oam.resolve(c.Request.Context(), claims.Sub)
+	if err != nil {
+		oam.logger.WithError(err).WithField("subject", claims.Sub).Warn("user associated with token not found")
+		return verifyError(oidcAuthMethodName, fmt.Errorf("invalid token"))
+	}
+
 	authctx.UserNameToContext(c, claims.Sub)
+	authctx.UserIdToContext(c, userId)
 
 	return nil
 }
