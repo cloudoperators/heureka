@@ -50,14 +50,18 @@ environment: staging
 
 seedMode: true
 
-# API authentication (HS256 token for service-to-service, e.g., scanners).
-# When empty, token auth is disabled and the API accepts unauthenticated requests
-# unless OIDC is configured.
+# Authentication. At least one of `api.authToken` or `oidc.url` MUST be set;
+# the chart refuses to install otherwise (see templates/deployment.yaml).
+#
+# api.authToken: HS256 secret for service-to-service auth (scanners).
+# Tokens are minted out of band with tools/token_generator and injected into
+# each scanner as HEUREKA_API_TOKEN.
 api:
   authToken: ""
 
-# OIDC authentication (for user-facing).
-# When url is empty, OIDC is disabled. url should be the IdP's discovery URL.
+# oidc: OIDC auth for human users.
+# url: IdP discovery URL. When empty, OIDC auth is disabled.
+# clientId: OAuth client id this API verifies tokens against.
 oidc:
   url: ""
   clientId: ""

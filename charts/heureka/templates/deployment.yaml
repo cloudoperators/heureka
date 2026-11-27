@@ -1,3 +1,8 @@
+{{- $hasToken := and .Values.api .Values.api.authToken -}}
+{{- $hasOidc  := and .Values.oidc .Values.oidc.url -}}
+{{- if not (or $hasToken $hasOidc) -}}
+{{- fail "At least one of api.authToken or oidc.url must be set. Running without either would leave the API unauthenticated." -}}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
